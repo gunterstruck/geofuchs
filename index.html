@@ -2,79 +2,140 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Impressum & Datenschutz – GeoFuchs</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="robots" content="noindex,follow">
-    <link rel="stylesheet" href="privacy.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GeoFuchs - KI-gesteuerte Kartenanwendung für Deutschland">
+    <title>GeoFuchs - Startseite</title>
     <style>
-        body { font-family: system-ui,sans-serif; margin: 0; color: #222; background: #fafbfc; }
-        header { background: #17437E; color: #fff; padding: 2rem 1rem 1.5rem 1rem; }
-        nav { margin-top: 1rem; }
-        nav a { color: #fff; margin-right: 2rem; font-weight: bold; text-decoration: none; }
-        main { max-width: 720px; margin: 2rem auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 24px #0001; padding: 2rem; }
-        h1, h2 { color: #17437E; }
-        section { margin-bottom: 2.5rem; }
-        footer { text-align: center; color: #888; font-size: 0.95em; margin: 2rem 0 0.5rem; }
-        @media (max-width: 600px) {
-            main { padding: 1rem; margin: 1rem; }
-            nav a { display: block; margin: 0.5rem 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #020617;
+            color: #e2e8f0;
+            line-height: 1.6;
+            margin: 0;
+            padding: 2em;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background-color: #1e293b;
+            padding: 2em;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        h1, h2, h3 {
+            color: #14b8a6;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 0.5em;
+            margin-top: 1.5em;
+        }
+        h1 { font-size: 2em; }
+        h2 { font-size: 1.5em; }
+        h3 { font-size: 1.2em; }
+        a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .intro {
+            text-align: center;
+            margin-bottom: 2em;
+        }
+        .intro a {
+            font-size: 1.2em;
+            background-color: #0d9488;
+            color: white;
+            padding: 0.75em 1.5em;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .intro a:hover {
+            background-color: #047857;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            text-decoration: none;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
         }
     </style>
 </head>
 <body>
-<header>
-    <h1>Impressum & Datenschutz<br>für GeoFuchs</h1>
-    <nav>
-        <a href="#datenschutz">Datenschutz</a>
-        <a href="#impressum">Impressum</a>
-    </nav>
-</header>
-<main>
-    <section id="datenschutz">
-        <h2>Datenschutzrichtlinie – GeoFuchs</h2>
-        <p>
-            Die App <strong>GeoFuchs</strong> verwendet ausschließlich öffentliche Kartendaten (OpenStreetMap, GeoJSON) zur Darstellung von Geoinformationen.<br>
-            <br>
-            <strong>1. Keine Erhebung personenbezogener Daten:</strong><br>
-            Die Nutzung ist ohne Login, ohne Erhebung von Namen, E-Mail-Adressen oder Standortdaten möglich.<br>
-            <br>
-            <strong>2. Keine Tracking-Tools oder Analyse-Dienste:</strong><br>
-            GeoFuchs integriert keinerlei Google Analytics, Facebook Pixel oder ähnliche Mechanismen.<br>
-            <br>
-            <strong>3. Externe Links & Kartenanbieter:</strong><br>
-            Beim Anzeigen der Karte wird eine Verbindung zu OpenStreetMap hergestellt. Es gelten die <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Datenschutzrichtlinien von OpenStreetMap</a>.<br>
-            <br>
-            <strong>4. Ihre Rechte:</strong> Sie haben das Recht auf Auskunft, Berichtigung oder Löschung aller eventuell erfassten Daten (was jedoch standardmäßig nicht erfolgt). Für Nachfragen siehe Impressum.
-        </p>
-    </section>
+    <div class="container">
+        <header class="intro">
+            <h1>🌍 GeoFuchs 🦊</h1>
+            <p>Ihr KI-gestützter Karten-Assistent</p>
+            <a href="app.html">Zur Anwendung</a>
+        </header>
 
-    <section id="impressum">
-        <h2>Impressum</h2>
+        <h2>Datenschutzerklärung</h2>
+        <small>Stand: Februar 2025</small>
+
+        <h3>1. Verantwortlicher</h3>
         <p>
-            Verantwortlich gemäß § 5 TMG:<br><br>
-            <strong>Günter Struck</strong><br>
-            Beispielstraße 12<br>
-            45133 Essen<br>
-            Deutschland<br>
-            <br>
-            E-Mail: <a href="mailto:guenter.struck@email.de">guenter.struck@email.de</a><br>
-            Telefon: <span style="white-space:nowrap">+49 123 456 7890</span><br>
-            <br>
-            <strong>USt-IdNr.:</strong> DE123456789<br>
-            <br>
-            Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV: Günter Struck (Adresse wie oben)
+            Günter Struck<br>
+            45136 Essen, Deutschland<br>
+            E-Mail: <a href="mailto:geofuchs@online.de">geofuchs@online.de</a>
         </p>
+
+        <h3>2. Allgemeines</h3>
+        <p>
+            Diese Anwendung dient der interaktiven Visualisierung und Analyse deutscher Landkreise unter Nutzung von OpenStreetMap-Kartenmaterial und optionaler KI-Funktionen. Es findet keine dauerhafte Speicherung personenbezogener Daten durch den Betreiber statt.
+        </p>
+
+        <h3>3. Verarbeitung personenbezogener Daten</h3>
+        <p>
+            Bei Nutzung der KI-Funktionen werden eingegebene Texte temporär an die Anbieter OpenAI (api.openai.com) und/oder Google Gemini (generativelanguage.googleapis.com) gesendet. Die Verarbeitung erfolgt ausschließlich zur Beantwortung der Anfrage und nach den Datenschutzrichtlinien der jeweiligen Anbieter. Es erfolgt keine dauerhafte Speicherung durch den Betreiber.
+        </p>
+
+        <h3>4. Kartendaten</h3>
+        <p>
+            Die Kartenansicht basiert auf OpenStreetMap-Daten, bereitgestellt von OpenStreetMap-Mitwirkenden und CARTO. Diese Dienste können beim Laden technische Informationen (z. B. IP-Adresse) erhalten.
+        </p>
+
+        <h3>5. Lokale Speicherung</h3>
+        <p>
+            Vom Nutzer erzeugte Inhalte (z. B. Markierungen) können lokal im Browser gespeichert werden, wenn der Nutzer dies auswählt. Es erfolgt keine automatische Übertragung an den Betreiber.
+        </p>
+
+        <h3>6. Rechte der Nutzer:innen</h3>
+        <p>
+            Da keine personenbezogenen Daten dauerhaft gespeichert werden, sind Anfragen gemäß DSGVO aktuell nicht notwendig. Sie können sich dennoch jederzeit an den Betreiber wenden.
+        </p>
+
+        <hr>
+
+        <h2>Impressum</h2>
+        <h3>Verantwortlich gemäß § 5 TMG:</h3>
+        <p>
+            Günter Struck<br>
+            45136 Essen, Deutschland<br>
+            E-Mail: <a href="mailto:geofuchs@online.de">geofuchs@online.de</a>
+        </p>
+
         <h3>Haftungsausschluss & Hinweise</h3>
         <ul>
-            <li>Keine Abmahnung ohne vorherigen Kontakt! Bei Problemen bitte Nachricht an obige E-Mail, um unnötige Rechtsstreitigkeiten zu vermeiden.</li>
-            <li>Die angebotene App ist privat und richtet sich an Endnutzer in Deutschland, Österreich und der EU.</li>
-            <li>Plattform der EU-Kommission zur Online-Streitbeilegung: <a href="https://ec.europa.eu/consumers/odr/" rel="nofollow">https://ec.europa.eu/consumers/odr/</a></li>
+            <li>Keine Abmahnung ohne vorherigen Kontakt!</li>
+            <li>Die App ist privat und richtet sich an Endnutzer in Deutschland, Österreich und der EU.</li>
+            <li>Plattform der EU-Kommission zur Online-Streitbeilegung: <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener">ec.europa.eu/consumers/odr/</a></li>
         </ul>
-    </section>
-</main>
-<footer>
-    &copy; 2025 Günter Struck – GeoFuchs. DSGVO-konform | Keine Werbung | Keine Analyse-Tools.
-</footer>
+
+        <hr>
+
+        <footer>
+            <p>
+                © 2025 Günter Struck – GeoFuchs. DSGVO-konform | Keine Werbung | Keine Analyse-Tools.<br>
+                <a href="https://github.com/gunterstruck/geofuchs" target="_blank" rel="noopener">GitHub-Repository</a>
+            </p>
+        </footer>
+    </div>
 </body>
 </html>
-
