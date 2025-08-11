@@ -47,33 +47,17 @@
             text-align: center;
             margin-bottom: 2em;
         }
-        /* Styles for the main "Zur Anwendung" button */
-        .intro a.main-app-button { /* Added a class for clarity */
-            font-size: 1.2em;
-            background-color: #0d9488;
-            color: white;
-            padding: 0.75em 1.5em;
-            border-radius: 8px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            display: inline-block;
-            margin-bottom: 2em; /* Space below the main button */
-        }
-        .intro a.main-app-button:hover {
-            background-color: #047857;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            text-decoration: none;
+
+        /* NEUER CONTAINER FÜR DIE BEIDEN HAUPT-BUTTONS */
+        .application-buttons-wrapper {
+            display: flex;
+            justify-content: center; /* Zentriert die Buttons */
+            gap: 2em; /* Abstand zwischen den Buttons */
+            margin-bottom: 2em; /* Abstand unter den Buttons */
+            flex-wrap: wrap; /* Erlaubt Umbruch auf kleineren Bildschirmen */
         }
 
-        /* Styles for the new download buttons container */
-        .download-buttons-container {
-            display: flex;
-            justify-content: center; /* Centers the group of buttons */
-            gap: 2em; /* Space between the buttons */
-            margin-top: 1.5em; /* Space above the download buttons, below the main app button */
-            flex-wrap: wrap; /* Allows buttons to wrap on smaller screens */
-        }
+        /* Vereinheitlichte Styles für beide Buttons */
         .download-button {
             font-size: 1.2em;
             background-color: #0d9488;
@@ -82,11 +66,11 @@
             border-radius: 8px;
             text-decoration: none;
             transition: all 0.3s ease;
-            display: inline-block; /* Makes it behave like a block for padding/sizing */
-            text-align: center; /* Centers the two lines of text */
-            line-height: 1.3; /* Adjust line height for better readability of two lines */
-            min-width: 150px; /* Ensures buttons have a consistent minimum width */
-            box-sizing: border-box; /* Includes padding in the width calculation */
+            display: inline-block; /* Wichtig für Padding/Größe */
+            text-align: center; /* Zentriert den Text */
+            line-height: 1.3; /* Zeilenhöhe für zweizeiligen Text */
+            min-width: 150px; /* Konsistente Mindestbreite */
+            box-sizing: border-box; /* Padding in Breitenberechnung einbeziehen */
         }
         .download-button:hover {
             background-color: #047857;
@@ -135,13 +119,14 @@
         <header class="intro">
             <h1>🌍 GeoFuchs 🦊</h1>
             <p>Ihr KI-gestützter Karten-Assistent</p>
-            <!-- Original "Zur Anwendung" button -->
-            <a href="app.html" class="main-app-button">Zur Anwendung</a>
 
-            <!-- New download buttons below the main button -->
-            <div class="download-buttons-container">
-                <a href="path/to/beispieldaten.zip" class="download-button">DOWNLOAD<br>Beispieldaten</a>
-                <a href="app.html" class="download-button">DOWNLOAD<br>Anwendung (html)</a>
+            <!-- NEUER WRAPPER FÜR DIE BEIDEN HAUPT-BUTTONS -->
+            <div class="application-buttons-wrapper">
+                <!-- "Zur Anwendung" button mit zweizeiligem Text -->
+                <a href="https://gunterstruck.github.io/geofuchs/app.html" class="download-button">Zur Anwendung<br>(online)</a>
+
+                <!-- "DOWNLOAD (ZIP)" button -->
+                <a href="https://raw.githubusercontent.com/gunterstruck/geofuchs/main/download/GeoFuchs.zip" download="GeoFuchs.zip" class="download-button">DOWNLOAD<br>(ZIP)</a>
             </div>
         </header>
 
@@ -151,7 +136,7 @@
                 GeoFuchs ist eine intelligente Anwendung, die auf einer interaktiven Deutschlandkarte mit detaillierten Grenzen von Landkreisen und Städten basiert. Sie kombiniert dieses visuelle Fundament mit einem leistungsstarken <strong>Side-by-Side KI-Assistenten</strong>, um Ihnen eine schnelle Management-Übersicht mit allen relevanten Daten zu bieten und Ihre Entscheidungsfindung zu beschleunigen.
             </p>
             <p style="text-align:center; margin: 2em 0;">
-                <img src="image_aace62.jpg" alt="Eine bunte, detaillierte Karte von Deutschland" style="width:100%; max-width:500px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                <img src="https://gunterstruck.github.io/geofuchs/image_aace62.jpg" alt="Eine bunte, detaillierte Karte von Deutschland" style="width:100%; max-width:500px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
             </p>
             <p>
                 Der <strong>Side-by-Side KI-Assistent</strong> macht Schluss mit komplexen Tools. Er ermöglicht einen intuitiven, visuellen Dialog: Sie stellen Fragen in natürlicher Sprache, und der Assistent liefert sofort präzise und visuell aufbereitete Antworten direkt auf der Karte.
@@ -162,9 +147,6 @@
                 <li>🗣️ <strong>KI-gesteuerte Analyse:</strong> Erhalten Sie präzise Analysen, indem Sie dem Assistenten Fragen zu Umsatzdaten oder Top-Regionen stellen, die Ihnen helfen, fundierte Entscheidungen zu treffen.</li>
                 <li>💾 <strong>Datenmanagement:</strong> Fügen Sie Vertriebsdaten (Gruppen, Bezirke, Umsatz) einfach per Chat oder im Bearbeitungsdialog hinzu. Ihre Daten bleiben lokal und sicher in Ihrem Browser gespeichert.</li>
             </ul>
-            <p style="text-align:center; margin-top: 2em;">
-                <a href="app.html">Jetzt GeoFuchs starten!</a>
-            </p>
         </section>
 
         <section class="contact-info">
@@ -190,8 +172,8 @@
         <footer class="footer-links">
             <p>
                 © 2025 Günter Struck – GeoFuchs.<br>
-                <a href="datenschutz.html" target="_blank">Datenschutzerklärung</a> •
-                <a href="LICENSE" target="_blank">Lizenz</a> •
+                <a href="https://gunterstruck.github.io/geofuchs/datenschutz.html" target="_blank">Datenschutzerklärung</a> •
+                <a href="https://github.com/gunterstruck/geofuchs/blob/main/LICENSE" target="_blank">Lizenz</a> •
                 <a href="https://github.com/gunterstruck/geofuchs" target="_blank" rel="noopener">GitHub-Repository</a>
             </p>
         </footer>
