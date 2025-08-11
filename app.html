@@ -337,14 +337,15 @@
             flex-basis: 70px; background: linear-gradient(135deg, var(--color-error), #dc2626);
         }
 
-        /* Storage-Buttons Container - NEUE POSITION IN DER SIDEBAR */
+        /* Storage-Buttons Container - NEUE POSITION UNTEN RECHTS */
         .storage-buttons-container {
+            position: fixed;
+            bottom: 40px;
+            right: 430px;
+            z-index: 1002;
             display: flex;
             gap: 6px;
-            margin-top: 1.5em; /* Space from API key section */
-            margin-bottom: 1.5em; /* Space before chat/other content */
-            width: 100%; /* Take full width of sidebar padding */
-            box-sizing: border-box; /* Include padding in width */
+            width: 280px; /* Added fixed width to ensure enough space */
         }
 
         .storage-buttons-container button {
@@ -484,11 +485,10 @@
                 cursor: pointer;
             }
 
-            /* Storage buttons should now be inside sidebar, so this is not needed */
-            /* .storage-buttons-container {
+            .storage-buttons-container {
                 right: 10px;
-                width: calc(100% - 20px);
-            } */
+                width: calc(100% - 20px); /* Adjust width for mobile */
+            }
         }
 
         /* OPTIMIERT: Styling für die Vertriebsdaten-Anzeige */
@@ -579,8 +579,7 @@
         }
 
         .btn-save {
-            /* Changed to linear gradient for consistency */
-            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+            background: var(--color-primary);
             color: white;
         }
 
@@ -1345,6 +1344,16 @@
             </div>
         </div>
 
+        <!-- OPTIMIERT: Verbesserte Beschreibungen und ARIA-Attributen -->
+        <div class="storage-buttons-container" role="region" aria-label="Datenverwaltung">
+            <button id="saveDataButton" aria-label="Aktuelle Markierungen und Daten speichern">
+                💾 Daten speichern
+            </button>
+            <button id="loadDataButton" aria-label="Gespeicherte Markierungen und Daten laden">
+                📂 Daten laden
+            </button>
+        </div>
+
         <!-- OPTIMIERT: Hover-Info-Popup mit besserer Semantik -->
         <div id="hoverInfoPopup" class="hover-info-popup" role="tooltip">
             <div class="hover-info-title">Regionsinformation</div>
@@ -1461,15 +1470,16 @@
             <div id="contactInfoContainer" class="hidden" style="margin-top: 1.5em;">
 <p style="font-size: 0.8em; color: var(--color-text-light); text-align: left; margin-top: 0;">
   Günter Struck<br>
+ Lönsberg 8<br>
   45136 Essen, Deutschland<br>
   E-Mail: <a href="mailto:geofuchs@online.de" style="color: var(--color-primary); text-decoration: none;">geofuchs@online.de</a>
 </p>
 
 <p style="font-size: 0.8em; color: var(--color-text-light); text-align: left;">
-🔗 Website: 
-  <a href="https://gunterstruck.github.io/geofuchs/" target="_blank" rel="noopener" style="color: var(--color-primary);">gunterstruck.github.io/geofuchs</a><br>
-💻 Code & Issues: 
-  <a href="https://github.com/gunterstruck/geofuchs" target="_blank" rel="noopener" style="color: var(--color-primary);">GitHub-Repository</a><br>
+🔗 Website: 
+  <a href="https://gunterstruck.github.io/geofuchs/" target="_blank" rel="noopener" style="color: var(--color-primary);">gunterstruck.github.io/geofuchs</a><br>
+💻 Code & Issues: 
+  <a href="https://github.com/gunterstruck/geofuchs" target="_blank" rel="noopener" style="color: var(--color-primary);">GitHub-Repository</a><br>
 📜 Datenschutzerklärung:
 <a href="https://gunterstruck.github.io/geofuchs/datenschutz.html" target="_blank" rel="noopener" style="color: var(--color-primary);">ansehen</a><br>
 🪪 Lizenz:
@@ -1492,16 +1502,6 @@
             </div>
             <!-- End contact info -->
         </section>
-
-        <!-- OPTIMIERT: Datenverwaltung in der Sidebar -->
-        <div class="storage-buttons-container" role="region" aria-label="Datenverwaltung">
-            <button id="saveDataButton" aria-label="Aktuelle Markierungen und Daten speichern">
-                💾 Daten speichern
-            </button>
-            <button id="loadDataButton" aria-label="Gespeicherte Markierungen und Daten laden">
-                📂 Daten laden
-            </button>
-        </div>
 
         <!-- NEU: Vertriebsbezirksauswahl-Container -->
         <div class="sales-district-selection-container hidden" id="salesDistrictSelectionContainer">
@@ -1568,13 +1568,13 @@
             <!-- Disclaimer-Text -->
 <footer id="disclaimer">
   🤖 KI-gesteuerte Mehrfachmarkierung • Der Assistent kann Fehler machen<br>
-  <a href="index.html" target="_blank" style="color: var(--color-text-light); text-decoration: underline;">Startseite</a>
+  <a href="https://gunterstruck.github.io/geofuchs/" target="_blank" style="color: var(--color-text-light); text-decoration: underline;">Homepage</a>
   &nbsp;•&nbsp;
-  <a href="datenschutz.html" target="_blank" style="color: var(--color-text-light); text-decoration: underline;">Datenschutzerklärung</a>
+  <a href="https://gunterstruck.github.io/geofuchs/datenschutz" target="_blank" style="color: var(--color-text-light); text-decoration: underline;">Datenschutzerklärung</a>
   &nbsp;•&nbsp;
-  <a href="LICENSE" target="_blank" style="color: var(--color-text-light); text-decoration: underline;">MIT-Lizenz</a>
+  <a href="https://gunterstruck.github.io/geofuchs/LICENSE" target="_blank" style="color: var(--color-text-light); text-decoration: underline;">MIT-Lizenz</a>
   &nbsp;•&nbsp;
-  <a href="https://github.com/gunterstruck/geofuchs" target="_blank" rel="noopener" style="color: var(--color-text-light); text-decoration: underline;">GitHub</a>
+  <a href="https://github.com/gunterstruck/geofuchs.github.io" target="_blank" rel="noopener" style="color: var(--color-text-light); text-decoration: underline;">GitHub</a>
 </footer>
         </div>
     </aside>
@@ -5001,7 +5001,7 @@ hasWelcomeMessageBeenShown = true; // Setze die Flagge auf true, nachdem die Nac
    - Beispiel: "Analyse Vertriebsgruppe ISL3" -> {"action": "analyze_district", "salesGroup": "ISL3"}
 `;
             // Add list of all available regions to the prompt
-            dynamicPrompt += "\n\nLISTE ALLER VERFÜGBAREN REGIONEN (Name (Typ)):\n";
+            dynamicPrompt += "\n\nLISTE ALLER VERFÜGBARER REGIONEN (Name (Typ)):\n";
             const allRegionNames = [];
             regionsTable.forEach(region => {
                 allRegionNames.push(`${region.name} (${region.type})`);
