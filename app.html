@@ -1321,7 +1321,7 @@
             <div class="sales-district-toggle-container">
                 <span id="vertriebsinfo-label" style="color: white;">Vertriebsbezirke</span>
                 <!-- OPTIMIERT: Explicit label mit aria-labelledby für bessere Zugänglichkeit -->
-                <label class="sales-district-toggle" title="Schaltet die Anzeige von Vertriebsbezirks-Infoboxen auf der Karte ein/aus. (Sichtbar ab Zoom-Stufe 8)">
+                <label class="sales-district-toggle" title="Schaltet die Anzeige von Vertriebsbezirks-Infoboxen auf der Karte ein/aus. (Sichtbar ab Zoom-Stufe 7)">
                     <input type="checkbox" id="salesDistrictToggle" aria-labelledby="vertriebsinfo-label">
                     <span class="sales-district-toggle-slider"></span>
                 </label>
@@ -1720,7 +1720,7 @@
         let allSalesDistricts = new Set();
 
         // NEU: Mindest-Zoom-Level für Infoboxen
-        const MIN_ZOOM_FOR_INFOBOXES = 7;
+        const MIN_ZOOM_FOR_INFOBOXES = 5;
 
 
         /* DOM-Elemente Referenzen */
@@ -5021,7 +5021,7 @@ hasWelcomeMessageBeenShown = true; // Setze die Flagge auf true, nachdem die Nac
                     maxBoundsViscosity: 1.0,
                     zoomSnap: 0.5, // Feinere Zoom-Schritte
                     zoomControl: false // Disable default zoom control
-                }).setView([51.16, 10.45], 6);
+                }).setView([51.16, 10.45], 6.5);
 
                 // Add custom zoom control to topleft (position will be overridden by CSS)
                 L.control.zoom({ position: 'topleft' }).addTo(leafletMap);
