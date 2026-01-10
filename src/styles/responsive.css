@@ -1,0 +1,53 @@
+/* Responsive Design & Media Queries */
+
+@media screen and (max-width: 1024px) {
+    .main {
+        margin-right: 0;
+    }
+
+    .sidebar {
+        width: 100%;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+    }
+
+    .mobile-toggle {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1002;
+        background: var(--color-primary);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .storage-buttons-container {
+        right: 10px;
+        width: calc(100% - 20px);
+    }
+
+    .control-buttons-container {
+        left: 10px;
+        top: 10px;
+    }
+}
+
+/* Leaflet Zoom Control Positioning */
+.leaflet-control-zoom {
+    position: fixed !important;
+    left: 10px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 1000;
+}

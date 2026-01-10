@@ -1,0 +1,296 @@
+/* Sidebar Layout & Components */
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 420px;
+    height: 100%;
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5em;
+    box-sizing: border-box;
+    z-index: 1001;
+    border-left: 3px solid var(--color-primary);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* API Key Section */
+#api-key-section {
+    background: var(--color-background-light);
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-medium);
+    padding: 1.5em;
+    margin-bottom: 1em;
+    text-align: center;
+}
+
+#api-key-section h3 {
+    color: var(--color-primary);
+    margin-top: 0;
+}
+
+#api-key-section p {
+    font-size: 0.9em;
+    color: var(--color-text-light);
+    margin: 0.5em 0;
+}
+
+#model-selector {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 1em;
+}
+
+#model-selector label {
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: var(--radius-small);
+    border: 2px solid var(--color-border);
+    transition: all 0.2s;
+}
+
+#model-selector input[type="radio"] {
+    display: none;
+}
+
+#model-selector input[type="radio"]:checked + label {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary-light);
+}
+
+#model-selector input[type="radio"]:focus-visible + label {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+.api-key-input-container {
+    margin: 1em 0;
+}
+
+.api-key-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    border-radius: var(--radius-small);
+    border: 2px solid var(--color-border);
+    background: var(--color-background);
+    color: var(--color-text);
+    font-size: 0.95em;
+}
+
+.api-key-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.3);
+}
+
+#saveApiKeyButton {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    color: white;
+    border: none;
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+#saveApiKeyButton:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(13, 148, 136, 0.3);
+}
+
+#saveApiKeyButton:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+/* Chat Interface */
+#chat-interface {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.success-banner {
+    background: linear-gradient(135deg, var(--color-success) 0%, #059669 100%);
+    color: white;
+    padding: 0.8em;
+    border-radius: var(--radius-medium);
+    margin-bottom: 1em;
+    text-align: center;
+    font-weight: bold;
+    border: 2px solid var(--color-primary-dark);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    font-size: 0.9em;
+}
+
+#title {
+    color: #ffffff;
+    margin-bottom: 0.5em;
+    font-size: 1.2em;
+}
+
+#subtitle {
+    color: var(--color-text-light);
+    margin-top: -5px;
+    font-size: 0.85em;
+}
+
+/* Prompt Buttons */
+.prompt-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.prompt-buttons button {
+    background: linear-gradient(135deg, #334155, #475569);
+    color: #cbd5e1;
+    border: 2px solid #475569;
+    border-radius: var(--radius-small);
+    padding: 6px 8px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 0.75em;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.prompt-buttons button:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+.prompt-buttons button:hover {
+    background: linear-gradient(135deg, #475569, #64748b);
+    border-color: var(--color-primary);
+    transform: translateY(-1px);
+}
+
+/* Chat Log */
+#chatlog {
+    flex: 1;
+    background: linear-gradient(180deg, var(--color-background-light), var(--color-background-lighter));
+    border: 2px solid var(--color-border);
+    padding: 8px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+    border-radius: var(--radius-small);
+    display: flex;
+    flex-direction: column;
+    min-height: 180px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+}
+
+#chatlog::-webkit-scrollbar {
+    width: 8px;
+}
+
+#chatlog::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#chatlog::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 4px;
+}
+
+/* Chat Bubbles */
+.bubble {
+    padding: 6px 10px;
+    margin: 3px 0;
+    border-radius: var(--radius-large);
+    max-width: 94%;
+    white-space: pre-wrap;
+    line-height: 1.3;
+    word-break: break-word;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: fadeInBubble 0.4s ease forwards;
+    font-size: 0.8em;
+}
+
+.user {
+    background: linear-gradient(135deg, #475569, #64748b);
+    color: #ffffff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+
+.assistant {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    color: #ffffff;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+.assistant h4 {
+    color: #ffffff;
+    margin-top: 0;
+    margin-bottom: 0.5em;
+    font-size: 1em;
+}
+
+.assistant code {
+    background: rgba(0,0,0,0.2);
+    border-radius: 3px;
+    padding: 2px 4px;
+    font-family: monospace;
+    color: #ffffff;
+    white-space: nowrap;
+}
+
+.assistant ul {
+    margin: 0.5em 0 0 1em;
+    padding: 0;
+    list-style-type: disc;
+}
+
+.assistant li {
+    margin-bottom: 0.3em;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+}
+
+.typing-dot {
+    height: 5px;
+    width: 5px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 0 1px;
+    animation: typing-bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+/* Footer */
+#disclaimer {
+    color: var(--color-text-light);
+    font-size: 0.65em;
+    text-align: center;
+    margin-top: auto;
+    padding-top: 0.8em;
+    line-height: 1.2;
+}
