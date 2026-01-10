@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GeoFuchs - KI-gesteuerte Kartenanwendung (Refactored)">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.basemaps.cartocdn.com; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com https://sgx.geodatenzentrum.de;">
+    <title>GeoFuchs - Refactored Version</title>
+</head>
+<body>
+    <!-- Main Map Container -->
+    <div class="main">
+        <div id="map"></div>
+        <div id="loader">
+            <div class="loader-content">
+                <div class="loader-spinner"></div>
+                <div>Lade Geodaten...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Toggle -->
+    <button class="mobile-toggle" aria-label="Sidebar öffnen/schließen">
+        ☰
+    </button>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <!-- API Key Section -->
+        <section id="api-key-section">
+            <h3>🔑 API-Schlüssel</h3>
+            <p>Wählen Sie Ihren KI-Provider:</p>
+
+            <div id="model-selector">
+                <input type="radio" id="openai" name="model" value="openai" checked>
+                <label for="openai">OpenAI GPT-4</label>
+
+                <input type="radio" id="gemini" name="model" value="gemini">
+                <label for="gemini">Google Gemini</label>
+            </div>
+
+            <div class="api-key-input-container">
+                <input
+                    type="password"
+                    id="apiKeyInput"
+                    class="api-key-input"
+                    placeholder="API-Schlüssel eingeben..."
+                    aria-label="API-Schlüssel"
+                >
+            </div>
+
+            <button id="saveApiKeyButton">Schlüssel speichern & starten</button>
+
+            <p style="font-size: 0.8em; margin-top: 1em; color: var(--color-text-light);">
+                ℹ️ Ihr API-Schlüssel wird nur lokal in Ihrem Browser gespeichert.
+            </p>
+        </section>
+
+        <!-- Chat Interface (hidden initially) -->
+        <div id="chat-interface" style="display: none;">
+            <h2 id="title">🦊 GeoFuchs KI-Assistent</h2>
+            <p id="subtitle">Refactored Version mit modernem Stack</p>
+
+            <div class="success-banner">
+                ✅ Bereit - Diese ist die refaktorierte Demo-Version
+            </div>
+
+            <div id="chatlog" aria-live="polite" aria-atomic="false">
+                <div class="bubble assistant">
+                    <strong>Willkommen zur refaktorierten Version!</strong><br><br>
+                    Diese Demo zeigt die neue modulare Architektur:<br>
+                    • ✅ Vite Build-System<br>
+                    • ✅ ES6 Module<br>
+                    • ✅ IndexedDB-Caching<br>
+                    • ✅ Separierte CSS-Module<br><br>
+                    Die vollständige Chat-Funktion muss noch migriert werden.
+                </div>
+            </div>
+
+            <textarea
+                id="userInput"
+                placeholder="Chat-Funktionalität wird in vollständiger Migration implementiert..."
+                disabled
+            ></textarea>
+
+            <div class="action-buttons-container">
+                <button id="sendButton" disabled>Senden</button>
+                <button id="clearButton" disabled>Löschen</button>
+            </div>
+
+            <p id="disclaimer">
+                🔒 Ihre Daten bleiben lokal • Open Source •
+                <a href="https://github.com/gunterstruck/geofuchs" target="_blank" style="color: var(--color-primary-light)">GitHub</a>
+            </p>
+        </div>
+    </aside>
+
+    <!-- Storage Buttons -->
+    <div class="storage-buttons-container">
+        <button id="saveDataButton" disabled>💾 Speichern</button>
+        <button id="loadDataButton" disabled>📂 Laden</button>
+    </div>
+
+    <!-- Vite will inject the script -->
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

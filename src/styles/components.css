@@ -1,0 +1,529 @@
+/* Reusable UI Components */
+
+/* Buttons */
+textarea {
+    width: 100%;
+    margin-bottom: 8px;
+    font-size: 0.85em;
+    border-radius: var(--radius-small);
+    border: 2px solid var(--color-border);
+    padding: 8px;
+    box-sizing: border-box;
+    font-family: inherit;
+    background: linear-gradient(135deg, var(--color-background-light), var(--color-background-lighter));
+    color: var(--color-text);
+    height: 100px;
+    resize: vertical;
+    transition: all 0.3s ease;
+}
+
+textarea:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.3);
+}
+
+textarea::placeholder {
+    color: #64748b;
+}
+
+/* Action Buttons */
+.action-buttons-container {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.action-buttons-container button {
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    font-size: 0.85em;
+}
+
+.action-buttons-container button:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+.action-buttons-container button:hover {
+    transform: translateY(-1px);
+}
+
+.action-buttons-container button#sendButton {
+    flex-grow: 1;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+}
+
+.action-buttons-container button#clearButton {
+    flex-basis: 70px;
+    background: linear-gradient(135deg, var(--color-error), #dc2626);
+}
+
+/* Storage Buttons */
+.storage-buttons-container {
+    position: fixed;
+    bottom: 40px;
+    right: 430px;
+    z-index: 1002;
+    display: flex;
+    gap: 6px;
+    width: 280px;
+}
+
+.storage-buttons-container button {
+    flex: 1;
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+
+.storage-buttons-container button:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+.storage-buttons-container button:hover {
+    transform: translateY(-1px);
+}
+
+.storage-buttons-container button#saveDataButton {
+    background: linear-gradient(135deg, var(--color-info), #2563eb);
+}
+
+.storage-buttons-container button#loadDataButton {
+    background: linear-gradient(135deg, var(--color-warning), #d97706);
+}
+
+/* Control Buttons */
+.control-buttons-container {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    right: unset;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    border-radius: var(--radius-medium);
+    justify-content: flex-start;
+}
+
+/* Messages */
+.error-message {
+    background: rgba(239, 68, 68, 0.2);
+    border-left: 4px solid var(--color-error);
+    color: white;
+    padding: 8px 10px;
+    margin: 5px 0;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+
+.info-message {
+    background: rgba(59, 130, 246, 0.2);
+    border-left: 4px solid var(--color-info);
+    color: white;
+    padding: 8px 10px;
+    margin: 5px 0;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+
+.marked-district {
+    display: flex;
+    align-items: center;
+    margin: 3px 0;
+    font-size: 0.8em;
+    padding: 3px 6px;
+    border-radius: 4px;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.marked-district-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    border: 1px solid #333;
+}
+
+/* Dialogs & Overlays */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1999;
+}
+
+.edit-sales-dialog,
+#salesDistrictDetailPopup {
+    position: fixed;
+    top: 5%;
+    left: 3%;
+    transform: translate(0%, 0%);
+    background: var(--color-background-light);
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-medium);
+    padding: 16px;
+    box-shadow: var(--shadow-default);
+    z-index: 2000;
+    width: 350px;
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.edit-sales-dialog h3,
+#salesDistrictDetailPopup h3 {
+    color: var(--color-primary);
+    margin-top: 0;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.edit-sales-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.form-group label {
+    font-size: 0.85em;
+    color: var(--color-text-light);
+}
+
+.form-group input {
+    padding: 8px;
+    border-radius: var(--radius-small);
+    border: 1px solid var(--color-border);
+    background: var(--color-background);
+    color: var(--color-text);
+}
+
+.dialog-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 16px;
+}
+
+.dialog-buttons button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.btn-save {
+    background: var(--color-primary);
+    color: white;
+}
+
+.btn-cancel {
+    background: var(--color-background-lighter);
+    color: var(--color-text-light);
+    border: 1px solid var(--color-border) !important;
+}
+
+.btn-save:hover,
+.btn-cancel:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Color Picker */
+.color-picker-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 5px;
+}
+
+.color-option {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.color-option.selected {
+    border-color: white;
+    box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.color-remove-option {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.2s, border-color 0.2s;
+    background: white;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.color-remove-option::before,
+.color-remove-option::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 2px;
+    background-color: var(--color-error);
+}
+
+.color-remove-option::before {
+    transform: rotate(45deg);
+}
+
+.color-remove-option::after {
+    transform: rotate(-45deg);
+}
+
+.color-remove-option:hover {
+    transform: scale(1.1);
+    border-color: var(--color-error);
+}
+
+.color-remove-option.selected {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 2px var(--color-error);
+}
+
+/* Sales Data Display */
+.sales-data {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dotted rgba(255, 255, 255, 0.2);
+    font-size: 0.85em;
+}
+
+.sales-data-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+}
+
+.sales-data-label {
+    color: var(--color-text-light);
+}
+
+.sales-data-value {
+    font-weight: bold;
+}
+
+/* Sales Entries List */
+.sales-entries-list {
+    margin-bottom: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.sales-entry-item {
+    background: var(--color-background-lighter);
+    border-radius: var(--radius-small);
+    padding: 8px;
+    margin-bottom: 8px;
+    border-left: 3px solid var(--color-primary);
+}
+
+.sales-entry-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.entry-color-indicator {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.entry-title {
+    flex-grow: 1;
+    font-weight: bold;
+}
+
+.entry-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-edit-entry,
+.btn-delete-entry {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: var(--radius-small);
+    padding: 2px 6px;
+    font-size: 0.75em;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-edit-entry {
+    color: var(--color-info);
+}
+
+.btn-delete-entry {
+    color: var(--color-error);
+}
+
+.btn-edit-entry:hover,
+.btn-delete-entry:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.sales-entry-details {
+    font-size: 0.85em;
+    color: var(--color-text-light);
+    padding-left: 22px;
+}
+
+.no-entries-message {
+    color: var(--color-text-light);
+    font-style: italic;
+    padding: 10px;
+    text-align: center;
+}
+
+.btn-add-entry {
+    background: var(--color-info);
+    color: white;
+    border: none;
+    border-radius: var(--radius-small);
+    padding: 8px 16px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.btn-add-entry:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+/* Toggle Switches */
+.sales-district-toggle {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 24px;
+    vertical-align: middle;
+}
+
+.sales-district-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.sales-district-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--color-border);
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.sales-district-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+.sales-district-toggle input:checked + .sales-district-toggle-slider {
+    background-color: var(--color-primary);
+}
+
+.sales-district-toggle input:focus + .sales-district-toggle-slider {
+    box-shadow: 0 0 1px var(--color-primary);
+}
+
+.sales-district-toggle input:checked + .sales-district-toggle-slider:before {
+    transform: translateX(16px);
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+.truncated-welcome-message {
+    max-height: 4.5em;
+    overflow: hidden;
+    position: relative;
+    transition: max-height 0.5s ease-out;
+    margin-bottom: 0.5em;
+    text-align: center;
+}
+
+.truncated-welcome-message.expanded {
+    max-height: 500px;
+    overflow: visible;
+}
+
+.read-more-button {
+    background: none;
+    border: none;
+    color: var(--color-primary-light);
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 5px 0;
+    text-align: center;
+    width: 100%;
+    display: block;
+    margin-top: 5px;
+    transition: color 0.2s ease;
+}
+
+.read-more-button:hover {
+    color: var(--color-primary);
+}
+
+.read-more-button:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
