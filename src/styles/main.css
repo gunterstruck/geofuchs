@@ -1,8 +1,7 @@
-/* Main CSS Entry Point - Imports all style modules */
-
+/* GeoFuchs Vertrieb – Stylesheet-Einstieg */
 @import './variables.css';
 @import './base.css';
-@import './map.css';
-@import './sidebar.css';
+@import './layout.css';
 @import './components.css';
+@import './map.css';
 @import './responsive.css';

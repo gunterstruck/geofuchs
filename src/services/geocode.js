@@ -1,0 +1,149 @@
+/**
+ * Geocoding-Service – ganz ohne API-Schlüssel.
+ *
+ * Stufe 1 (sofort, offline): PLZ-Zentroide aus gebündeltem Lookup
+ *   (~8.300 deutsche Postleitzahlen). Genauigkeit: Ortsmitte.
+ * Stufe 2 (optional, online): exakte Adress-Geocodierung über
+ *   Nominatim/OpenStreetMap – gedrosselt auf 1 Anfrage/Sekunde,
+ *   Ergebnisse werden dauerhaft im Browser gecacht.
+ */
+
+import { CONFIG } from '../core/config.js';
+import { loadGeocodeCache, saveGeocodeCache } from './storage.js';
+
+let plzCentroids = null;
+
+export async function loadPlzCentroids() {
+    if (plzCentroids) return plzCentroids;
+    const response = await fetch(CONFIG.plzCentroidsUrl);
+    if (!response.ok) throw new Error('PLZ-Koordinaten konnten nicht geladen werden.');
+    plzCentroids = await response.json();
+    return plzCentroids;
+}
+
+/**
+ * Deterministischer "Jitter", damit mehrere Kunden mit derselben PLZ
+ * nicht exakt übereinander liegen (~ +/- 500 m um den PLZ-Mittelpunkt).
+ */
+function jitterFor(id) {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+    const a = ((hash & 0xffff) / 0xffff - 0.5) * 0.009;
+    const b = (((hash >> 16) & 0xffff) / 0xffff - 0.5) * 0.013;
+    return [a, b];
+}
+
+/**
+ * Kunden über PLZ verorten (mutiert die Objekte).
+ * Bereits exakt georeferenzierte Kunden bleiben unangetastet.
+ * @returns {{ located: number, missing: string[] }} fehlende PLZ
+ */
+export async function geocodeByPlz(customers) {
+    const centroids = await loadPlzCentroids();
+    let located = 0;
+    const missing = new Set();
+
+    for (const c of customers) {
+        if (c.geo === 'exakt') continue;
+        const hit = c.plz ? centroids[c.plz] : null;
+        if (hit) {
+            const [dLat, dLng] = jitterFor(c.id + c.name);
+            c.lat = hit[0] + dLat;
+            c.lng = hit[1] + dLng;
+            c.geo = 'plz';
+            located++;
+        } else {
+            c.lat = null;
+            c.lng = null;
+            c.geo = 'none';
+            if (c.plz) missing.add(c.plz);
+        }
+    }
+    return { located, missing: [...missing] };
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function addressKey(c) {
+    return `${c.strasse}|${c.plz}|${c.ort}`.toLowerCase();
+}
+
+/**
+ * Exakte Adress-Geocodierung über Nominatim (OpenStreetMap).
+ * Läuft sequenziell mit Drosselung; onProgress(done, total) für die UI.
+ * Über das zurückgegebene Handle abbrechbar: handle.cancel()
+ */
+export function geocodeExact(customers, onProgress) {
+    const queue = customers.filter((c) => c.geo !== 'exakt' && c.strasse && (c.plz || c.ort));
+    let cancelled = false;
+    const handle = { cancel: () => { cancelled = true; }, total: queue.length };
+
+    handle.run = (async () => {
+        if (queue.length === 0) return { updated: 0, failed: 0, cancelled: false };
+        const cache = await loadGeocodeCache();
+        let updated = 0;
+        let failed = 0;
+        let requestsMade = 0;
+
+        for (let i = 0; i < queue.length; i++) {
+            if (cancelled) break;
+            const c = queue[i];
+            const key = addressKey(c);
+
+            let result = cache[key];
+            if (result === undefined) {
+                if (requestsMade > 0) await sleep(CONFIG.nominatim.delayMs);
+                requestsMade++;
+                try {
+                    const params = new URLSearchParams({
+                        format: 'jsonv2',
+                        countrycodes: 'de',
+                        limit: '1',
+                        street: c.strasse,
+                        postalcode: c.plz,
+                        city: c.ort
+                    });
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), CONFIG.nominatim.timeout);
+                    const response = await fetch(`${CONFIG.nominatim.url}?${params}`, {
+                        signal: controller.signal,
+                        headers: { 'Accept-Language': 'de' }
+                    });
+                    clearTimeout(timer);
+                    const json = response.ok ? await response.json() : [];
+                    result = json[0] ? { lat: parseFloat(json[0].lat), lng: parseFloat(json[0].lon) } : null;
+                    cache[key] = result;
+                    if (i % 10 === 0) await saveGeocodeCache(cache);
+                } catch {
+                    result = undefined; // Netzfehler: nicht als "nicht gefunden" cachen
+                }
+            }
+
+            if (result) {
+                c.lat = result.lat;
+                c.lng = result.lng;
+                c.geo = 'exakt';
+                updated++;
+            } else {
+                failed++;
+            }
+            onProgress?.(i + 1, queue.length);
+        }
+
+        await saveGeocodeCache(cache);
+        return { updated, failed, cancelled };
+    })();
+
+    return handle;
+}
+
+/** Haversine-Distanz in Kilometern */
+export function distanceKm(a, b) {
+    const R = 6371;
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const h = Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+}

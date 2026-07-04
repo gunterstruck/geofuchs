@@ -1,23 +1,24 @@
 /**
  * Storage Service
- * IndexedDB for caching WFS data + JSON Export/Import for markings
+ * IndexedDB für Kundendaten (Persistenz über Reloads) und Caches.
+ * Alle Daten bleiben lokal im Browser – nichts verlässt das Gerät.
  */
 
 import { CONFIG } from '../core/config.js';
 
-const { dbName, dbVersion, storeName, cacheKey } = CONFIG.storage;
+const { dbName, dbVersion, storeName } = CONFIG.storage;
 
-/**
- * Open IndexedDB connection
- * @returns {Promise<IDBDatabase>}
- */
+const KEYS = {
+    dataset: 'kundendaten',
+    geocodeCache: 'geocode-cache',
+    settings: 'einstellungen'
+};
+
 function openDatabase() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(dbName, dbVersion);
-
         request.onerror = () => reject(request.error);
         request.onsuccess = () => resolve(request.result);
-
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             if (!db.objectStoreNames.contains(storeName)) {
@@ -27,136 +28,92 @@ function openDatabase() {
     });
 }
 
-/**
- * Save data to IndexedDB
- * @param {string} key
- * @param {*} value
- * @returns {Promise<void>}
- */
 export async function saveToCache(key, value) {
     const db = await openDatabase();
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction([storeName], 'readwrite');
-        const store = transaction.objectStore(storeName);
-        const request = store.put(value, key);
-
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-
-        transaction.oncomplete = () => db.close();
+        const tx = db.transaction([storeName], 'readwrite');
+        tx.objectStore(storeName).put(value, key);
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
     });
 }
 
-/**
- * Load data from IndexedDB
- * @param {string} key
- * @returns {Promise<*>}
- */
 export async function loadFromCache(key) {
     const db = await openDatabase();
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction([storeName], 'readonly');
-        const store = transaction.objectStore(storeName);
-        const request = store.get(key);
-
+        const tx = db.transaction([storeName], 'readonly');
+        const request = tx.objectStore(storeName).get(key);
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
-
-        transaction.oncomplete = () => db.close();
+        tx.oncomplete = () => db.close();
     });
 }
 
-/**
- * Cache WFS features data
- * @param {Array} features
- * @returns {Promise<void>}
- */
-export async function cacheWFSFeatures(features) {
-    const cacheData = {
-        features,
-        timestamp: Date.now(),
-        version: '1.0'
-    };
-    await saveToCache(cacheKey, cacheData);
-    console.log('✅ WFS features cached to IndexedDB');
+export async function removeFromCache(key) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction([storeName], 'readwrite');
+        tx.objectStore(storeName).delete(key);
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
+    });
 }
 
-/**
- * Load WFS features from cache
- * @returns {Promise<Array|null>}
- */
-export async function loadCachedWFSFeatures() {
+// ---- Kundendaten ----
+
+export async function saveDataset(dataset) {
     try {
-        const cached = await loadFromCache(cacheKey);
-        if (cached && cached.features) {
-            const ageInDays = (Date.now() - cached.timestamp) / (1000 * 60 * 60 * 24);
-            if (ageInDays < 30) { // Cache valid for 30 days
-                console.log(`✅ Loaded WFS features from cache (age: ${ageInDays.toFixed(1)} days)`);
-                return cached.features;
-            } else {
-                console.log('⚠️ Cache expired (> 30 days)');
-            }
-        }
+        await saveToCache(KEYS.dataset, dataset);
     } catch (error) {
-        console.warn('Failed to load from cache:', error);
+        console.warn('Kundendaten konnten nicht gespeichert werden:', error);
     }
-    return null;
 }
 
-/**
- * Export markings to JSON file
- * @param {Map} markedDistricts
- */
-export function exportMarkingsToJSON(markedDistricts) {
-    const dataToSave = {};
-    markedDistricts.forEach((value, key) => {
-        dataToSave[key] = value;
-    });
-
-    const jsonString = JSON.stringify(dataToSave, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `geofuchs-markierungen-${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-
-    URL.revokeObjectURL(url);
-    console.log('✅ Markierungen exportiert');
+export async function loadDataset() {
+    try {
+        return (await loadFromCache(KEYS.dataset)) ?? null;
+    } catch (error) {
+        console.warn('Kundendaten konnten nicht geladen werden:', error);
+        return null;
+    }
 }
 
-/**
- * Import markings from JSON file
- * @returns {Promise<Object|null>}
- */
-export function importMarkingsFromJSON() {
-    return new Promise((resolve) => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'application/json';
+export async function clearDataset() {
+    await removeFromCache(KEYS.dataset);
+}
 
-        input.onchange = (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        console.log('✅ Markierungen importiert');
-                        resolve(data);
-                    } catch (error) {
-                        console.error('❌ Fehler beim Parsen der JSON-Datei:', error);
-                        alert('Fehler beim Laden der Datei. Bitte überprüfen Sie das Format.');
-                        resolve(null);
-                    }
-                };
-                reader.readAsText(file);
-            } else {
-                resolve(null);
-            }
-        };
+// ---- Geocode-Cache (Nominatim-Ergebnisse) ----
 
-        input.click();
-    });
+export async function loadGeocodeCache() {
+    try {
+        return (await loadFromCache(KEYS.geocodeCache)) ?? {};
+    } catch {
+        return {};
+    }
+}
+
+export async function saveGeocodeCache(cache) {
+    try {
+        await saveToCache(KEYS.geocodeCache, cache);
+    } catch (error) {
+        console.warn('Geocode-Cache konnte nicht gespeichert werden:', error);
+    }
+}
+
+// ---- Einstellungen (Gebietsebene, Filter, Tour) ----
+
+export async function saveSettings(settings) {
+    try {
+        await saveToCache(KEYS.settings, settings);
+    } catch (error) {
+        console.warn('Einstellungen konnten nicht gespeichert werden:', error);
+    }
+}
+
+export async function loadSettings() {
+    try {
+        return (await loadFromCache(KEYS.settings)) ?? null;
+    } catch {
+        return null;
+    }
 }

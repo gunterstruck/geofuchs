@@ -2,181 +2,163 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="GeoFuchs - KI-gesteuerte Kartenanwendung für Deutschland. Analysieren, verwalten und visualisieren Sie Vertriebsgebiete und -gruppen für strategisches Management.">
-    <title>GeoFuchs - Startseite</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #020617;
-            color: #e2e8f0;
-            line-height: 1.6;
-            margin: 0;
-            padding: 2em;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 800px;
-            width: 100%;
-            background-color: #1e293b;
-            padding: 2em;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-        h1, h2, h3 {
-            color: #14b8a6;
-            border-bottom: 2px solid #334155;
-            padding-bottom: 0.5em;
-            margin-top: 1.5em;
-        }
-        h1 { font-size: 2em; }
-        h2 { font-size: 1.5em; }
-        h3 { font-size: 1.2em; }
-        a {
-            color: #3b82f6;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .intro {
-            text-align: center;
-            margin-bottom: 2em;
-        }
-
-        /* NEUER CONTAINER FÜR DIE BEIDEN HAUPT-BUTTONS */
-        .application-buttons-wrapper {
-            display: flex;
-            justify-content: center; /* Zentriert die Buttons */
-            gap: 2em; /* Abstand zwischen den Buttons */
-            margin-bottom: 2em; /* Abstand unter den Buttons */
-            flex-wrap: wrap; /* Erlaubt Umbruch auf kleineren Bildschirmen */
-        }
-
-        /* Vereinheitlichte Styles für beide Buttons */
-        .download-button {
-            font-size: 1.2em;
-            background-color: #0d9488;
-            color: white;
-            padding: 0.75em 1.5em;
-            border-radius: 8px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            display: inline-block; /* Wichtig für Padding/Größe */
-            text-align: center; /* Zentriert den Text */
-            line-height: 1.3; /* Zeilenhöhe für zweizeiligen Text */
-            min-width: 150px; /* Konsistente Mindestbreite */
-            box-sizing: border-box; /* Padding in Breitenberechnung einbeziehen */
-        }
-        .download-button:hover {
-            background-color: #047857;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            text-decoration: none;
-        }
-
-        ul {
-            list-style-type: none;
-            padding-left: 0;
-        }
-        .app-description {
-            font-size: 1.1em;
-            text-align: left;
-            margin-bottom: 2em;
-            padding: 1.5em;
-            background-color: #0f172a;
-            border-radius: 8px;
-            border-left: 4px solid #14b8a6;
-        }
-        .app-description h2 {
-            border-bottom: none;
-            color: #e2e8f0;
-            margin-top: 0;
-            padding-bottom: 0;
-        }
-        .app-description p {
-            margin-bottom: 1em;
-        }
-        .footer-links {
-            text-align: center;
-            margin-top: 2em;
-            font-size: 0.9em;
-        }
-        .footer-links a {
-            margin: 0 0.5em;
-        }
-        .contact-info {
-            font-size: 0.9em;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="GeoFuchs Vertrieb – Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete (Landkreise & PLZ), Team-Filter und Besuchsplanung mit Tourenoptimierung. Alle Daten bleiben im Browser.">
+    <meta name="theme-color" content="#0d9488">
+    <title>GeoFuchs Vertrieb – Gebiets- & Besuchsplanung</title>
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
 </head>
 <body>
-    <div class="container">
-        <header class="intro">
-            <h1>🌍 GeoFuchs 🦊</h1>
-            <p>Ihr KI-gestützter Karten-Assistent</p>
-
-            <!-- NEUER WRAPPER FÜR DIE BEIDEN HAUPT-BUTTONS -->
-            <div class="application-buttons-wrapper">
-                <!-- "Zur Anwendung" button mit zweizeiligem Text -->
-                <a href="https://gunterstruck.github.io/geofuchs/app.html" class="download-button">Zur Anwendung<br>(online)</a>
-
-                <!-- "DOWNLOAD (ZIP)" button (verlinkt auf Raw-URL der ZIP-Datei im download-Ordner) -->
-                <a href="https://raw.githubusercontent.com/gunterstruck/geofuchs/main/download/GeoFuchs.zip" download="GeoFuchs.zip" class="download-button">DOWNLOAD<br>(ZIP)</a>
+    <div id="app">
+        <header class="topbar">
+            <button id="sidebar-toggle" class="icon-button" aria-label="Menü umschalten" aria-expanded="true">☰</button>
+            <div class="brand">
+                <span class="brand-icon">🦊</span>
+                <span class="brand-name">GeoFuchs <em>Vertrieb</em></span>
             </div>
+            <div class="search-wrap">
+                <input id="global-search" type="search" placeholder="Kunde, Ort, PLZ suchen…" autocomplete="off">
+                <div id="search-results" class="search-results"></div>
+            </div>
+            <button id="btn-info" class="icon-button" aria-label="Info & Impressum">ⓘ</button>
         </header>
 
-        <section class="app-description">
-            <h2>Schnelle & vollständige Übersicht für Ihr Vertriebsmanagement</h2>
-            <p>
-                GeoFuchs ist eine intelligente Anwendung, die auf einer interaktiven Deutschlandkarte mit detaillierten Grenzen von Landkreisen und Städten basiert. Sie kombiniert dieses visuelle Fundament mit einem leistungsstarken <strong>Side-by-Side KI-Assistenten</strong>, um Ihnen eine schnelle Management-Übersicht mit allen relevanten Daten zu bieten und Ihre Entscheidungsfindung zu beschleunigen.
-            </p>
-            <p style="text-align:center; margin: 2em 0;">
-                <img src="https://gunterstruck.github.io/geofuchs/image_aace62.jpg" alt="Eine bunte, detaillierte Karte von Deutschland" style="width:100%; max-width:500px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-            </p>
-            <p>
-                Der <strong>Side-by-Side KI-Assistent</strong> macht Schluss mit komplexen Tools. Er ermöglicht einen intuitiven, visuellen Dialog: Sie stellen Fragen in natürlicher Sprache, und der Assistent liefert sofort präzise und visuell aufbereitete Antworten direkt auf der Karte.
-            </p>
-            <h3>Die drei Hauptfunktionen für Ihren Erfolg:</h3>
-            <ul>
-                <li>✅ <strong>Visuelle Übersicht:</strong> Markieren und verwalten Sie Vertriebsgebiete direkt auf der Deutschlandkarte, um sich auf Managerebene einen klaren Überblick über Ihre Märkte zu verschaffen.</li>
-                <li>🗣️ <strong>KI-gesteuerte Analyse:</strong> Erhalten Sie präzise Analysen, indem Sie dem Assistenten Fragen zu Umsatzdaten oder Top-Regionen stellen, die Ihnen helfen, fundierte Entscheidungen zu treffen.</li>
-                <li>💾 <strong>Datenmanagement:</strong> Fügen Sie Vertriebsdaten (Gruppen, Bezirke, Umsatz) einfach per Chat oder im Bearbeitungsdialog hinzu. Ihre Daten bleiben lokal und sicher in Ihrem Browser gespeichert.</li>
-            </ul>
-        </section>
+        <aside id="sidebar" class="sidebar">
+            <nav class="tabs" role="tablist">
+                <button class="tab-button active" data-tab="daten" role="tab">📄 Daten</button>
+                <button class="tab-button" data-tab="gebiete" role="tab">🗺️ Gebiete</button>
+                <button class="tab-button" data-tab="team" role="tab">👥 Team</button>
+                <button class="tab-button" data-tab="tour" role="tab">🚗 Tour</button>
+            </nav>
 
-        <section class="contact-info">
-            <h2>Impressum</h2>
-            <h3>Verantwortlich gemäß § 5 TMG:</h3>
-            <p>
-                Günter Struck<br>
-                Lönsberg 8<br>
-                45136 Essen, Deutschland<br>
-                E-Mail: <a href="mailto:geofuchs@online.de">geofuchs@online.de</a>
-            </p>
+            <!-- Tab: Daten -->
+            <section id="tab-daten" class="tab-panel active">
+                <h2>Kundendaten</h2>
+                <div id="data-status"></div>
+                <div class="button-column">
+                    <button id="btn-upload" class="primary">📤 Excel-Liste hochladen</button>
+                    <input id="file-input" type="file" accept=".xlsx,.xls,.csv,.ods" hidden>
+                    <button id="btn-template">📋 Excel-Vorlage herunterladen</button>
+                    <button id="btn-demo">✨ Demo-Daten laden</button>
+                </div>
+                <div id="data-actions" style="display:none">
+                    <hr>
+                    <div class="button-column">
+                        <button id="btn-geocode">🎯 Adressen exakt verorten</button>
+                        <div id="geocode-progress" class="muted small" style="display:none"></div>
+                        <button id="btn-export">💾 Als Excel exportieren</button>
+                        <button id="btn-clear" class="danger">🗑 Daten löschen</button>
+                    </div>
+                </div>
+                <p class="privacy-note">🔒 Ihre Daten bleiben ausschließlich in diesem Browser – kein Server, keine Cloud, keine KI.</p>
+            </section>
 
-            <h3>Haftungsausschluss & Hinweise</h3>
-            <ul>
-                <li>Keine Abmahnung ohne vorherigen Kontakt!</li>
-                <li>Die App ist privat und richtet sich an Endnutzer in Deutschland, Österreich und der EU.</li>
-                <li>Plattform der EU-Kommission zur Online-Streitbeilegung: <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener">ec.europa.eu/consumers/odr/</a></li>
-            </ul>
-        </section>
+            <!-- Tab: Gebiete -->
+            <section id="tab-gebiete" class="tab-panel">
+                <h2>Gebietsebene</h2>
+                <p class="muted small">Gebiete werden nach dem Vertriebsbeauftragten mit den meisten Kunden eingefärbt – je mehr Kunden, desto kräftiger.</p>
+                <label class="field-label" for="level-select">Ebene</label>
+                <div class="level-row">
+                    <select id="level-select"></select>
+                    <span id="level-loading" class="spinner" style="display:none"></span>
+                </div>
+                <ul class="hint-list">
+                    <li><b>Landkreise:</b> klassische Gebietssicht (400 Kreise & Städte)</li>
+                    <li><b>PLZ 1-/2-stellig:</b> grobe Vertriebszonen</li>
+                    <li><b>PLZ 3-/5-stellig:</b> feine Gebietsaufteilung</li>
+                </ul>
+                <p class="muted small">Tipp: Gebiet anklicken zeigt Kunden und Team-Verteilung im Gebiet.</p>
+            </section>
 
-        <hr>
+            <!-- Tab: Team -->
+            <section id="tab-team" class="tab-panel">
+                <h2>Vertriebsbeauftragte</h2>
+                <div id="rep-filters"></div>
+                <h2>Vertriebsgruppen</h2>
+                <div id="group-filters"></div>
+            </section>
 
-        <footer class="footer-links">
-            <p>
-                © 2025 Günter Struck – GeoFuchs.<br>
-                <a href="https://gunterstruck.github.io/geofuchs/datenschutz.html" target="_blank">Datenschutzerklärung</a> •
-                <a href="https://github.com/gunterstruck/geofuchs/blob/main/LICENSE" target="_blank">Lizenz</a> •
-                <a href="https://github.com/gunterstruck/geofuchs" target="_blank" rel="noopener">GitHub-Repository</a>
-            </p>
-        </footer>
+            <!-- Tab: Tour -->
+            <section id="tab-tour" class="tab-panel">
+                <h2>Besuchsplaner</h2>
+                <h3>1. Startpunkt</h3>
+                <div id="tour-start"></div>
+                <div class="button-row">
+                    <button id="btn-my-location">📍 Mein Standort</button>
+                </div>
+                <div class="start-search-wrap">
+                    <input id="start-search" type="search" placeholder="…oder Kunde als Start wählen" autocomplete="off">
+                    <div id="start-results"></div>
+                </div>
+
+                <h3>2. Vorschläge im Umkreis</h3>
+                <label class="field-label" for="radius-slider">Umkreis: <span id="radius-value"></span></label>
+                <input id="radius-slider" type="range" min="5" max="100" step="5">
+                <div id="tour-suggestions" class="scroll-list"></div>
+
+                <h3>3. Meine Tour</h3>
+                <div id="tour-stops"></div>
+                <p id="tour-summary"></p>
+                <div class="button-column">
+                    <button id="btn-optimize" class="primary" disabled>⚡ Reihenfolge optimieren</button>
+                    <button id="btn-gmaps" disabled>🧭 In Google Maps navigieren</button>
+                    <button id="btn-tour-clear" class="danger" disabled>✕ Tour leeren</button>
+                </div>
+            </section>
+        </aside>
+
+        <main id="map" role="application" aria-label="Deutschlandkarte"></main>
+
+        <div id="dropzone" class="dropzone"><div>📥 Excel-Datei hier ablegen</div></div>
+        <div id="toasts" class="toasts" aria-live="polite"></div>
+
+        <!-- Import-Dialog: Spalten-Zuordnung -->
+        <dialog id="import-dialog">
+            <header>
+                <h2>Spalten zuordnen</h2>
+                <button class="dialog-close" aria-label="Schließen">✕</button>
+            </header>
+            <p id="mapping-file-info" class="muted"></p>
+            <p class="muted small">GeoFuchs hat die Spalten automatisch erkannt – bitte prüfen und ggf. anpassen.</p>
+            <div class="table-scroll">
+                <table class="mapping-table">
+                    <thead><tr><th>Feld</th><th>Spalte in Ihrer Datei</th><th>Beispielwerte</th></tr></thead>
+                    <tbody id="mapping-rows"></tbody>
+                </table>
+            </div>
+            <footer>
+                <button id="mapping-confirm" class="primary">Importieren</button>
+            </footer>
+        </dialog>
+
+        <!-- Info-Dialog -->
+        <dialog id="info-dialog">
+            <header>
+                <h2>🦊 GeoFuchs Vertrieb</h2>
+                <button class="dialog-close" aria-label="Schließen">✕</button>
+            </header>
+            <div class="info-content">
+                <p>Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete (Landkreise & Postleitzahlen), Team-Filter und Besuchsplanung mit Tourenoptimierung.</p>
+                <p><b>Datenschutz:</b> Alle Kundendaten werden ausschließlich lokal in Ihrem Browser gespeichert und verlassen Ihr Gerät nicht. Die optionale exakte Adress-Verortung sendet nur die jeweilige Adresse an OpenStreetMap (Nominatim).</p>
+                <h3>Impressum</h3>
+                <p>Verantwortlich gemäß § 5 TMG:<br>
+                Günter Struck · Lönsberg 8 · 45136 Essen<br>
+                E-Mail: <a href="mailto:geofuchs@online.de">geofuchs@online.de</a></p>
+                <h3>Datenquellen</h3>
+                <ul>
+                    <li>Verwaltungsgrenzen: © GeoBasis-DE / BKG 2024, <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">dl-de/by-2-0</a></li>
+                    <li>PLZ-Gebiete & -Koordinaten: © OpenStreetMap-Mitwirkende (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>)</li>
+                    <li>Kartendarstellung: © OpenStreetMap & CARTO</li>
+                </ul>
+                <p class="muted small">
+                    <a href="/datenschutz.html" target="_blank">Datenschutzerklärung</a> ·
+                    <a href="/license.html" target="_blank">Lizenz</a> ·
+                    <a href="https://github.com/gunterstruck/geofuchs" target="_blank" rel="noopener">GitHub</a>
+                </p>
+            </div>
+        </dialog>
     </div>
+    <script type="module" src="/src/main.js"></script>
 </body>
 </html>

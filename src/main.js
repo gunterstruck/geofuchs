@@ -1,184 +1,80 @@
 /**
- * GeoFuchs - Main Entry Point
- * Modular, refactored version
+ * GeoFuchs Vertrieb – Einstiegspunkt
  */
 
-import '../src/styles/main.css';
+import './styles/main.css';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
 
 import { CONFIG } from './core/config.js';
-import {
-    setLeafletMap,
-    setAllFeaturesData,
-    leafletMap,
-    allFeaturesData
-} from './core/state.js';
-import { fetchWFSFeatures, validateWFSFeatures } from './services/wfs.js';
-import { validateOpenAIKey, validateGeminiKey } from './services/api.js';
+import { state, emit, setCustomers } from './core/state.js';
+import { loadDataset, loadSettings } from './services/storage.js';
+import { geocodeByPlz } from './services/geocode.js';
+import { initMap } from './features/map.js';
+import { initSidebar } from './ui/sidebar.js';
+import { initImportWizard } from './ui/importWizard.js';
+import { initTourPanel } from './ui/tourPanel.js';
+import { initSearch } from './ui/search.js';
+import { initToasts } from './ui/toast.js';
+import { fitToCustomers } from './features/map.js';
 
-/**
- * Initialize the Leaflet map
- */
-async function initializeMap() {
-    const loader = document.getElementById('loader');
-    if (loader) {
-        loader.style.display = 'block';
-        loader.textContent = 'Lade Geodaten...';
+async function restorePersistedState() {
+    const settings = await loadSettings();
+    if (settings?.level && settings.level in CONFIG.levels && settings.level !== state.level) {
+        state.level = settings.level;
+        const select = document.getElementById('level-select');
+        if (select) select.value = settings.level;
+        emit('level:changed');
     }
+    if (settings?.radiusKm) state.tour.radiusKm = settings.radiusKm;
 
-    try {
-        // Create map instance
-        const map = L.map('map', {
-            attributionControl: false,
-            keyboard: true,
-            tap: true,
-            maxBoundsViscosity: 1.0,
-            zoomSnap: CONFIG.map.zoomSnap,
-            zoomControl: false
-        }).setView(CONFIG.map.defaultCenter, CONFIG.map.defaultZoom);
-
-        setLeafletMap(map);
-
-        // Add zoom control
-        L.control.zoom({ position: 'topleft' }).addTo(map);
-
-        // Set bounds
-        map.setMaxBounds(CONFIG.map.bounds);
-
-        // Add tile layer
-        L.tileLayer(CONFIG.tileLayer.url, {
-            maxZoom: CONFIG.tileLayer.maxZoom,
-            minZoom: CONFIG.tileLayer.minZoom,
-            attribution: CONFIG.tileLayer.attribution,
-            crossOrigin: CONFIG.tileLayer.crossOrigin
-        }).addTo(map);
-
-        // Fetch WFS features (with caching!)
-        const features = await fetchWFSFeatures();
-
-        if (!validateWFSFeatures(features)) {
-            throw new Error('Ungültige WFS-Daten empfangen');
-        }
-
-        setAllFeaturesData(features);
-
-        // Add GeoJSON layer
-        const geojsonLayer = L.geoJSON({ type: 'FeatureCollection', features }, {
-            style: CONFIG.mapStyles.default,
-            onEachFeature: (feature, layer) => {
-                // Basic popup
-                const name = feature.properties.GEN;
-                const type = feature.properties.BEZ || 'Region';
-                layer.bindPopup(`<b>${name}</b><br>${type}`);
-
-                // Hover effect
-                layer.on('mouseover', function() {
-                    this.setStyle(CONFIG.mapStyles.hover);
-                });
-                layer.on('mouseout', function() {
-                    this.setStyle(CONFIG.mapStyles.default);
-                });
-            }
-        }).addTo(map);
-
-        if (loader) {
-            loader.style.display = 'none';
-        }
-
-        console.log(`✅ Map initialized with ${features.length} features`);
-        return map;
-
-    } catch (error) {
-        console.error('❌ Map initialization error:', error);
-        if (loader) {
-            loader.innerHTML = `
-                <div style="color: #ef4444;">
-                    <strong>Fehler beim Laden der Karte</strong><br>
-                    ${error.message}
-                </div>
-            `;
-        }
-        throw error;
-    }
-}
-
-/**
- * Initialize API key handling
- */
-function initializeAPIKeySection() {
-    const saveButton = document.getElementById('saveApiKeyButton');
-    const openaiRadio = document.getElementById('openai');
-    const geminiRadio = document.getElementById('gemini');
-    const apiKeyInput = document.getElementById('apiKeyInput');
-    const apiKeySection = document.getElementById('api-key-section');
-    const chatInterface = document.getElementById('chat-interface');
-
-    if (!saveButton) return;
-
-    saveButton.addEventListener('click', () => {
-        const apiKey = apiKeyInput?.value.trim();
-        const provider = openaiRadio?.checked ? 'openai' : 'gemini';
-
-        if (!apiKey) {
-            alert('Bitte geben Sie einen API-Schlüssel ein.');
-            return;
-        }
-
-        // Validate based on provider
-        const isValid = provider === 'openai'
-            ? validateOpenAIKey(apiKey)
-            : validateGeminiKey(apiKey);
-
-        if (!isValid) {
-            alert('Ungültiger API-Schlüssel. Bitte überprüfen Sie das Format.');
-            return;
-        }
-
-        // Store in sessionStorage
-        sessionStorage.setItem('selectedModel', provider);
-        sessionStorage.setItem('apiKey', apiKey);
-
-        // Hide API section, show chat
-        if (apiKeySection) apiKeySection.style.display = 'none';
-        if (chatInterface) chatInterface.style.display = 'flex';
-
-        console.log(`✅ API-Schlüssel gespeichert (${provider})`);
-    });
-}
-
-/**
- * Initialize mobile toggle
- */
-function initializeMobileToggle() {
-    const toggleBtn = document.querySelector('.mobile-toggle');
-    const sidebar = document.querySelector('.sidebar');
-
-    if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
+    const dataset = await loadDataset();
+    if (dataset?.customers?.length) {
+        // Sicherheitsnetz: falls ältere Datensätze ohne Koordinaten gespeichert wurden
+        await geocodeByPlz(dataset.customers);
+        setCustomers(dataset.customers, {
+            fileName: dataset.fileName,
+            importedAt: dataset.importedAt
         });
+
+        // Persistierte Sichtbarkeiten anwenden
+        if (settings?.repVisibility) {
+            for (const [name, visible] of Object.entries(settings.repVisibility)) {
+                if (state.reps.has(name)) state.reps.get(name).visible = visible;
+            }
+        }
+        if (settings?.groupVisibility) {
+            for (const [name, visible] of Object.entries(settings.groupVisibility)) {
+                if (state.groups.has(name)) state.groups.get(name).visible = visible;
+            }
+        }
+        emit('customers:changed');
+        fitToCustomers();
     }
 }
 
-/**
- * Main initialization
- */
 async function init() {
-    console.log('🦊 GeoFuchs starting...');
+    initToasts();
+    initMap('map');
+    initSidebar();
+    initImportWizard();
+    initTourPanel();
+    initSearch();
 
     try {
-        await initializeMap();
-        initializeAPIKeySection();
-        initializeMobileToggle();
-
-        console.log('✅ GeoFuchs initialized successfully');
+        await restorePersistedState();
     } catch (error) {
-        console.error('❌ Initialization failed:', error);
+        console.warn('Gespeicherter Zustand konnte nicht wiederhergestellt werden:', error);
     }
+
+    // Info-Dialog
+    const infoDialog = document.getElementById('info-dialog');
+    document.getElementById('btn-info').addEventListener('click', () => infoDialog.showModal());
+    infoDialog.querySelector('.dialog-close').addEventListener('click', () => infoDialog.close());
+
+    console.log('🦊 GeoFuchs Vertrieb bereit.');
 }
 
-// Start when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {

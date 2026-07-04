@@ -1,7 +1,7 @@
 {
   "name": "geofuchs",
-  "version": "2.0.0",
-  "description": "KI-gestützte Geodaten-Visualisierung für Deutschland",
+  "version": "3.0.0",
+  "description": "GeoFuchs Vertrieb – Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete (Landkreise & PLZ), Team-Filter und Besuchsplanung mit Tourenoptimierung. PWA, alle Daten bleiben im Browser.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,16 +10,21 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "leaflet": "^1.9.4"
+    "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "vite-plugin-pwa": "^1.3.0"
   },
   "keywords": [
-    "geo",
+    "vertrieb",
+    "sales-territory",
+    "besuchsplanung",
     "maps",
-    "ai",
-    "visualization",
+    "pwa",
+    "excel",
     "germany"
   ],
   "author": "Günter Struck",

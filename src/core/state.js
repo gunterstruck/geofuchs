@@ -1,113 +1,109 @@
 /**
- * Application State Management
- * Centralized state for the entire application
+ * Zentraler App-State mit einfachem Pub/Sub.
+ *
+ * Kunde: {
+ *   id, nummer, name, strasse, plz, ort, vb, gruppe, umsatz,
+ *   lat, lng, geo: 'exakt' | 'plz' | 'none'
+ * }
  */
 
-// Map & GeoJSON
-export let leafletMap = null;
-export let geojsonLayer = null;
-export let allFeaturesData = [];
+import { CONFIG } from './config.js';
 
-// District Data Storage
-export const districtData = {};
-export let regionsTable = [];
+export const state = {
+    customers: [],
+    fileName: null,
+    importedAt: null,
 
-// Search & Indexing
-export const nameToKeysMap = new Map();
-export const nameToRegionsMap = new Map();
-export const normalizedNameMap = new Map();
-export const objIdToLayerMap = new Map();
+    // Vertriebsbeauftragte: name -> { color, visible }
+    reps: new Map(),
+    // Vertriebsgruppen: name -> { visible }
+    groups: new Map(),
 
-// Markings & Sales Districts
-export const markedDistricts = new Map();
-export const selectedSalesDistricts = new Set();
-export const allSalesDistricts = new Set();
-export let salesDistrictInfoboxes = {};
+    level: 'kreise',
 
-// Display Toggles
-export let showSalesDistrictInfoboxes = false;
-export let showRevenueBasedColoring = false;
-export let isFilterActive = false;
+    tour: {
+        start: null,        // { lat, lng, label, customerId? }
+        stops: [],          // Array von Kunden-IDs (in Besuchsreihenfolge)
+        radiusKm: CONFIG.tour.defaultRadiusKm
+    },
 
-// Chat & AI
-export let conversationHistory = [];
-export let currentSystemPrompt = "";
-export let hasWelcomeMessageBeenShown = false;
+    ui: {
+        activeTab: 'daten',
+        sidebarOpen: window.innerWidth > 900
+    }
+};
 
-// UI State
-export let colorIndex = 0;
-export let currentHoveredLayer = null;
-export let hoverInfoPopup = null;
+const listeners = new Map();
 
-// Setters for module exports
-export function setLeafletMap(map) {
-    leafletMap = map;
+export function on(event, fn) {
+    if (!listeners.has(event)) listeners.set(event, new Set());
+    listeners.get(event).add(fn);
+    return () => listeners.get(event).delete(fn);
 }
 
-export function setGeojsonLayer(layer) {
-    geojsonLayer = layer;
+export function emit(event, payload) {
+    const fns = listeners.get(event);
+    if (fns) fns.forEach((fn) => fn(payload));
 }
 
-export function setAllFeaturesData(features) {
-    allFeaturesData = features;
+export const UNASSIGNED = 'Ohne Zuordnung';
+
+/**
+ * Kundenliste setzen und Vertriebsbeauftragte/Gruppen ableiten.
+ * Bestehende Farb-/Sichtbarkeits-Einstellungen bleiben erhalten.
+ */
+export function setCustomers(customers, meta = {}) {
+    state.customers = customers;
+    state.fileName = meta.fileName ?? state.fileName;
+    state.importedAt = meta.importedAt ?? new Date().toISOString();
+
+    const oldReps = state.reps;
+    const oldGroups = state.groups;
+    state.reps = new Map();
+    state.groups = new Map();
+
+    const repNames = [...new Set(customers.map((c) => c.vb || UNASSIGNED))]
+        .sort((a, b) => a.localeCompare(b, 'de'));
+    repNames.forEach((name, i) => {
+        state.reps.set(name, {
+            color: name === UNASSIGNED
+                ? CONFIG.unassignedColor
+                : (oldReps.get(name)?.color ?? CONFIG.repPalette[i % CONFIG.repPalette.length]),
+            visible: oldReps.get(name)?.visible ?? true
+        });
+    });
+
+    const groupNames = [...new Set(customers.map((c) => c.gruppe || UNASSIGNED))]
+        .sort((a, b) => a.localeCompare(b, 'de'));
+    groupNames.forEach((name) => {
+        state.groups.set(name, { visible: oldGroups.get(name)?.visible ?? true });
+    });
+
+    // Tour bereinigen: nur noch existierende Kunden behalten
+    const ids = new Set(customers.map((c) => c.id));
+    state.tour.stops = state.tour.stops.filter((id) => ids.has(id));
+    if (state.tour.start?.customerId && !ids.has(state.tour.start.customerId)) {
+        state.tour.start = null;
+    }
+
+    emit('customers:changed');
 }
 
-export function setRegionsTable(table) {
-    regionsTable = table;
+export function getCustomer(id) {
+    return state.customers.find((c) => c.id === id);
 }
 
-export function setShowSalesDistrictInfoboxes(value) {
-    showSalesDistrictInfoboxes = value;
+export function repColor(vb) {
+    return state.reps.get(vb || UNASSIGNED)?.color ?? CONFIG.unassignedColor;
 }
 
-export function setShowRevenueBasedColoring(value) {
-    showRevenueBasedColoring = value;
+/** Ist der Kunde nach aktuellen Filtern sichtbar? */
+export function isVisible(customer) {
+    const rep = state.reps.get(customer.vb || UNASSIGNED);
+    const grp = state.groups.get(customer.gruppe || UNASSIGNED);
+    return (rep?.visible ?? true) && (grp?.visible ?? true);
 }
 
-export function setIsFilterActive(value) {
-    isFilterActive = value;
-}
-
-export function addToConversationHistory(message) {
-    conversationHistory.push(message);
-}
-
-export function clearConversationHistory() {
-    conversationHistory = [];
-}
-
-export function setCurrentSystemPrompt(prompt) {
-    currentSystemPrompt = prompt;
-}
-
-export function setHasWelcomeMessageBeenShown(value) {
-    hasWelcomeMessageBeenShown = value;
-}
-
-export function incrementColorIndex() {
-    colorIndex++;
-}
-
-export function setCurrentHoveredLayer(layer) {
-    currentHoveredLayer = layer;
-}
-
-export function setHoverInfoPopup(popup) {
-    hoverInfoPopup = popup;
-}
-
-export function setSalesDistrictInfoboxes(infoboxes) {
-    salesDistrictInfoboxes = infoboxes;
-}
-
-// Utility getters
-export function getNextColor() {
-    const { defaultColors } = await import('./config.js');
-    const color = defaultColors[colorIndex % defaultColors.length];
-    incrementColorIndex();
-    return color;
-}
-
-export function resetColorIndex() {
-    colorIndex = 0;
+export function visibleCustomers() {
+    return state.customers.filter(isVisible);
 }
