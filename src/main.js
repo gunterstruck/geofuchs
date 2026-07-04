@@ -20,10 +20,11 @@ import { fitToCustomers } from './features/map.js';
 
 async function restorePersistedState() {
     const settings = await loadSettings();
-    if (settings?.level && settings.level in CONFIG.levels) {
+    if (settings?.level && settings.level in CONFIG.levels && settings.level !== state.level) {
         state.level = settings.level;
         const select = document.getElementById('level-select');
         if (select) select.value = settings.level;
+        emit('level:changed');
     }
     if (settings?.radiusKm) state.tour.radiusKm = settings.radiusKm;
 
