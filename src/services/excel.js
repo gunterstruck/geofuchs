@@ -240,54 +240,58 @@ export function exportCustomers(customers) {
     XLSX.writeFile(wb, `geofuchs-kunden-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-/** Demo-Datensatz: 3 Vertriebsbeauftragte, 3 Gruppen, quer durch Deutschland */
+/**
+ * Demo-Datensatz: 3 Vertriebsbeauftragte, je 2 geografisch zusammenhängende
+ * Betriebsbezirke (benachbarte Städte/Kreise), quer durch Deutschland.
+ * Spalten: [name, straße, plz, ort, vb, gruppe, umsatz, bezirk]
+ */
 export function demoCustomers() {
     const data = [
-        ['Autohaus Schmidt GmbH', 'Hauptstraße 12', '50667', 'Köln', 'Max Mustermann', 'Handel', 125000],
-        ['Sanitär Krause', 'Ehrenfeldgürtel 99', '50823', 'Köln', 'Max Mustermann', 'Handwerk', 43000],
-        ['Metallbau Peters', 'Bahnhofstr. 5', '40210', 'Düsseldorf', 'Max Mustermann', 'Industrie', 210000],
-        ['Getränke Vogel', 'Ruhrallee 20', '45138', 'Essen', 'Max Mustermann', 'Handel', 66000],
-        ['Dachdecker Lorenz', 'Kortumstr. 45', '44787', 'Bochum', 'Max Mustermann', 'Handwerk', 38000],
-        ['Logistik Brandt', 'Hafenstr. 1', '47119', 'Duisburg', 'Max Mustermann', 'Industrie', 175000],
-        ['Apotheke am Dom', 'Domkloster 2', '50667', 'Köln', 'Max Mustermann', 'Handel', 52000],
-        ['Werkzeug Wagner', 'Berliner Allee 30', '30175', 'Hannover', 'Max Mustermann', 'Handel', 91000],
+        // Max Mustermann – Bezirk Rheinland (Köln/Bonn/Düsseldorf/Leverkusen)
+        ['Autohaus Schmidt GmbH', 'Hauptstraße 12', '50667', 'Köln', 'Max Mustermann', 'Handel', 125000, 'Bezirk Rheinland'],
+        ['Sanitär Krause', 'Ehrenfeldgürtel 99', '50823', 'Köln', 'Max Mustermann', 'Handwerk', 43000, 'Bezirk Rheinland'],
+        ['Bonner Medizintechnik', 'Adenauerallee 8', '53111', 'Bonn', 'Max Mustermann', 'Industrie', 188000, 'Bezirk Rheinland'],
+        ['Metallbau Peters', 'Bahnhofstr. 5', '40210', 'Düsseldorf', 'Max Mustermann', 'Industrie', 210000, 'Bezirk Rheinland'],
+        ['Rhein Getränke Bayer', 'Kölner Str. 4', '51373', 'Leverkusen', 'Max Mustermann', 'Lebensmittel', 72000, 'Bezirk Rheinland'],
+        // Max Mustermann – Bezirk Ruhrgebiet (Essen/Bochum/Dortmund/Duisburg)
+        ['Getränke Vogel', 'Ruhrallee 20', '45127', 'Essen', 'Max Mustermann', 'Handel', 66000, 'Bezirk Ruhrgebiet'],
+        ['Dachdecker Lorenz', 'Kortumstr. 45', '44787', 'Bochum', 'Max Mustermann', 'Handwerk', 38000, 'Bezirk Ruhrgebiet'],
+        ['Westfalen Stahl', 'Hafenstr. 30', '44137', 'Dortmund', 'Max Mustermann', 'Industrie', 245000, 'Bezirk Ruhrgebiet'],
+        ['Logistik Brandt', 'Hafenstr. 1', '47051', 'Duisburg', 'Max Mustermann', 'Industrie', 175000, 'Bezirk Ruhrgebiet'],
 
-        ['Bäckerei Müller KG', 'Marktplatz 3', '80331', 'München', 'Anna Beispiel', 'Lebensmittel', 48000],
-        ['Brauerei Huber', 'Brauhausgasse 7', '94032', 'Passau', 'Anna Beispiel', 'Lebensmittel', 156000],
-        ['Metzgerei Alt', 'Sendlinger Str. 21', '80331', 'München', 'Anna Beispiel', 'Lebensmittel', 39000],
-        ['Maschinen Sailer', 'Industriestr. 14', '86159', 'Augsburg', 'Anna Beispiel', 'Industrie', 320000],
-        ['Hotel Alpenblick', 'Seepromenade 9', '82319', 'Starnberg', 'Anna Beispiel', 'Handel', 74000],
-        ['Schreinerei Wimmer', 'Holzweg 4', '93047', 'Regensburg', 'Anna Beispiel', 'Handwerk', 45000],
-        ['Autoteile Nürnberg', 'Fürther Str. 88', '90429', 'Nürnberg', 'Anna Beispiel', 'Handel', 118000],
-        ['Kaffee Rösterei Blank', 'Maximilianstr. 15', '87435', 'Kempten', 'Anna Beispiel', 'Lebensmittel', 29000],
+        // Anna Beispiel – Bezirk Oberbayern (München/Augsburg/Ingolstadt/Rosenheim)
+        ['Bäckerei Müller KG', 'Marktplatz 3', '80331', 'München', 'Anna Beispiel', 'Lebensmittel', 48000, 'Bezirk Oberbayern'],
+        ['Metzgerei Alt', 'Sendlinger Str. 21', '81667', 'München', 'Anna Beispiel', 'Lebensmittel', 39000, 'Bezirk Oberbayern'],
+        ['Maschinen Sailer', 'Industriestr. 14', '86150', 'Augsburg', 'Anna Beispiel', 'Industrie', 320000, 'Bezirk Oberbayern'],
+        ['Audi-Zulieferer Ingol', 'Ringstr. 2', '85049', 'Ingolstadt', 'Anna Beispiel', 'Industrie', 410000, 'Bezirk Oberbayern'],
+        ['Hotel Alpenblick', 'Seepromenade 9', '83022', 'Rosenheim', 'Anna Beispiel', 'Handel', 74000, 'Bezirk Oberbayern'],
+        // Anna Beispiel – Bezirk Franken (Nürnberg/Fürth/Erlangen/Würzburg)
+        ['Autoteile Nürnberg', 'Fürther Str. 88', '90402', 'Nürnberg', 'Anna Beispiel', 'Handel', 118000, 'Bezirk Franken'],
+        ['Spielwaren Fürth', 'Schwabacher Str. 5', '90762', 'Fürth', 'Anna Beispiel', 'Handel', 54000, 'Bezirk Franken'],
+        ['MedTech Erlangen', 'Henkestr. 40', '91052', 'Erlangen', 'Anna Beispiel', 'Industrie', 275000, 'Bezirk Franken'],
+        ['Weinkellerei Würzburg', 'Zeller Str. 3', '97070', 'Würzburg', 'Anna Beispiel', 'Lebensmittel', 63000, 'Bezirk Franken'],
 
-        ['Hafen Service Nord', 'Am Sandtorkai 40', '20457', 'Hamburg', 'Lena Krüger', 'Industrie', 265000],
-        ['Fisch Feinkost Petersen', 'Fischmarkt 11', '20359', 'Hamburg', 'Lena Krüger', 'Lebensmittel', 58000],
-        ['Windtechnik Jansen', 'Deichstr. 2', '26382', 'Wilhelmshaven', 'Lena Krüger', 'Industrie', 410000],
-        ['Baustoffe Lüders', 'Industriering 6', '28197', 'Bremen', 'Lena Krüger', 'Handel', 133000],
-        ['Kieler Segelservice', 'Kaistr. 30', '24103', 'Kiel', 'Lena Krüger', 'Handwerk', 27000],
-        ['Druckerei Nordlicht', 'Papierweg 3', '23552', 'Lübeck', 'Lena Krüger', 'Industrie', 88000],
-        ['Berlin Bio Markt', 'Prenzlauer Allee 200', '10405', 'Berlin', 'Lena Krüger', 'Lebensmittel', 61000],
-        ['Spree Elektro', 'Karl-Marx-Str. 60', '12043', 'Berlin', 'Lena Krüger', 'Handwerk', 49000],
-        ['Sächsische Werkzeuge', 'Könneritzstr. 25', '01067', 'Dresden', 'Lena Krüger', 'Industrie', 142000],
-        ['Leipziger Kaffeehaus', 'Grimmaische Str. 10', '04109', 'Leipzig', 'Lena Krüger', 'Lebensmittel', 33000]
+        // Lena Krüger – Bezirk Küste (Hamburg/Bremen/Kiel/Lübeck)
+        ['Hafen Service Nord', 'Am Sandtorkai 40', '20095', 'Hamburg', 'Lena Krüger', 'Industrie', 265000, 'Bezirk Küste'],
+        ['Fisch Feinkost Petersen', 'Fischmarkt 11', '22767', 'Hamburg', 'Lena Krüger', 'Lebensmittel', 58000, 'Bezirk Küste'],
+        ['Baustoffe Lüders', 'Industriering 6', '28195', 'Bremen', 'Lena Krüger', 'Handel', 133000, 'Bezirk Küste'],
+        ['Kieler Segelservice', 'Kaistr. 30', '24103', 'Kiel', 'Lena Krüger', 'Handwerk', 27000, 'Bezirk Küste'],
+        ['Druckerei Nordlicht', 'Papierweg 3', '23552', 'Lübeck', 'Lena Krüger', 'Industrie', 88000, 'Bezirk Küste'],
+        // Lena Krüger – Bezirk Ost (Berlin/Potsdam/Leipzig/Dresden)
+        ['Berlin Bio Markt', 'Prenzlauer Allee 200', '10115', 'Berlin', 'Lena Krüger', 'Lebensmittel', 61000, 'Bezirk Ost'],
+        ['Spree Elektro', 'Karl-Marx-Str. 60', '12043', 'Berlin', 'Lena Krüger', 'Handwerk', 49000, 'Bezirk Ost'],
+        ['Havel Handwerk Potsdam', 'Zeppelinstr. 9', '14467', 'Potsdam', 'Lena Krüger', 'Handwerk', 36000, 'Bezirk Ost'],
+        ['Leipziger Kaffeehaus', 'Grimmaische Str. 10', '04109', 'Leipzig', 'Lena Krüger', 'Lebensmittel', 33000, 'Bezirk Ost'],
+        ['Sächsische Werkzeuge', 'Könneritzstr. 25', '01067', 'Dresden', 'Lena Krüger', 'Industrie', 142000, 'Bezirk Ost']
     ];
     const rhythmChoices = [4, 6, 6, 8, 12];
     // Tage seit letztem Besuch – gemischt, damit Status ok/fällig/überfällig sichtbar wird
     const daysAgoChoices = [7, 20, 45, 70, 110, null];
 
-    // Vertriebshierarchie: Channel (oben) -> Gruppe -> Betriebsbezirk (unten)
+    // Vertriebschannel (oberste Ebene) aus der Gruppe abgeleitet
     const channelByGruppe = { Handel: 'Fachhandel', Lebensmittel: 'Fachhandel', Handwerk: 'Direktvertrieb', Industrie: 'Key Account' };
-    const bezirkByOrt = {
-        'Köln': 'Bezirk Rheinland-Ruhr', 'Düsseldorf': 'Bezirk Rheinland-Ruhr', 'Essen': 'Bezirk Rheinland-Ruhr', 'Bochum': 'Bezirk Rheinland-Ruhr', 'Duisburg': 'Bezirk Rheinland-Ruhr',
-        'Hannover': 'Bezirk Niedersachsen',
-        'München': 'Bezirk Oberbayern', 'Augsburg': 'Bezirk Oberbayern', 'Starnberg': 'Bezirk Oberbayern', 'Kempten': 'Bezirk Oberbayern',
-        'Passau': 'Bezirk Ostbayern', 'Regensburg': 'Bezirk Ostbayern', 'Nürnberg': 'Bezirk Ostbayern',
-        'Hamburg': 'Bezirk Küste', 'Wilhelmshaven': 'Bezirk Küste', 'Bremen': 'Bezirk Küste', 'Kiel': 'Bezirk Küste', 'Lübeck': 'Bezirk Küste',
-        'Berlin': 'Bezirk Ost', 'Dresden': 'Bezirk Ost', 'Leipzig': 'Bezirk Ost'
-    };
 
-    return data.map(([name, strasse, plz, ort, vb, gruppe, umsatz], i) => {
+    return data.map(([name, strasse, plz, ort, vb, gruppe, umsatz, bezirk], i) => {
         const rhythmusWochen = rhythmChoices[i % rhythmChoices.length];
         const daysAgo = daysAgoChoices[i % daysAgoChoices.length];
         let besuche = [];
@@ -302,7 +306,7 @@ export function demoCustomers() {
             name, strasse, plz, ort, vb,
             channel: channelByGruppe[gruppe] ?? 'Direktvertrieb',
             gruppe,
-            bezirk: bezirkByOrt[ort] ?? 'Bezirk West',
+            bezirk,
             ansprechpartner: '',
             telefon: `0${(1500 + i)} ${100000 + i * 137}`,
             email: `info@${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20)}.de`,

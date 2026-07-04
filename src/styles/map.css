@@ -46,6 +46,26 @@
 }
 .tour-marker.start { background: #1d4ed8; width: 28px; height: 28px; }
 
+/* Gebiets-Labels (Bezirk / Gruppe + Umsatz) */
+.territory-label-wrapper { background: transparent; pointer-events: none; }
+.territory-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.92);
+    border: 2px solid #0d9488;
+    border-radius: 99px;
+    padding: 3px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #0f172a;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+.territory-label .tl-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.territory-label .tl-rev { font-weight: 600; color: #0f766e; font-size: 0.74rem; }
+
 /* Popup-Inhalte */
 .leaflet-popup-content { margin: 12px 14px; font-family: var(--font); }
 .popup h3 { margin: 0 0 4px; font-size: 1rem; color: var(--color-text); text-transform: none; letter-spacing: 0; }

@@ -34,7 +34,8 @@ export const state = {
     dims: {},
 
     level: 'kreise',
-    colorMode: 'rep',   // 'rep' = nach Vertriebsbeauftragtem | 'status' = nach Besuchsstatus
+    // 'auto' = nach Zoom | 'rep' = VB | 'bezirk' | 'gruppe' | 'status'
+    colorMode: 'auto',
 
     tour: {
         start: null,        // { lat, lng, label, customerId? }
@@ -88,14 +89,19 @@ export function setCustomers(customers, meta = {}) {
         });
     });
 
-    // Vertriebshierarchie-Ebenen ableiten
+    // Vertriebshierarchie-Ebenen ableiten (inkl. stabiler Farbe je Wert)
     for (const def of DIMENSIONS) {
         const active = customers.some((c) => String(c[def.field] ?? '').trim() !== '');
         const names = [...new Set(customers.map((c) => String(c[def.field] ?? '').trim() || UNASSIGNED))]
             .sort((a, b) => a.localeCompare(b, 'de'));
         const oldValues = oldDims[def.id]?.values;
         const values = new Map();
-        names.forEach((name) => values.set(name, { visible: oldValues?.get(name)?.visible ?? true }));
+        names.forEach((name, i) => values.set(name, {
+            visible: oldValues?.get(name)?.visible ?? true,
+            color: name === UNASSIGNED
+                ? CONFIG.unassignedColor
+                : (oldValues?.get(name)?.color ?? CONFIG.repPalette[i % CONFIG.repPalette.length])
+        }));
         state.dims[def.id] = { label: def.label, field: def.field, active, values };
     }
 
@@ -124,6 +130,15 @@ export function markDirty() {
 
 export function repColor(vb) {
     return state.reps.get(vb || UNASSIGNED)?.color ?? CONFIG.unassignedColor;
+}
+
+/**
+ * Farbe für einen Attributwert (zum Einfärben von Gebieten/Markern).
+ * attr: 'vb' | 'channel' | 'gruppe' | 'bezirk'
+ */
+export function attrColor(attr, value) {
+    if (attr === 'vb') return repColor(value);
+    return state.dims[attr]?.values.get(value || UNASSIGNED)?.color ?? CONFIG.unassignedColor;
 }
 
 /** Aktive Hierarchie-Ebenen (haben tatsächlich Werte in den Daten) */

@@ -57,7 +57,7 @@
             <!-- Tab: Gebiete -->
             <section id="tab-gebiete" class="tab-panel">
                 <h2>Gebietsebene</h2>
-                <p class="muted small">Gebiete werden nach dem Vertriebsbeauftragten mit den meisten Kunden eingefärbt – je mehr Kunden, desto kräftiger.</p>
+                <p class="muted small">Wählen Sie die Gebietsebene (Landkreise oder PLZ) und unten unter „Ansicht &amp; Farbe", wonach die Gebiete eingefärbt werden.</p>
                 <label class="field-label" for="level-select">Ebene</label>
                 <div class="level-row">
                     <select id="level-select"></select>
@@ -69,11 +69,16 @@
                     <li><b>PLZ 3-/5-stellig:</b> feine Gebietsaufteilung</li>
                 </ul>
 
-                <h3>Marker-Farbe</h3>
-                <div class="segmented" id="colormode-toggle" role="group" aria-label="Marker-Farbe">
-                    <button type="button" data-colormode="rep" class="active">nach Vertriebler</button>
-                    <button type="button" data-colormode="status">nach Besuchsstatus</button>
-                </div>
+                <h3>Ansicht &amp; Farbe</h3>
+                <label class="field-label" for="colormode-select">Anzeige</label>
+                <select id="colormode-select">
+                    <option value="auto">Automatisch (nach Zoom)</option>
+                    <option value="rep">Vertriebsbeauftragter</option>
+                    <option value="bezirk">Betriebsbezirk (Flächen)</option>
+                    <option value="gruppe">Vertriebsgruppe (Flächen)</option>
+                    <option value="status">Besuchsstatus</option>
+                </select>
+                <p class="muted small" id="colormode-hint"></p>
                 <div id="colormode-legend" class="legend"></div>
 
                 <h3>Auswertung</h3>
