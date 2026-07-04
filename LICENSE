@@ -1,21 +1,39 @@
-MIT License
+GeoFuchs Vertrieb
+Copyright (c) 2025-2026 Günter Struck. Alle Rechte vorbehalten.
 
-Copyright (c) 2025 Günter Struck
+Privates, nicht-kommerzielles Projekt.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. NUTZUNG
+Diese Anwendung ist ein privates Projekt und wird ausschließlich zur privaten,
+nicht-kommerziellen Nutzung bereitgestellt. Der Quellcode und die Inhalte dieses
+Projekts dürfen ohne vorherige schriftliche Zustimmung des Urhebers nicht kopiert,
+verändert, weitergegeben, veröffentlicht oder kommerziell verwertet werden.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. KEINE GEWÄHRLEISTUNG, KEINE HAFTUNG
+Die Anwendung wird "wie besehen" und ohne jegliche Gewährleistung bereitgestellt.
+Die Nutzung erfolgt ausschließlich auf eigene Gefahr. Es wird - soweit gesetzlich
+zulässig - keine Haftung jeglicher Art übernommen, insbesondere nicht für die
+Richtigkeit, Vollständigkeit oder Aktualität der dargestellten Daten (u. a.
+Gebietsgrenzen, Postleitzahlen, Geokoordinaten sowie Entfernungs- und
+Routenschätzungen) oder für Schäden, Datenverluste oder Ausfälle, die aus der
+Nutzung oder Nichtverfügbarkeit der Anwendung entstehen. Für die Rechtmäßigkeit
+der lokal verarbeiteten Daten ist die nutzende Person selbst verantwortlich.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+3. DRITTKOMPONENTEN
+Diese Anwendung verwendet folgende Komponenten und Daten unter deren jeweiligen
+Lizenzen. Diese Lizenzen gelten unabhängig von den obigen Bestimmungen fort.
+
+Software:
+- Leaflet .................. BSD-2-Clause .... (c) Vladimir Agafonkin, CloudMade
+- Leaflet.markercluster .... MIT ............. (c) Dave Leaver
+- SheetJS (xlsx) ........... Apache-2.0 ...... (c) SheetJS LLC
+- Workbox (vite-plugin-pwa)  MIT ............. (c) Google LLC
+
+Daten und Karten:
+- Verwaltungsgrenzen (VG250): (c) GeoBasis-DE / BKG 2024, dl-de/by-2-0
+  https://www.govdata.de/dl-de/by-2-0
+- PLZ-Gebiete: (c) OpenStreetMap-Mitwirkende (ODbL), via Esri Deutschland Open Data
+- PLZ-Koordinaten: (c) OpenStreetMap-Mitwirkende (ODbL), WZB plz_geocoord
+- Kartendarstellung: (c) OpenStreetMap-Mitwirkende (ODbL) und CARTO
+- Adress-Geocodierung (optional): Nominatim / OpenStreetMap Foundation
+  https://operations.osmfoundation.org/policies/nominatim/

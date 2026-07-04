@@ -3,60 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MIT-Lizenz</title>
+  <title>Lizenz &amp; Rechtliches – GeoFuchs Vertrieb</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 2rem;
-      line-height: 1.6;
-      background-color: #f8f8f8;
-      color: #333;
-    }
-    h1 {
-      color: #006699;
-    }
-    pre {
-      background: #fff;
-      border: 1px solid #ccc;
-      padding: 1rem;
-      overflow-x: auto;
-      white-space: pre-wrap;
-    }
-    a {
-      color: #006699;
-    }
+    :root { --primary: #0d9488; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+           line-height: 1.65; max-width: 760px; margin: auto; padding: 24px; color: #0f172a; }
+    h1 { color: var(--primary); }
+    h2 { margin-top: 1.6em; font-size: 1.15rem; }
+    a { color: #0f766e; }
+    .muted { color: #64748b; }
+    .note { background: #f1f5f9; border-left: 4px solid var(--primary); padding: 12px 16px; border-radius: 8px; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    th { color: #64748b; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .back { display: inline-block; margin-top: 2em; }
   </style>
 </head>
 <body>
 
-  <h1>MIT-Lizenz</h1>
-  <p>Dies ist die vollständige MIT-Lizenz für das Projekt <strong>Geofuchs</strong>:</p>
+  <h1>Lizenz &amp; Rechtliches</h1>
+  <p class="muted">GeoFuchs Vertrieb · © 2025–2026 Günter Struck</p>
 
-<pre>
-MIT License
+  <p class="note">
+    <strong>Privates, nicht-kommerzielles Projekt. Alle Rechte vorbehalten.</strong><br>
+    Diese Anwendung wird ausschließlich zur privaten Nutzung bereitgestellt.
+  </p>
 
-Copyright (c) 2025 Günter Struck
+  <h2>Nutzung</h2>
+  <p>
+    Der Quellcode und die Inhalte dieses Projekts dürfen ohne vorherige schriftliche Zustimmung des
+    Urhebers nicht kopiert, verändert, weitergegeben, veröffentlicht oder kommerziell verwertet werden.
+    Eine kommerzielle Nutzung findet nicht statt und ist nicht gestattet.
+  </p>
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+  <h2>Keine Gewährleistung, keine Haftung</h2>
+  <p>
+    Die Anwendung wird „wie besehen" und ohne jegliche Gewährleistung bereitgestellt. Die Nutzung
+    erfolgt ausschließlich auf eigene Gefahr. Es wird – soweit gesetzlich zulässig – keine Haftung
+    jeglicher Art übernommen, insbesondere nicht für:
+  </p>
+  <ul>
+    <li>die Richtigkeit, Vollständigkeit oder Aktualität der dargestellten Daten (u. a. Gebietsgrenzen,
+        Postleitzahlen, Geokoordinaten, Entfernungs- und Routenschätzungen);</li>
+    <li>Entscheidungen, die auf Grundlage der Anwendung getroffen werden;</li>
+    <li>Schäden, Datenverluste oder Ausfälle, die aus der Nutzung oder Nichtverfügbarkeit der Anwendung
+        entstehen.</li>
+  </ul>
+  <p>
+    Für die Rechtmäßigkeit der von Ihnen lokal verarbeiteten Daten sind Sie selbst verantwortlich.
+  </p>
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  <h2>Verwendete Software (Drittkomponenten)</h2>
+  <p>Diese Anwendung nutzt folgende Open-Source-Bibliotheken unter deren jeweiligen Lizenzen:</p>
+  <table>
+    <thead><tr><th>Komponente</th><th>Lizenz</th><th>Urheber</th></tr></thead>
+    <tbody>
+      <tr><td><a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a></td><td>BSD-2-Clause</td><td>© Vladimir Agafonkin, CloudMade</td></tr>
+      <tr><td><a href="https://github.com/Leaflet/Leaflet.markercluster" target="_blank" rel="noopener">Leaflet.markercluster</a></td><td>MIT</td><td>© Dave Leaver</td></tr>
+      <tr><td><a href="https://sheetjs.com/" target="_blank" rel="noopener">SheetJS (xlsx)</a></td><td>Apache-2.0</td><td>© SheetJS LLC</td></tr>
+      <tr><td><a href="https://developer.chrome.com/docs/workbox" target="_blank" rel="noopener">Workbox</a> (PWA)</td><td>MIT</td><td>© Google LLC</td></tr>
+    </tbody>
+  </table>
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-</pre>
+  <h2>Verwendete Daten &amp; Karten</h2>
+  <table>
+    <thead><tr><th>Daten</th><th>Lizenz</th><th>Quelle</th></tr></thead>
+    <tbody>
+      <tr><td>Verwaltungsgrenzen (VG250, vereinfacht)</td><td><a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">dl-de/by-2-0</a></td><td>© GeoBasis-DE / BKG 2024</td></tr>
+      <tr><td>PLZ-Gebiete (vereinfacht)</td><td><a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a></td><td>© OpenStreetMap-Mitwirkende, via Esri Deutschland Open Data</td></tr>
+      <tr><td>PLZ-Koordinaten</td><td>ODbL</td><td>© OpenStreetMap-Mitwirkende (WZB plz_geocoord)</td></tr>
+      <tr><td>Kartendarstellung</td><td>ODbL / Attribution</td><td>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &amp; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a></td></tr>
+      <tr><td>Adress-Geocodierung (optional)</td><td><a href="https://operations.osmfoundation.org/policies/nominatim/" target="_blank" rel="noopener">Nutzungsrichtlinie</a></td><td>Nominatim / OpenStreetMap Foundation</td></tr>
+    </tbody>
+  </table>
 
-  <p><a href="index.html">⬅ Zurück zur Startseite</a></p>
+  <p class="muted">
+    Die genannten Marken und Daten sind Eigentum der jeweiligen Rechteinhaber. Ihre Lizenzbedingungen
+    gelten unabhängig von der Lizenz dieses Projekts fort.
+  </p>
+
+  <p><a class="back" href="/">⬅ Zurück zur Anwendung</a> · <a href="/datenschutz.html">Datenschutzerklärung</a></p>
 
 </body>
 </html>
