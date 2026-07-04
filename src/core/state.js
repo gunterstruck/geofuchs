@@ -2,7 +2,8 @@
  * Zentraler App-State mit einfachem Pub/Sub.
  *
  * Kunde: {
- *   id, nummer, name, strasse, plz, ort, vb, gruppe,
+ *   id, nummer, name, strasse, plz, ort, vb,
+ *   channel, gruppe, bezirk,   // Vertriebshierarchie (oben -> unten), je optional
  *   ansprechpartner, telefon, email, umsatz,
  *   rhythmusWochen, besuche: [ISO-Datum, ...],
  *   lat, lng, geo: 'exakt' | 'plz' | 'none'
@@ -11,6 +12,17 @@
 
 import { CONFIG } from './config.js';
 
+/**
+ * Vertriebshierarchie in Reihenfolge von oben (grob) nach unten (fein).
+ * Jede Ebene ist optional – fehlt eine Spalte in der Excel-Liste, wird die
+ * Ebene ausgeblendet und nicht gefiltert.
+ */
+export const DIMENSIONS = [
+    { id: 'channel', field: 'channel', label: 'Vertriebschannel' },
+    { id: 'gruppe',  field: 'gruppe',  label: 'Vertriebsgruppe' },
+    { id: 'bezirk',  field: 'bezirk',  label: 'Betriebsbezirk' }
+];
+
 export const state = {
     customers: [],
     fileName: null,
@@ -18,8 +30,8 @@ export const state = {
 
     // Vertriebsbeauftragte: name -> { color, visible }
     reps: new Map(),
-    // Vertriebsgruppen: name -> { visible }
-    groups: new Map(),
+    // Vertriebshierarchie: id -> { label, field, active, values: Map<name,{visible}> }
+    dims: {},
 
     level: 'kreise',
     colorMode: 'rep',   // 'rep' = nach Vertriebsbeauftragtem | 'status' = nach Besuchsstatus
@@ -61,9 +73,9 @@ export function setCustomers(customers, meta = {}) {
     state.importedAt = meta.importedAt ?? new Date().toISOString();
 
     const oldReps = state.reps;
-    const oldGroups = state.groups;
+    const oldDims = state.dims || {};
     state.reps = new Map();
-    state.groups = new Map();
+    state.dims = {};
 
     const repNames = [...new Set(customers.map((c) => c.vb || UNASSIGNED))]
         .sort((a, b) => a.localeCompare(b, 'de'));
@@ -76,11 +88,16 @@ export function setCustomers(customers, meta = {}) {
         });
     });
 
-    const groupNames = [...new Set(customers.map((c) => c.gruppe || UNASSIGNED))]
-        .sort((a, b) => a.localeCompare(b, 'de'));
-    groupNames.forEach((name) => {
-        state.groups.set(name, { visible: oldGroups.get(name)?.visible ?? true });
-    });
+    // Vertriebshierarchie-Ebenen ableiten
+    for (const def of DIMENSIONS) {
+        const active = customers.some((c) => String(c[def.field] ?? '').trim() !== '');
+        const names = [...new Set(customers.map((c) => String(c[def.field] ?? '').trim() || UNASSIGNED))]
+            .sort((a, b) => a.localeCompare(b, 'de'));
+        const oldValues = oldDims[def.id]?.values;
+        const values = new Map();
+        names.forEach((name) => values.set(name, { visible: oldValues?.get(name)?.visible ?? true }));
+        state.dims[def.id] = { label: def.label, field: def.field, active, values };
+    }
 
     // Tour bereinigen: nur noch existierende Kunden behalten
     const ids = new Set(customers.map((c) => c.id));
@@ -109,11 +126,22 @@ export function repColor(vb) {
     return state.reps.get(vb || UNASSIGNED)?.color ?? CONFIG.unassignedColor;
 }
 
+/** Aktive Hierarchie-Ebenen (haben tatsächlich Werte in den Daten) */
+export function activeDims() {
+    return DIMENSIONS.map((def) => state.dims[def.id]).filter((d) => d?.active);
+}
+
 /** Ist der Kunde nach aktuellen Filtern sichtbar? */
 export function isVisible(customer) {
     const rep = state.reps.get(customer.vb || UNASSIGNED);
-    const grp = state.groups.get(customer.gruppe || UNASSIGNED);
-    return (rep?.visible ?? true) && (grp?.visible ?? true);
+    if (!(rep?.visible ?? true)) return false;
+    for (const def of DIMENSIONS) {
+        const dim = state.dims[def.id];
+        if (!dim?.active) continue;
+        const value = dim.values.get(String(customer[def.field] ?? '').trim() || UNASSIGNED);
+        if (!(value?.visible ?? true)) return false;
+    }
+    return true;
 }
 
 export function visibleCustomers() {

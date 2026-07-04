@@ -266,8 +266,10 @@ export function customerPopupHtml(customer) {
         ${addr ? `<p>${addr}</p>` : ''}
         <p>
             <span class="dot" style="background:${repColor(customer.vb)}"></span>${escapeHtml(customer.vb || UNASSIGNED)}
-            ${customer.gruppe ? ` · ${escapeHtml(customer.gruppe)}` : ''}
         </p>
+        ${[customer.channel, customer.gruppe, customer.bezirk].some(Boolean)
+            ? `<p class="muted small">${[customer.channel, customer.gruppe, customer.bezirk].filter(Boolean).map(escapeHtml).join(' › ')}</p>`
+            : ''}
         ${customer.umsatz ? `<p class="muted">Umsatz: ${customer.umsatz.toLocaleString('de-DE')} €</p>` : ''}
         ${contactBlockHtml(customer)}
         ${visitBlockHtml(customer)}

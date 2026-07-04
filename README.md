@@ -24,7 +24,7 @@ GeoFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 | 📄 **Daten** | Excel-/CSV-Import per Klick oder Drag & Drop, automatische Spaltenerkennung mit Prüf-Dialog, Excel-Vorlage, Demo-Daten, Excel-Export |
 | 📍 **Verortung** | Sofort über PLZ-Koordinaten (offline, ohne API-Schlüssel); optional adressgenau über OpenStreetMap/Nominatim |
 | 🗺️ **Gebiete** | Landkreise (400 Kreise & Städte) **und** PLZ-Ebenen (1-, 2-, 3- und 5-stellig), eingefärbt nach dem Vertriebsbeauftragten mit den meisten Kunden; Klick zeigt Kunden & Team-Verteilung je Gebiet |
-| 👥 **Team** | Vertriebsbeauftragte und Vertriebsgruppen einzeln ein-/ausblenden, feste Farben, Kundenzähler |
+| 👥 **Team** | Vertriebsbeauftragte (feste Farben) und die dreistufige Vertriebshierarchie **Vertriebschannel › Vertriebsgruppe › Betriebsbezirk** einzeln ein-/ausblenden; jede Ebene optional, nur vorhandene Ebenen werden angezeigt; Kundenzähler |
 | 🚗 **Tour** | Startpunkt = eigener GPS-Standort oder ein Kunde; Vorschläge „Wen könnte ich in der Nähe noch besuchen?“ (Umkreis einstellbar); Tourenoptimierung (kürzeste Strecke, Nearest-Neighbor + 2-Opt); Übergabe an Google Maps zur Navigation |
 | 🔍 **Suche** | Kunden nach Name, Ort, PLZ oder Kundennummer finden und anfliegen |
 | 📱 **PWA** | Auf Smartphone/Desktop installierbar, App-Shell und Gebietsdaten offline verfügbar, zuletzt gesehene Kartenausschnitte werden gecacht |
@@ -41,8 +41,14 @@ und können beim Import manuell zugeordnet werden. Empfohlene Spalten:
 | Straße & Hausnummer | – | Hauptstraße 12 |
 | Ort | – | Köln |
 | Vertriebsbeauftragter | – | Max Mustermann |
+| Vertriebschannel | – | Fachhandel |
 | Vertriebsgruppe | – | Handel |
+| Betriebsbezirk | – | Bezirk West |
+| Ansprechpartner, Telefon, E-Mail | – | Herr Schmidt · 0221 123456 |
+| Besuchsrhythmus (Wochen), Letzter Besuch | – | 6 · 12.05.2026 |
 | Kundennummer, Umsatz, Lat/Lng | – | optional |
+
+Die drei Ebenen **Vertriebschannel › Vertriebsgruppe › Betriebsbezirk** bilden eine Hierarchie (oben → unten) und sind jeweils optional – fehlt eine Spalte (z. B. der oberste Channel), ist das unproblematisch, die Ebene wird einfach nicht angezeigt.
 
 Eine fertige Vorlage gibt es in der App unter **Daten → Excel-Vorlage herunterladen**.
 

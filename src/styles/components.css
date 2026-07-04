@@ -120,6 +120,9 @@
 .filter-bulk { display: flex; gap: 6px; margin: 6px 0 12px; }
 .filter-bulk button { font-size: 0.78rem; padding: 3px 10px; }
 
+.dim-block { margin-bottom: 6px; }
+.dim-block h3 { margin-top: 0.9em; }
+
 /* Besuchsplaner */
 .start-chip {
     background: var(--color-primary-light);

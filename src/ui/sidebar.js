@@ -4,7 +4,7 @@
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers } from '../core/state.js';
+import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, activeDims, DIMENSIONS } from '../core/state.js';
 import { geocodeExact } from '../services/geocode.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
 import { STATUS_COLORS, STATUS_LABELS } from '../features/visits.js';
@@ -121,11 +121,16 @@ function renderLegend() {
 }
 
 function persistSettings() {
+    const dimVisibility = {};
+    for (const def of DIMENSIONS) {
+        const dim = state.dims[def.id];
+        if (dim) dimVisibility[def.id] = Object.fromEntries([...dim.values].map(([k, v]) => [k, v.visible]));
+    }
     saveSettings({
         level: state.level,
         colorMode: state.colorMode,
         repVisibility: Object.fromEntries([...state.reps].map(([k, v]) => [k, v.visible])),
-        groupVisibility: Object.fromEntries([...state.groups].map(([k, v]) => [k, v.visible])),
+        dimVisibility,
         radiusKm: state.tour.radiusKm
     });
 }
@@ -143,11 +148,12 @@ function renderDataStatus() {
     const located = state.customers.filter((c) => c.lat !== null).length;
     const exact = state.customers.filter((c) => c.geo === 'exakt').length;
     const visible = visibleCustomers().length;
+    const gruppenCount = state.dims.gruppe?.active ? state.dims.gruppe.values.size : 0;
     el.innerHTML = `
         <div class="stat-grid">
             <div class="stat"><b>${total}</b><span>Kunden</span></div>
             <div class="stat"><b>${state.reps.size}</b><span>Vertriebler</span></div>
-            <div class="stat"><b>${state.groups.size}</b><span>Gruppen</span></div>
+            <div class="stat"><b>${gruppenCount}</b><span>Gruppen</span></div>
             <div class="stat"><b>${visible}</b><span>sichtbar</span></div>
         </div>
         <p class="muted small">${escapeHtml(state.fileName ?? '')}</p>
@@ -198,48 +204,38 @@ async function toggleExactGeocoding() {
 
 // ---- Team-Tab (Filter) ----
 
+/** Kunden je Feldwert zählen */
+function countBy(field) {
+    const counts = new Map();
+    for (const c of state.customers) {
+        const key = String(c[field] ?? '').trim() || UNASSIGNED;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+}
+
 function renderTeamFilters() {
     const repsEl = document.getElementById('rep-filters');
-    const groupsEl = document.getElementById('group-filters');
+    const dimsEl = document.getElementById('dim-filters');
 
     if (state.reps.size === 0) {
         repsEl.innerHTML = '<p class="muted">Keine Daten geladen.</p>';
-        groupsEl.innerHTML = '';
+        dimsEl.innerHTML = '';
         return;
     }
 
-    const counts = new Map();
-    const groupCounts = new Map();
-    for (const c of state.customers) {
-        const vb = c.vb || UNASSIGNED;
-        const grp = c.gruppe || UNASSIGNED;
-        counts.set(vb, (counts.get(vb) ?? 0) + 1);
-        groupCounts.set(grp, (groupCounts.get(grp) ?? 0) + 1);
-    }
-
+    // Vertriebsbeauftragte (mit Farbe)
+    const repCounts = countBy('vb');
     repsEl.innerHTML = [...state.reps.entries()].map(([name, rep]) => `
         <label class="filter-row">
             <input type="checkbox" data-rep="${escapeHtml(name)}" ${rep.visible ? 'checked' : ''}>
             <span class="dot" style="background:${rep.color}"></span>
             <span class="filter-name">${escapeHtml(name)}</span>
-            <span class="count">${counts.get(name) ?? 0}</span>
-        </label>
-    `).join('') + `
+            <span class="count">${repCounts.get(name) ?? 0}</span>
+        </label>`).join('') + `
         <div class="filter-bulk">
-            <button type="button" id="reps-all">Alle</button>
-            <button type="button" id="reps-none">Keine</button>
-        </div>`;
-
-    groupsEl.innerHTML = [...state.groups.entries()].map(([name, grp]) => `
-        <label class="filter-row">
-            <input type="checkbox" data-group="${escapeHtml(name)}" ${grp.visible ? 'checked' : ''}>
-            <span class="filter-name">${escapeHtml(name)}</span>
-            <span class="count">${groupCounts.get(name) ?? 0}</span>
-        </label>
-    `).join('') + `
-        <div class="filter-bulk">
-            <button type="button" id="groups-all">Alle</button>
-            <button type="button" id="groups-none">Keine</button>
+            <button type="button" data-bulk-rep="1">Alle</button>
+            <button type="button" data-bulk-rep="0">Keine</button>
         </div>`;
 
     repsEl.querySelectorAll('input[data-rep]').forEach((cb) => {
@@ -249,22 +245,54 @@ function renderTeamFilters() {
             persistSettings();
         });
     });
-    groupsEl.querySelectorAll('input[data-group]').forEach((cb) => {
+    repsEl.querySelectorAll('[data-bulk-rep]').forEach((btn) => btn.addEventListener('click', () => {
+        const value = btn.dataset.bulkRep === '1';
+        state.reps.forEach((v) => { v.visible = value; });
+        repsEl.querySelectorAll('input[data-rep]').forEach((cb) => { cb.checked = value; });
+        emit('filters:changed');
+        persistSettings();
+    }));
+
+    // Vertriebshierarchie (nur aktive Ebenen: Channel -> Gruppe -> Bezirk)
+    const dims = activeDims();
+    if (dims.length === 0) {
+        dimsEl.innerHTML = '<p class="muted small">Keine Hierarchie-Ebenen in den Daten. Ergänzen Sie in der Excel-Liste optional die Spalten Vertriebschannel, Vertriebsgruppe oder Betriebsbezirk.</p>';
+        return;
+    }
+
+    dimsEl.innerHTML = dims.map((dim) => {
+        const def = DIMENSIONS.find((d) => d.field === dim.field);
+        const counts = countBy(dim.field);
+        const rows = [...dim.values.entries()].map(([name, v]) => `
+            <label class="filter-row">
+                <input type="checkbox" data-dim="${def.id}" data-value="${escapeHtml(name)}" ${v.visible ? 'checked' : ''}>
+                <span class="filter-name">${escapeHtml(name)}</span>
+                <span class="count">${counts.get(name) ?? 0}</span>
+            </label>`).join('');
+        return `<div class="dim-block">
+            <h3>${escapeHtml(dim.label)}</h3>
+            ${rows}
+            <div class="filter-bulk">
+                <button type="button" data-bulk-dim="${def.id}" data-on="1">Alle</button>
+                <button type="button" data-bulk-dim="${def.id}" data-on="0">Keine</button>
+            </div>
+        </div>`;
+    }).join('');
+
+    dimsEl.querySelectorAll('input[data-dim]').forEach((cb) => {
         cb.addEventListener('change', () => {
-            state.groups.get(cb.dataset.group).visible = cb.checked;
+            const entry = state.dims[cb.dataset.dim]?.values.get(cb.dataset.value);
+            if (entry) entry.visible = cb.checked;
             emit('filters:changed');
             persistSettings();
         });
     });
-
-    const setAll = (map, value, selector, root) => {
-        map.forEach((v) => { v.visible = value; });
-        root.querySelectorAll(selector).forEach((cb) => { cb.checked = value; });
+    dimsEl.querySelectorAll('[data-bulk-dim]').forEach((btn) => btn.addEventListener('click', () => {
+        const dim = state.dims[btn.dataset.bulkDim];
+        const value = btn.dataset.on === '1';
+        dim.values.forEach((v) => { v.visible = value; });
+        dimsEl.querySelectorAll(`input[data-dim="${btn.dataset.bulkDim}"]`).forEach((cb) => { cb.checked = value; });
         emit('filters:changed');
         persistSettings();
-    };
-    document.getElementById('reps-all').addEventListener('click', () => setAll(state.reps, true, 'input[data-rep]', repsEl));
-    document.getElementById('reps-none').addEventListener('click', () => setAll(state.reps, false, 'input[data-rep]', repsEl));
-    document.getElementById('groups-all').addEventListener('click', () => setAll(state.groups, true, 'input[data-group]', groupsEl));
-    document.getElementById('groups-none').addEventListener('click', () => setAll(state.groups, false, 'input[data-group]', groupsEl));
+    }));
 }
