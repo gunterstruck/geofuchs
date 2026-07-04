@@ -7,13 +7,14 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 
 import { CONFIG } from './core/config.js';
-import { state, emit, setCustomers } from './core/state.js';
-import { loadDataset, loadSettings } from './services/storage.js';
+import { state, on, emit, setCustomers } from './core/state.js';
+import { loadDataset, saveDataset, loadSettings } from './services/storage.js';
 import { geocodeByPlz } from './services/geocode.js';
 import { initMap } from './features/map.js';
 import { initSidebar } from './ui/sidebar.js';
 import { initImportWizard } from './ui/importWizard.js';
 import { initTourPanel } from './ui/tourPanel.js';
+import { initCockpit } from './ui/cockpit.js';
 import { initSearch } from './ui/search.js';
 import { initToasts } from './ui/toast.js';
 import { fitToCustomers } from './features/map.js';
@@ -27,6 +28,12 @@ async function restorePersistedState() {
         emit('level:changed');
     }
     if (settings?.radiusKm) state.tour.radiusKm = settings.radiusKm;
+    if (settings?.colorMode === 'status' || settings?.colorMode === 'rep') {
+        state.colorMode = settings.colorMode;
+        document.querySelectorAll('#colormode-toggle button').forEach((b) =>
+            b.classList.toggle('active', b.dataset.colormode === settings.colorMode));
+        emit('colormode:changed');
+    }
 
     const dataset = await loadDataset();
     if (dataset?.customers?.length) {
@@ -53,13 +60,29 @@ async function restorePersistedState() {
     }
 }
 
+// Kundendaten nach inhaltlichen Änderungen (Besuch, Rhythmus) speichern – gedrosselt
+let saveTimer = null;
+function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+        saveDataset({
+            customers: state.customers,
+            fileName: state.fileName,
+            importedAt: state.importedAt
+        });
+    }, 400);
+}
+
 async function init() {
     initToasts();
     initMap('map');
     initSidebar();
     initImportWizard();
     initTourPanel();
+    initCockpit();
     initSearch();
+
+    on('dataset:dirty', scheduleSave);
 
     try {
         await restorePersistedState();

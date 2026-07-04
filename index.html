@@ -68,6 +68,18 @@
                     <li><b>PLZ 1-/2-stellig:</b> grobe Vertriebszonen</li>
                     <li><b>PLZ 3-/5-stellig:</b> feine Gebietsaufteilung</li>
                 </ul>
+
+                <h3>Marker-Farbe</h3>
+                <div class="segmented" id="colormode-toggle" role="group" aria-label="Marker-Farbe">
+                    <button type="button" data-colormode="rep" class="active">nach Vertriebler</button>
+                    <button type="button" data-colormode="status">nach Besuchsstatus</button>
+                </div>
+                <div id="colormode-legend" class="legend"></div>
+
+                <h3>Auswertung</h3>
+                <button id="btn-cockpit" class="primary" style="width:100%">📊 Gebiets-Cockpit öffnen</button>
+                <p class="muted small">Kunden & Umsatz je Vertriebsbeauftragtem, plus Was-wäre-wenn-Zuweisung von Gebieten.</p>
+
                 <p class="muted small">Tipp: Gebiet anklicken zeigt Kunden und Team-Verteilung im Gebiet.</p>
             </section>
 
@@ -95,6 +107,7 @@
                 <h3>2. Vorschläge im Umkreis</h3>
                 <label class="field-label" for="radius-slider">Umkreis: <span id="radius-value"></span></label>
                 <input id="radius-slider" type="range" min="5" max="100" step="5">
+                <label class="check-inline"><input type="checkbox" id="overdue-first"> Überfällige zuerst</label>
                 <div id="tour-suggestions" class="scroll-list"></div>
 
                 <h3>3. Meine Tour</h3>
@@ -103,8 +116,17 @@
                 <div class="button-column">
                     <button id="btn-optimize" class="primary" disabled>⚡ Reihenfolge optimieren</button>
                     <button id="btn-gmaps" disabled>🧭 In Google Maps navigieren</button>
+                    <button id="btn-tour-print" disabled>🖨️ Tagesplan drucken</button>
+                    <button id="btn-tour-ics" disabled>📅 Kalender-Export (.ics)</button>
                     <button id="btn-tour-clear" class="danger" disabled>✕ Tour leeren</button>
                 </div>
+
+                <h3>Gespeicherte Touren</h3>
+                <div class="button-row">
+                    <input id="tour-name" type="text" placeholder="Tourname, z. B. Dienstag Nord" autocomplete="off">
+                    <button id="btn-tour-save" disabled>💾</button>
+                </div>
+                <div id="saved-tours"></div>
             </section>
         </aside>
 
@@ -157,6 +179,36 @@
                     <a href="https://github.com/gunterstruck/geofuchs" target="_blank" rel="noopener">GitHub</a>
                 </p>
             </div>
+        </dialog>
+
+        <!-- Gebiets-Cockpit -->
+        <dialog id="cockpit-dialog">
+            <header>
+                <h2>📊 Gebiets-Cockpit</h2>
+                <button class="dialog-close" aria-label="Schließen">✕</button>
+            </header>
+            <p class="muted small">Kennzahlen je Vertriebsbeauftragtem. Weisen Sie unten ein Gebiet der aktuellen Ebene testweise einem anderen Vertriebsbeauftragten zu – die Werte aktualisieren sich sofort (Simulation, ändert Ihre Daten nicht).</p>
+            <div id="cockpit-summary"></div>
+            <div class="table-scroll">
+                <table class="cockpit-table">
+                    <thead><tr><th>Vertriebsbeauftragte(r)</th><th>Kunden</th><th>Umsatz</th><th>Auslastung</th></tr></thead>
+                    <tbody id="cockpit-rows"></tbody>
+                </table>
+            </div>
+
+            <h3>Was-wäre-wenn: Gebiet zuweisen</h3>
+            <div id="cockpit-sim-info" class="muted small"></div>
+            <div class="sim-controls">
+                <select id="sim-region"></select>
+                <span class="sim-arrow">→</span>
+                <select id="sim-rep"></select>
+                <button id="sim-apply" class="primary">Simulieren</button>
+            </div>
+            <div id="sim-changes"></div>
+            <footer>
+                <button id="sim-reset">↺ Simulation zurücksetzen</button>
+                <button id="sim-commit" class="primary">Zuweisung übernehmen</button>
+            </footer>
         </dialog>
     </div>
     <script type="module" src="/src/main.js"></script>

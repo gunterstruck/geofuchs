@@ -8,20 +8,28 @@
 
 import { CONFIG } from '../core/config.js';
 import { distanceKm } from '../services/geocode.js';
+import { statusRank } from './visits.js';
 
 /**
- * Kunden im Umkreis eines Punkts, sortiert nach Distanz.
+ * Kunden im Umkreis eines Punkts.
  * @param {{lat,lng}} origin
  * @param {Array} customers  Kandidaten (bereits gefiltert)
  * @param {number} radiusKm
  * @param {Set<string>} excludeIds  z. B. bereits eingeplante Stopps
+ * @param {boolean} overdueFirst  überfällige/fällige Kunden bevorzugt sortieren
  */
-export function suggestNearby(origin, customers, radiusKm, excludeIds = new Set()) {
+export function suggestNearby(origin, customers, radiusKm, excludeIds = new Set(), overdueFirst = false) {
     return customers
         .filter((c) => c.lat !== null && !excludeIds.has(c.id))
         .map((c) => ({ customer: c, km: distanceKm(origin, c) }))
         .filter((entry) => entry.km <= radiusKm)
-        .sort((a, b) => a.km - b.km)
+        .sort((a, b) => {
+            if (overdueFirst) {
+                const r = statusRank(a.customer) - statusRank(b.customer);
+                if (r !== 0) return r;
+            }
+            return a.km - b.km;
+        })
         .slice(0, CONFIG.tour.maxSuggestions);
 }
 

@@ -7,6 +7,7 @@ import { CONFIG } from '../core/config.js';
 import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers } from '../core/state.js';
 import { geocodeExact } from '../services/geocode.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
+import { STATUS_COLORS, STATUS_LABELS } from '../features/visits.js';
 import { showToast } from './toast.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
@@ -53,6 +54,25 @@ export function initSidebar() {
         document.getElementById('level-loading').style.display = loading ? 'inline-block' : 'none';
     });
 
+    // Marker-Farbmodus
+    document.querySelectorAll('#colormode-toggle button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            state.colorMode = btn.dataset.colormode;
+            document.querySelectorAll('#colormode-toggle button').forEach((b) =>
+                b.classList.toggle('active', b === btn));
+            renderLegend();
+            emit('colormode:changed');
+            persistSettings();
+        });
+    });
+    renderLegend();
+
+    // Gebiets-Cockpit öffnen
+    document.getElementById('btn-cockpit').addEventListener('click', () => {
+        if (state.customers.length === 0) return showToast('Bitte zuerst Kundendaten laden.', 'info');
+        emit('cockpit:open');
+    });
+
     // Daten-Aktionen
     document.getElementById('btn-export').addEventListener('click', async () => {
         if (state.customers.length === 0) return showToast('Keine Kundendaten vorhanden.', 'info');
@@ -74,15 +94,36 @@ export function initSidebar() {
     // Exakte Geocodierung (Nominatim)
     document.getElementById('btn-geocode').addEventListener('click', toggleExactGeocoding);
 
-    on('customers:changed', () => { renderDataStatus(); renderTeamFilters(); });
+    on('customers:changed', () => { renderDataStatus(); renderTeamFilters(); renderLegend(); });
     on('filters:changed', renderDataStatus);
     renderDataStatus();
     renderTeamFilters();
 }
 
+function renderLegend() {
+    const el = document.getElementById('colormode-legend');
+    if (!el) return;
+    if (state.colorMode === 'status') {
+        const items = [
+            ['ok', STATUS_LABELS.ok],
+            ['faellig', STATUS_LABELS.faellig],
+            ['ueberfaellig', STATUS_LABELS.ueberfaellig],
+            ['none', STATUS_LABELS.none]
+        ];
+        el.innerHTML = items.map(([k, label]) =>
+            `<span class="legend-item"><span class="dot" style="background:${STATUS_COLORS[k]}"></span>${label}</span>`).join('');
+    } else {
+        const items = [...state.reps.entries()].slice(0, 12);
+        el.innerHTML = items.length
+            ? items.map(([name, rep]) => `<span class="legend-item"><span class="dot" style="background:${rep.color}"></span>${escapeHtml(name)}</span>`).join('')
+            : '<span class="muted small">Farben je Vertriebsbeauftragtem – nach Datenimport sichtbar.</span>';
+    }
+}
+
 function persistSettings() {
     saveSettings({
         level: state.level,
+        colorMode: state.colorMode,
         repVisibility: Object.fromEntries([...state.reps].map(([k, v]) => [k, v.visible])),
         groupVisibility: Object.fromEntries([...state.groups].map(([k, v]) => [k, v.visible])),
         radiusKm: state.tour.radiusKm

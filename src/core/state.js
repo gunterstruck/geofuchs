@@ -2,7 +2,9 @@
  * Zentraler App-State mit einfachem Pub/Sub.
  *
  * Kunde: {
- *   id, nummer, name, strasse, plz, ort, vb, gruppe, umsatz,
+ *   id, nummer, name, strasse, plz, ort, vb, gruppe,
+ *   ansprechpartner, telefon, email, umsatz,
+ *   rhythmusWochen, besuche: [ISO-Datum, ...],
  *   lat, lng, geo: 'exakt' | 'plz' | 'none'
  * }
  */
@@ -20,6 +22,7 @@ export const state = {
     groups: new Map(),
 
     level: 'kreise',
+    colorMode: 'rep',   // 'rep' = nach Vertriebsbeauftragtem | 'status' = nach Besuchsstatus
 
     tour: {
         start: null,        // { lat, lng, label, customerId? }
@@ -91,6 +94,15 @@ export function setCustomers(customers, meta = {}) {
 
 export function getCustomer(id) {
     return state.customers.find((c) => c.id === id);
+}
+
+/**
+ * Signalisiert, dass sich Kundendaten inhaltlich geändert haben (z. B. Besuch
+ * eingetragen). Löst Persistenz ('dataset:dirty') und Neuzeichnen aus.
+ */
+export function markDirty() {
+    emit('dataset:dirty');
+    emit('customers:changed');
 }
 
 export function repColor(vb) {

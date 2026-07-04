@@ -15,7 +15,12 @@ export const FIELDS = [
     { key: 'ort',     label: 'Ort',                    required: false, synonyms: ['ort', 'stadt', 'city', 'gemeinde', 'wohnort'] },
     { key: 'vb',      label: 'Vertriebsbeauftragter',  required: false, synonyms: ['vertriebsbeauftragter', 'vertriebsbeauftragte', 'vb', 'betreuer', 'außendienst', 'aussendienst', 'ad', 'vertriebler', 'verkäufer', 'verkaeufer', 'sales rep', 'mitarbeiter', 'ansprechpartner vertrieb', 'gebietsleiter', 'kam'] },
     { key: 'gruppe',  label: 'Vertriebsgruppe',        required: false, synonyms: ['vertriebsgruppe', 'gruppe', 'kundengruppe', 'kundenkreis', 'segment', 'kategorie', 'sparte', 'branche', 'klasse', 'team', 'region'] },
+    { key: 'ansprechpartner', label: 'Ansprechpartner', required: false, synonyms: ['ansprechpartner', 'kontaktperson', 'kontakt', 'contact', 'ap', 'ansprechpartner in'] },
+    { key: 'telefon', label: 'Telefon',                required: false, synonyms: ['telefon', 'tel', 'telefonnummer', 'phone', 'mobil', 'handy', 'rufnummer', 'festnetz'] },
+    { key: 'email',   label: 'E-Mail',                 required: false, synonyms: ['email', 'e-mail', 'mail', 'e mail', 'emailadresse', 'e-mail-adresse'] },
     { key: 'umsatz',  label: 'Umsatz (optional)',      required: false, synonyms: ['umsatz', 'jahresumsatz', 'umsatz €', 'revenue', 'potenzial', 'potential'] },
+    { key: 'rhythmusWochen', label: 'Besuchsrhythmus (Wochen)', required: false, synonyms: ['besuchsrhythmus', 'rhythmus', 'rhythmus wochen', 'besuchsintervall', 'intervall', 'turnus', 'besuchsturnus', 'frequenz', 'zyklus wochen'] },
+    { key: 'letzterBesuch', label: 'Letzter Besuch (Datum)', required: false, synonyms: ['letzter besuch', 'letzterbesuch', 'besuchsdatum', 'last visit', 'zuletzt besucht', 'letzter kontakt', 'letzter termin'] },
     { key: 'lat',     label: 'Breitengrad (optional)', required: false, synonyms: ['lat', 'latitude', 'breitengrad', 'breite'] },
     { key: 'lng',     label: 'Längengrad (optional)',  required: false, synonyms: ['lng', 'lon', 'longitude', 'längengrad', 'laengengrad', 'länge'] }
 ];
@@ -93,6 +98,39 @@ function parseCoord(value) {
     return Number.isFinite(n) ? n : null;
 }
 
+function parseWeeks(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const n = parseInt(String(value).match(/\d+/)?.[0] ?? '', 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Datum robust nach ISO (YYYY-MM-DD) parsen; unterstützt dd.mm.yyyy, ISO, Excel-Seriennummer */
+function parseDateIso(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const str = String(value).trim();
+
+    // Excel-Seriennummer (Tage seit 1899-12-30)
+    if (/^\d{5}$/.test(str)) {
+        const ms = (parseInt(str, 10) - 25569) * 86400 * 1000;
+        const d = new Date(ms);
+        if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    }
+    // dd.mm.yyyy oder dd/mm/yyyy
+    let m = str.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})$/);
+    if (m) {
+        let [, d, mo, y] = m;
+        if (y.length === 2) y = `20${y}`;
+        return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+    // yyyy-mm-dd (evtl. mit Zeitanteil)
+    m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) {
+        const [, y, mo, d] = m;
+        return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+    return null;
+}
+
 /**
  * Zeilen anhand Mapping in Kunden-Objekte umwandeln.
  * Liefert { customers, skipped } – skipped = Zeilen ohne Namen.
@@ -110,6 +148,8 @@ export function rowsToCustomers(rows, mapping) {
         const lng = parseCoord(mapping.lng ? row[mapping.lng] : null);
         const hasCoords = lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
 
+        const letzterBesuch = mapping.letzterBesuch ? parseDateIso(row[mapping.letzterBesuch]) : null;
+
         customers.push({
             id: `k${index}-${name.slice(0, 12)}`,
             nummer: get('nummer'),
@@ -119,7 +159,12 @@ export function rowsToCustomers(rows, mapping) {
             ort: get('ort'),
             vb: get('vb'),
             gruppe: get('gruppe'),
+            ansprechpartner: get('ansprechpartner'),
+            telefon: get('telefon'),
+            email: get('email'),
             umsatz: parseNumber(mapping.umsatz ? row[mapping.umsatz] : null),
+            rhythmusWochen: parseWeeks(mapping.rhythmusWochen ? row[mapping.rhythmusWochen] : null),
+            besuche: letzterBesuch ? [letzterBesuch] : [],
             lat: hasCoords ? lat : null,
             lng: hasCoords ? lng : null,
             geo: hasCoords ? 'exakt' : 'none'
@@ -135,27 +180,33 @@ export function downloadTemplate() {
         {
             'Kundennummer': '10001', 'Kundenname': 'Autohaus Schmidt GmbH',
             'Straße': 'Hauptstraße 12', 'PLZ': '50667', 'Ort': 'Köln',
-            'Vertriebsbeauftragter': 'Max Mustermann', 'Vertriebsgruppe': 'Handel', 'Umsatz': 125000
+            'Vertriebsbeauftragter': 'Max Mustermann', 'Vertriebsgruppe': 'Handel',
+            'Ansprechpartner': 'Herr Schmidt', 'Telefon': '0221 1234567', 'E-Mail': 'info@autohaus-schmidt.de',
+            'Umsatz': 125000, 'Besuchsrhythmus (Wochen)': 6, 'Letzter Besuch': '12.05.2026'
         },
         {
             'Kundennummer': '10002', 'Kundenname': 'Bäckerei Müller KG',
             'Straße': 'Marktplatz 3', 'PLZ': '80331', 'Ort': 'München',
-            'Vertriebsbeauftragter': 'Anna Beispiel', 'Vertriebsgruppe': 'Lebensmittel', 'Umsatz': 48000
+            'Vertriebsbeauftragter': 'Anna Beispiel', 'Vertriebsgruppe': 'Lebensmittel',
+            'Ansprechpartner': 'Frau Müller', 'Telefon': '089 7654321', 'E-Mail': 'kontakt@baeckerei-mueller.de',
+            'Umsatz': 48000, 'Besuchsrhythmus (Wochen)': 4, 'Letzter Besuch': '28.06.2026'
         },
         {
             'Kundennummer': '10003', 'Kundenname': 'Elektro Weber e.K.',
             'Straße': 'Industrieweg 8', 'PLZ': '04109', 'Ort': 'Leipzig',
-            'Vertriebsbeauftragter': 'Max Mustermann', 'Vertriebsgruppe': 'Handwerk', 'Umsatz': 87500
+            'Vertriebsbeauftragter': 'Max Mustermann', 'Vertriebsgruppe': 'Handwerk',
+            'Ansprechpartner': '', 'Telefon': '0341 9998877', 'E-Mail': '',
+            'Umsatz': 87500, 'Besuchsrhythmus (Wochen)': 8, 'Letzter Besuch': ''
         }
     ];
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 22 }, { wch: 8 }, { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 12 }];
+    ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 22 }, { wch: 8 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 12 }, { wch: 20 }, { wch: 16 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Kunden');
     XLSX.writeFile(wb, 'geofuchs-kundenliste-vorlage.xlsx');
 }
 
-/** Aktuelle Kundenliste als Excel exportieren */
+/** Aktuelle Kundenliste als Excel exportieren (inkl. Besuchsdaten) */
 export function exportCustomers(customers) {
     const rows = customers.map((c) => ({
         'Kundennummer': c.nummer,
@@ -165,7 +216,12 @@ export function exportCustomers(customers) {
         'Ort': c.ort,
         'Vertriebsbeauftragter': c.vb,
         'Vertriebsgruppe': c.gruppe,
+        'Ansprechpartner': c.ansprechpartner ?? '',
+        'Telefon': c.telefon ?? '',
+        'E-Mail': c.email ?? '',
         'Umsatz': c.umsatz ?? '',
+        'Besuchsrhythmus (Wochen)': c.rhythmusWochen ?? '',
+        'Letzter Besuch': (c.besuche && c.besuche.length) ? c.besuche[c.besuche.length - 1] : '',
         'Lat': c.lat ?? '',
         'Lng': c.lng ?? ''
     }));
@@ -207,10 +263,30 @@ export function demoCustomers() {
         ['Sächsische Werkzeuge', 'Könneritzstr. 25', '01067', 'Dresden', 'Lena Krüger', 'Industrie', 142000],
         ['Leipziger Kaffeehaus', 'Grimmaische Str. 10', '04109', 'Leipzig', 'Lena Krüger', 'Lebensmittel', 33000]
     ];
-    return data.map(([name, strasse, plz, ort, vb, gruppe, umsatz], i) => ({
-        id: `demo-${i}`,
-        nummer: String(20000 + i),
-        name, strasse, plz, ort, vb, gruppe, umsatz,
-        lat: null, lng: null, geo: 'none'
-    }));
+    const rhythmChoices = [4, 6, 6, 8, 12];
+    // Tage seit letztem Besuch – gemischt, damit Status ok/fällig/überfällig sichtbar wird
+    const daysAgoChoices = [7, 20, 45, 70, 110, null];
+
+    return data.map(([name, strasse, plz, ort, vb, gruppe, umsatz], i) => {
+        const rhythmusWochen = rhythmChoices[i % rhythmChoices.length];
+        const daysAgo = daysAgoChoices[i % daysAgoChoices.length];
+        let besuche = [];
+        if (daysAgo !== null) {
+            const d = new Date();
+            d.setDate(d.getDate() - daysAgo);
+            besuche = [d.toISOString().slice(0, 10)];
+        }
+        return {
+            id: `demo-${i}`,
+            nummer: String(20000 + i),
+            name, strasse, plz, ort, vb, gruppe,
+            ansprechpartner: '',
+            telefon: `0${(1500 + i)} ${100000 + i * 137}`,
+            email: `info@${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20)}.de`,
+            umsatz,
+            rhythmusWochen,
+            besuche,
+            lat: null, lng: null, geo: 'none'
+        };
+    });
 }
