@@ -1,53 +1,28 @@
 /**
- * Application Configuration
- * Centralized configuration constants
+ * Zentrale Konfiguration – GeoFuchs Vertrieb
  */
 
 export const CONFIG = {
-    colors: {
-        'rot': '#ef4444',
-        'grün': '#10b981',
-        'blau': '#3b82f6',
-        'gelb': '#f59e0b',
-        'orange': '#f97316',
-        'lila': '#8b5cf6',
-        'türkis': '#0d9488',
-        'rosa': '#ec4899',
-        'grau': '#6b7280',
-        'braun': '#92400e',
-        'hellblau': '#60a5fa',
-        'dunkelgrün': '#166534',
-        'hellgrün': '#86efac',
-        'default': '#0d9488'
-    },
-
-    defaultColors: [
-        '#ef4444', // rot
-        '#3b82f6', // blau
-        '#10b981', // grün
-        '#f59e0b', // gelb
-        '#8b5cf6', // lila
-        '#f97316', // orange
-        '#ec4899', // rosa
-        '#0d9488'  // türkis
+    // Farbpalette für Vertriebsbeauftragte (kontrastreiche, unterscheidbare Farben)
+    repPalette: [
+        '#2563eb', // blau
+        '#dc2626', // rot
+        '#16a34a', // grün
+        '#d97706', // orange
+        '#7c3aed', // violett
+        '#0891b2', // cyan
+        '#db2777', // pink
+        '#65a30d', // limette
+        '#9333ea', // purpur
+        '#ea580c', // dunkelorange
+        '#0d9488', // türkis
+        '#b91c1c', // dunkelrot
+        '#1d4ed8', // dunkelblau
+        '#a16207', // ocker
+        '#15803d', // dunkelgrün
+        '#6b7280'  // grau
     ],
-
-    mapStyles: {
-        default: {
-            fillColor: '#fbbf24',
-            weight: 1,
-            opacity: 1,
-            color: '#1e293b',
-            dashArray: '',
-            fillOpacity: 0.3
-        },
-        hover: {
-            weight: 3,
-            color: '#0d9488',
-            dashArray: '',
-            fillOpacity: 0.6
-        }
-    },
+    unassignedColor: '#94a3b8',
 
     map: {
         defaultCenter: [51.16, 10.45],
@@ -55,52 +30,68 @@ export const CONFIG = {
         minZoom: 5,
         maxZoom: 19,
         bounds: [
-            [47.0, 5.0],
-            [55.5, 16.0]
+            [46.0, 3.5],
+            [56.5, 17.5]
         ],
-        zoomSnap: 0.5,
-        minZoomForInfoboxes: 7
-    },
-
-    wfs: {
-        url: 'https://sgx.geodatenzentrum.de/wfs_vg250',
-        params: {
-            SERVICE: 'WFS',
-            VERSION: '2.0.0',
-            REQUEST: 'GetFeature',
-            TYPENAMES: 'vg250:vg250_krs',
-            OUTPUTFORMAT: 'application/json',
-            SRSNAME: 'urn:ogc:def:crs:EPSG::4326'
-        },
-        timeout: 15000
+        zoomSnap: 0.5
     },
 
     tileLayer: {
         url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        attribution: '&copy; OpenStreetMap & CARTO',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
         maxZoom: 19,
         minZoom: 5,
         crossOrigin: true
     },
 
-    api: {
-        openai: {
-            url: 'https://api.openai.com/v1/chat/completions',
-            model: 'gpt-4',
-            maxTokens: 2048,
-            temperature: 0.7
+    // Gebietsebenen: Datenquelle + Schlüsselermittlung pro Kunde
+    levels: {
+        none:   { label: 'Keine Gebiete', file: null },
+        kreise: { label: 'Landkreise', file: '/geodata/kreise.geojson', attribution: '© GeoBasis-DE / BKG 2024 (dl-de/by-2-0)' },
+        plz1:   { label: 'PLZ-Zonen (1-stellig)', file: '/geodata/plz1.geojson', attribution: '© OpenStreetMap-Mitwirkende (ODbL), via Esri Deutschland' },
+        plz2:   { label: 'PLZ-Regionen (2-stellig)', file: '/geodata/plz2.geojson', attribution: '© OpenStreetMap-Mitwirkende (ODbL), via Esri Deutschland' },
+        plz3:   { label: 'PLZ-Leitbereiche (3-stellig)', file: '/geodata/plz3.geojson', attribution: '© OpenStreetMap-Mitwirkende (ODbL), via Esri Deutschland' },
+        plz5:   { label: 'PLZ-Gebiete (5-stellig)', file: '/geodata/plz5.geojson', attribution: '© OpenStreetMap-Mitwirkende (ODbL), via Esri Deutschland' }
+    },
+
+    plzCentroidsUrl: '/geodata/plz-centroids.json',
+
+    regionStyle: {
+        default: {
+            fillColor: '#cbd5e1',
+            weight: 1,
+            opacity: 1,
+            color: '#475569',
+            fillOpacity: 0.08
         },
-        gemini: {
-            url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
-            temperature: 0.7
+        hover: {
+            weight: 2.5,
+            color: '#0d9488',
+            fillOpacity: 0.35
         }
+    },
+
+    // Nominatim (OpenStreetMap) für optionale exakte Adress-Geocodierung
+    nominatim: {
+        url: 'https://nominatim.openstreetmap.org/search',
+        // OSM-Nutzungsrichtlinie: max. 1 Anfrage pro Sekunde
+        delayMs: 1100,
+        timeout: 10000
+    },
+
+    tour: {
+        defaultRadiusKm: 25,
+        maxSuggestions: 25,
+        // Google Maps erlaubt max. 9 Zwischenziele im Directions-Link
+        maxWaypoints: 9,
+        // Faktor Luftlinie -> geschätzte Straßenkilometer
+        roadFactor: 1.3
     },
 
     storage: {
         dbName: 'geofuchs-db',
-        dbVersion: 1,
-        storeName: 'geodata',
-        cacheKey: 'wfs-features'
+        dbVersion: 2,
+        storeName: 'geodata'
     }
 };
 
