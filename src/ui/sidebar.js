@@ -54,16 +54,14 @@ export function initSidebar() {
         document.getElementById('level-loading').style.display = loading ? 'inline-block' : 'none';
     });
 
-    // Marker-Farbmodus
-    document.querySelectorAll('#colormode-toggle button').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            state.colorMode = btn.dataset.colormode;
-            document.querySelectorAll('#colormode-toggle button').forEach((b) =>
-                b.classList.toggle('active', b === btn));
-            renderLegend();
-            emit('colormode:changed');
-            persistSettings();
-        });
+    // Anzeige-/Farbmodus
+    const colorSelect = document.getElementById('colormode-select');
+    colorSelect.value = state.colorMode;
+    colorSelect.addEventListener('change', () => {
+        state.colorMode = colorSelect.value;
+        renderLegend();
+        emit('colormode:changed');
+        persistSettings();
     });
     renderLegend();
 
@@ -100,23 +98,44 @@ export function initSidebar() {
     renderTeamFilters();
 }
 
+function legendFromMap(entries) {
+    return entries.length
+        ? entries.map(([name, meta]) => `<span class="legend-item"><span class="dot" style="background:${meta.color}"></span>${escapeHtml(name)}</span>`).join('')
+        : '<span class="muted small">Nach Datenimport sichtbar.</span>';
+}
+
 function renderLegend() {
     const el = document.getElementById('colormode-legend');
+    const hint = document.getElementById('colormode-hint');
     if (!el) return;
-    if (state.colorMode === 'status') {
+    const mode = state.colorMode;
+
+    const hints = {
+        auto: 'Zoom bestimmt den Detailgrad: weit → Vertriebsgruppen, mittel → Betriebsbezirke (Flächen mit Umsatz), nah → einzelne Kunden.',
+        rep: 'Kunden als Punkte, eingefärbt nach Vertriebsbeauftragtem.',
+        bezirk: 'Gebiete flächig nach Betriebsbezirk eingefärbt, mit Name und Umsatzsumme.',
+        gruppe: 'Gebiete flächig nach Vertriebsgruppe eingefärbt, mit Name und Umsatzsumme.',
+        status: 'Kunden als Punkte, eingefärbt nach Besuchsstatus.'
+    };
+    if (hint) hint.textContent = hints[mode] ?? '';
+
+    if (mode === 'status') {
         const items = [
-            ['ok', STATUS_LABELS.ok],
-            ['faellig', STATUS_LABELS.faellig],
-            ['ueberfaellig', STATUS_LABELS.ueberfaellig],
-            ['none', STATUS_LABELS.none]
+            ['ok', STATUS_LABELS.ok], ['faellig', STATUS_LABELS.faellig],
+            ['ueberfaellig', STATUS_LABELS.ueberfaellig], ['none', STATUS_LABELS.none]
         ];
         el.innerHTML = items.map(([k, label]) =>
             `<span class="legend-item"><span class="dot" style="background:${STATUS_COLORS[k]}"></span>${label}</span>`).join('');
+    } else if (mode === 'bezirk' || mode === 'gruppe') {
+        const dim = state.dims[mode];
+        el.innerHTML = dim?.active
+            ? legendFromMap([...dim.values.entries()].slice(0, 14))
+            : `<span class="muted small">Keine Spalte „${mode === 'bezirk' ? 'Betriebsbezirk' : 'Vertriebsgruppe'}" in den Daten.</span>`;
+    } else if (mode === 'rep') {
+        el.innerHTML = legendFromMap([...state.reps.entries()].slice(0, 14));
     } else {
-        const items = [...state.reps.entries()].slice(0, 12);
-        el.innerHTML = items.length
-            ? items.map(([name, rep]) => `<span class="legend-item"><span class="dot" style="background:${rep.color}"></span>${escapeHtml(name)}</span>`).join('')
-            : '<span class="muted small">Farben je Vertriebsbeauftragtem – nach Datenimport sichtbar.</span>';
+        // auto
+        el.innerHTML = legendFromMap([...state.reps.entries()].slice(0, 14));
     }
 }
 

@@ -28,10 +28,11 @@ async function restorePersistedState() {
         emit('level:changed');
     }
     if (settings?.radiusKm) state.tour.radiusKm = settings.radiusKm;
-    if (settings?.colorMode === 'status' || settings?.colorMode === 'rep') {
+    const validModes = ['auto', 'rep', 'bezirk', 'gruppe', 'status'];
+    if (validModes.includes(settings?.colorMode)) {
         state.colorMode = settings.colorMode;
-        document.querySelectorAll('#colormode-toggle button').forEach((b) =>
-            b.classList.toggle('active', b.dataset.colormode === settings.colorMode));
+        const sel = document.getElementById('colormode-select');
+        if (sel) sel.value = settings.colorMode;
         emit('colormode:changed');
     }
 

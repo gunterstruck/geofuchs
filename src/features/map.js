@@ -8,7 +8,7 @@ import L from 'leaflet';
 import 'leaflet.markercluster';
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, repColor, visibleCustomers, getCustomer, markDirty, UNASSIGNED } from '../core/state.js';
+import { state, on, emit, repColor, attrColor, visibleCustomers, getCustomer, markDirty, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
 import { visitStatus, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
@@ -17,8 +17,11 @@ let map = null;
 let regionLayer = null;
 let clusterGroup = null;
 let tourLayer = null;
+let labelLayer = null;
 let regionStats = new Map();
 let currentLevelData = null;
+let featureByKey = new Map();
+let currentView = { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
@@ -50,7 +53,13 @@ export function initMap(containerId) {
     });
     map.addLayer(clusterGroup);
 
+    labelLayer = L.layerGroup().addTo(map);
     tourLayer = L.layerGroup().addTo(map);
+
+    // Zoom-Automatik: bei „auto" den Detailgrad neu bestimmen
+    map.on('zoomend', () => {
+        if (state.colorMode === 'auto') applyView();
+    });
 
     // Buttons in Popups (Event-Delegation)
     map.on('popupopen', (e) => {
@@ -74,7 +83,7 @@ export function initMap(containerId) {
 
     on('customers:changed', refreshAll);
     on('filters:changed', refreshAll);
-    on('colormode:changed', () => { renderMarkers(); });
+    on('colormode:changed', applyView);
     on('level:changed', () => { setLevel(state.level); });
     on('tour:changed', renderTour);
 
@@ -107,9 +116,64 @@ function handlePopupAction(action, customerId) {
 }
 
 function refreshAll() {
-    renderMarkers();
-    restyleRegions();
+    applyView();
     renderTour();
+}
+
+// ---- Ansicht / Detailgrad (Level of Detail) ----
+
+/** Ist die aktuelle Ebene flächenfähig (Gebiete geladen)? */
+function aggregatable() {
+    return state.level !== 'none' && !!CONFIG.levels[state.level]?.file && !!currentLevelData;
+}
+
+/** Erstes verfügbares Attribut aus der Wunschliste (Ebene aktiv bzw. 'vb') */
+function firstActiveAttr(list) {
+    for (const a of list) {
+        if (a === 'vb') return 'vb';
+        if (state.dims[a]?.active) return a;
+    }
+    return 'vb';
+}
+
+/**
+ * Legt fest, was gezeigt wird: welches Attribut die Flächen einfärbt (paint),
+ * ob Kundenmarker sichtbar sind (markers), ob Gebiets-Labels erscheinen (labels)
+ * und wonach die Marker eingefärbt werden (markerBy).
+ */
+function resolveView() {
+    const mode = state.colorMode;
+    const z = map ? map.getZoom() : CONFIG.map.defaultZoom;
+
+    if (mode === 'status') return { paint: null, markers: true, labels: false, markerBy: 'status' };
+    if (mode === 'rep') return { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
+    if (mode === 'bezirk') {
+        const p = firstActiveAttr(['bezirk', 'gruppe', 'vb']);
+        return { paint: p, markers: false, labels: true, markerBy: 'vb' };
+    }
+    if (mode === 'gruppe') {
+        const p = firstActiveAttr(['gruppe', 'bezirk', 'vb']);
+        return { paint: p, markers: false, labels: true, markerBy: 'vb' };
+    }
+    // auto: Detailgrad nach Zoomstufe
+    if (!aggregatable()) return { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
+    if (z >= CONFIG.map.lodCustomerZoom) {
+        const p = firstActiveAttr(['bezirk', 'gruppe', 'vb']);
+        return { paint: p, markers: true, labels: false, markerBy: p };
+    }
+    if (z >= CONFIG.map.lodBezirkZoom) {
+        const p = firstActiveAttr(['bezirk', 'gruppe', 'vb']);
+        return { paint: p, markers: false, labels: true, markerBy: 'vb' };
+    }
+    const p = firstActiveAttr(['gruppe', 'bezirk', 'vb']);
+    return { paint: p, markers: false, labels: true, markerBy: 'vb' };
+}
+
+function applyView() {
+    currentView = resolveView();
+    restyleRegions();
+    renderMarkers();
+    renderLabels();
 }
 
 // ---- Gebietsebene ----
@@ -117,8 +181,10 @@ function refreshAll() {
 export async function setLevel(level) {
     state.level = level;
     if (regionLayer) { map.removeLayer(regionLayer); regionLayer = null; }
+    if (labelLayer) labelLayer.clearLayers();
     currentLevelData = null;
-    if (level === 'none' || !CONFIG.levels[level]?.file) return;
+    featureByKey = new Map();
+    if (level === 'none' || !CONFIG.levels[level]?.file) { applyView(); return; }
 
     emit('map:loading', true);
     try {
@@ -133,7 +199,12 @@ export async function setLevel(level) {
     // Ebene könnte inzwischen erneut gewechselt worden sein
     if (state.level !== level) return;
 
+    for (const feature of currentLevelData.features) {
+        featureByKey.set(regionKey(level, feature), feature);
+    }
+
     computeStats();
+    currentView = resolveView();
     regionLayer = L.geoJSON(currentLevelData, {
         style: (feature) => styleFor(feature),
         attribution: CONFIG.levels[level].attribution,
@@ -146,10 +217,11 @@ export async function setLevel(level) {
                 this.setStyle(styleFor(feature));
             });
             layer.bindPopup(() => regionPopupHtml(feature), { maxWidth: 320 });
-            layer.bindTooltip(regionName(level, feature), { sticky: true, direction: 'top' });
+            layer.bindTooltip(() => regionTooltip(feature), { sticky: true, direction: 'top' });
         }
     }).addTo(map);
     regionLayer.bringToBack();
+    applyView();
 }
 
 function computeStats() {
@@ -159,24 +231,110 @@ function computeStats() {
     emit('regions:stats', regionStats);
 }
 
+/** Häufigster Attributwert in einem Gebiet (nach Kundenzahl) */
+function dominantValue(entry, attr) {
+    if (attr === 'vb') return dominantRep(entry);
+    const counts = new Map();
+    for (const c of entry.customers) {
+        const v = String(c[attr] ?? '').trim() || UNASSIGNED;
+        counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    let best = UNASSIGNED, bestN = 0;
+    for (const [v, n] of counts) if (n > bestN) { best = v; bestN = n; }
+    return best;
+}
+
 function styleFor(feature) {
     const entry = regionStats.get(regionKey(state.level, feature));
     if (!entry || entry.total === 0) return { ...CONFIG.regionStyle.default };
-    const vb = dominantRep(entry);
-    const maxTotal = 12;
+
+    const attr = currentView.paint;
+    if (!attr) return { ...CONFIG.regionStyle.default };
+
+    const value = dominantValue(entry, attr);
+    const territory = !currentView.markers; // Flächenansicht: kräftiger füllen
     return {
-        fillColor: repColor(vb),
-        color: '#334155',
-        weight: 1,
+        fillColor: attrColor(attr, value),
+        color: territory ? '#ffffff' : '#334155',
+        weight: territory ? 1.2 : 1,
         opacity: 1,
-        fillOpacity: 0.18 + 0.4 * Math.min(entry.total / maxTotal, 1)
+        fillOpacity: territory ? 0.55 : 0.18 + 0.3 * Math.min(entry.total / 12, 1)
     };
+}
+
+function regionTooltip(feature) {
+    const name = regionName(state.level, feature);
+    const entry = regionStats.get(regionKey(state.level, feature));
+    if (!entry || entry.total === 0) return name;
+    const attr = currentView.paint && currentView.paint !== 'vb' ? currentView.paint : 'vb';
+    const value = dominantValue(entry, attr);
+    return `${name} · ${value} (${entry.total} Kd.)`;
 }
 
 function restyleRegions() {
     if (!regionLayer || !currentLevelData) return;
     computeStats();
     regionLayer.eachLayer((layer) => layer.setStyle(styleFor(layer.feature)));
+}
+
+/** Kompakte Euro-Angabe für Labels */
+function fmtEuroShort(n) {
+    if (!n) return '';
+    if (n >= 1e6) return `${(n / 1e6).toLocaleString('de-DE', { maximumFractionDigits: 1 })} Mio €`;
+    if (n >= 1e3) return `${Math.round(n / 1e3).toLocaleString('de-DE')} T€`;
+    return `${Math.round(n).toLocaleString('de-DE')} €`;
+}
+
+/**
+ * Gebiets-Labels (Name + Umsatzsumme) je Attributwert der Flächenansicht.
+ * Anker ist das Gebiet mit den meisten Kunden dieses Werts.
+ */
+function renderLabels() {
+    if (!labelLayer) return;
+    labelLayer.clearLayers();
+    if (!currentView.labels || !currentLevelData) return;
+
+    const attr = currentView.paint;
+    const revByVal = new Map();
+    for (const c of visibleCustomers()) {
+        const v = attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
+        revByVal.set(v, (revByVal.get(v) ?? 0) + (c.umsatz || 0));
+    }
+
+    // Anker-Gebiet je Wert (meiste Kunden dieses Werts)
+    const anchor = new Map(); // val -> { feature, count }
+    for (const [key, entry] of regionStats) {
+        const feature = featureByKey.get(key);
+        if (!feature) continue;
+        const counts = new Map();
+        for (const c of entry.customers) {
+            const v = attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
+            counts.set(v, (counts.get(v) ?? 0) + 1);
+        }
+        for (const [v, n] of counts) {
+            if (!anchor.has(v) || n > anchor.get(v).count) anchor.set(v, { feature, count: n });
+        }
+    }
+
+    for (const [val, a] of anchor) {
+        if (val === UNASSIGNED) continue;
+        const [minX, minY, maxX, maxY] = a.feature._bbox;
+        const center = [(minY + maxY) / 2, (minX + maxX) / 2];
+        const col = attrColor(attr, val);
+        const rev = fmtEuroShort(revByVal.get(val) || 0);
+        L.marker(center, {
+            interactive: false,
+            keyboard: false,
+            icon: L.divIcon({
+                className: 'territory-label-wrapper',
+                html: `<div class="territory-label" style="border-color:${col}">
+                    <span class="tl-dot" style="background:${col}"></span>${escapeHtml(val)}
+                    ${rev ? `<span class="tl-rev">${rev}</span>` : ''}
+                </div>`,
+                iconSize: null
+            })
+        }).addTo(labelLayer);
+    }
 }
 
 function regionPopupHtml(feature) {
@@ -202,14 +360,16 @@ function regionPopupHtml(feature) {
 // ---- Kundenmarker ----
 
 function markerColor(customer) {
-    if (state.colorMode === 'status') return STATUS_COLORS[visitStatus(customer)];
+    const by = currentView.markerBy;
+    if (by === 'status') return STATUS_COLORS[visitStatus(customer)];
+    if (by && by !== 'vb') return attrColor(by, customer[by] || UNASSIGNED);
     return repColor(customer.vb);
 }
 
 function customerIcon(customer) {
     const color = markerColor(customer);
     const inTour = state.tour.stops.includes(customer.id);
-    const overdue = state.colorMode !== 'status' && visitStatus(customer) === 'ueberfaellig';
+    const overdue = currentView.markerBy !== 'status' && visitStatus(customer) === 'ueberfaellig';
     return L.divIcon({
         className: 'customer-marker-wrapper',
         html: `<div class="customer-marker${customer.geo === 'plz' ? ' approx' : ''}${inTour ? ' in-tour' : ''}${overdue ? ' overdue' : ''}" style="background:${color}"></div>`,
@@ -283,6 +443,8 @@ export function customerPopupHtml(customer) {
 
 function renderMarkers() {
     clusterGroup.clearLayers();
+    // In der Flächenansicht (Bezirke/Gruppen) werden Kunden ausgeblendet.
+    if (!currentView.markers) return;
     const markers = [];
     for (const customer of visibleCustomers()) {
         if (customer.lat === null || customer.lng === null) continue;

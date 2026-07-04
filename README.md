@@ -23,7 +23,8 @@ GeoFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 |---|---|
 | 📄 **Daten** | Excel-/CSV-Import per Klick oder Drag & Drop, automatische Spaltenerkennung mit Prüf-Dialog, Excel-Vorlage, Demo-Daten, Excel-Export |
 | 📍 **Verortung** | Sofort über PLZ-Koordinaten (offline, ohne API-Schlüssel); optional adressgenau über OpenStreetMap/Nominatim |
-| 🗺️ **Gebiete** | Landkreise (400 Kreise & Städte) **und** PLZ-Ebenen (1-, 2-, 3- und 5-stellig), eingefärbt nach dem Vertriebsbeauftragten mit den meisten Kunden; Klick zeigt Kunden & Team-Verteilung je Gebiet |
+| 🗺️ **Gebiete** | Landkreise (400 Kreise & Städte) **und** PLZ-Ebenen (1-, 2-, 3- und 5-stellig); Flächen einfärbbar nach Vertriebsbeauftragtem, **Betriebsbezirk** oder **Vertriebsgruppe** (mit Namens-Label und Umsatzsumme); Klick zeigt Kunden & Team-Verteilung je Gebiet |
+| 🔍 **Zoom-Automatik** | „Automatisch (nach Zoom)": weit herausgezoomt zeigt die Karte Vertriebsgruppen als Flächen (mit Umsatz), mittlerer Zoom die Betriebsbezirke, hineingezoomt die einzelnen Kunden – der Detailgrad wächst mit dem Zoom |
 | 👥 **Team** | Vertriebsbeauftragte (feste Farben) und die dreistufige Vertriebshierarchie **Vertriebschannel › Vertriebsgruppe › Betriebsbezirk** einzeln ein-/ausblenden; jede Ebene optional, nur vorhandene Ebenen werden angezeigt; Kundenzähler |
 | 🚗 **Tour** | Startpunkt = eigener GPS-Standort oder ein Kunde; Vorschläge „Wen könnte ich in der Nähe noch besuchen?“ (Umkreis einstellbar); Tourenoptimierung (kürzeste Strecke, Nearest-Neighbor + 2-Opt); Übergabe an Google Maps zur Navigation |
 | 🔍 **Suche** | Kunden nach Name, Ort, PLZ oder Kundennummer finden und anfliegen |

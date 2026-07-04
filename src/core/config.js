@@ -33,7 +33,11 @@ export const CONFIG = {
             [46.0, 3.5],
             [56.5, 17.5]
         ],
-        zoomSnap: 0.5
+        zoomSnap: 0.5,
+        // Zoom-Automatik (Level of Detail): >= custom -> Kunden sichtbar,
+        // >= bezirk -> Betriebsbezirke als Flächen, darunter -> Vertriebsgruppen
+        lodCustomerZoom: 9,
+        lodBezirkZoom: 7
     },
 
     tileLayer: {
