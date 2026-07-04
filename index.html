@@ -197,13 +197,30 @@
                 </table>
             </div>
 
-            <h3>Was-wäre-wenn: Gebiet zuweisen</h3>
-            <div id="cockpit-sim-info" class="muted small"></div>
-            <div class="sim-controls">
-                <select id="sim-region"></select>
-                <span class="sim-arrow">→</span>
-                <select id="sim-rep"></select>
-                <button id="sim-apply" class="primary">Simulieren</button>
+            <h3>Was-wäre-wenn: Gebiete zuweisen</h3>
+            <p class="muted small">Filtern Sie die Gebiete, wählen Sie eine oder mehrere aus (z. B. mehrere Landkreise oder alle PLZ 52xxx) und weisen Sie die gefilterten Kunden testweise einem anderen Vertriebsbeauftragten zu.</p>
+            <div class="sim-filters">
+                <label class="sim-field">Ebene
+                    <select id="sim-level"></select>
+                </label>
+                <label class="sim-field">Suche / PLZ-Präfix
+                    <input id="sim-search" type="search" placeholder="z. B. 52 oder Kreisname" autocomplete="off">
+                </label>
+                <label class="sim-field">Aktueller VB
+                    <select id="sim-filter-vb"></select>
+                </label>
+                <span id="sim-dim-filters"></span>
+            </div>
+            <div class="sim-region-head">
+                <label class="check-inline"><input type="checkbox" id="sim-select-all"> Alle sichtbaren auswählen</label>
+                <span id="sim-region-info" class="muted small"></span>
+            </div>
+            <div id="sim-region-list" class="scroll-list sim-region-list"></div>
+            <div class="sim-assign">
+                <label class="sim-field">Zuweisen an
+                    <select id="sim-rep"></select>
+                </label>
+                <button id="sim-apply" class="primary">Auswahl zuweisen</button>
             </div>
             <div id="sim-changes"></div>
             <footer>
