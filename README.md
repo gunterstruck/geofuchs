@@ -4,6 +4,8 @@
 
 > Installierbare Web-App (PWA) · Keine Anmeldung · Keine Cloud · Alle Daten bleiben im Browser
 
+> ⚠️ **Privates, nicht-kommerzielles Projekt.** Nutzung auf eigene Gefahr, ohne Gewähr und ohne Haftung jeglicher Art. Siehe [LICENSE](./LICENSE).
+
 ---
 
 ## Was macht GeoFuchs Vertrieb?
@@ -107,17 +109,16 @@ Alternativ per CLI: `npx vercel`
 | Kartendarstellung | © OpenStreetMap & [CARTO](https://carto.com/attributions) | – |
 | Geocoding (optional) | [Nominatim](https://nominatim.org/) | [Usage Policy](https://operations.osmfoundation.org/policies/nominatim/) |
 
-## Legacy
+Verwendete Software-Bibliotheken (mit Lizenz) sind in der App unter **Lizenz & Rechtliches** sowie in der [LICENSE](./LICENSE)-Datei aufgeführt.
 
-Die ursprüngliche Version mit KI-Chat-Assistent (Monolith, `app.html` bzw. `GeoFuchs_MVP V1.5.html`)
-bleibt im Repository erhalten, ist aber nicht Teil des Builds. Die KI-Funktionen wurden bewusst
-ausgeklammert – Konzept dazu folgt separat.
+## Lizenz & Haftung
+
+Privates, nicht-kommerzielles Projekt. **Alle Rechte vorbehalten** – keine Nutzung, Weitergabe oder
+kommerzielle Verwertung ohne Zustimmung des Urhebers. Bereitstellung ohne jegliche Gewährleistung,
+Nutzung auf eigene Gefahr, **keine Haftung jeglicher Art**. Vollständiger Text: [LICENSE](./LICENSE).
 
 ## Kontakt & Impressum
 
 **Günter Struck** · Lönsberg 8 · 45136 Essen · geofuchs@online.de
-GitHub: [@gunterstruck](https://github.com/gunterstruck)
-
-Lizenz: siehe [LICENSE](./LICENSE)
 
 **Made with 🦊 in Germany**

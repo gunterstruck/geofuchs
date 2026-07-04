@@ -1,5 +1,5 @@
 /**
- * Geocoding-Service – ganz ohne API-Schlüssel.
+ * Geocoding-Service – ohne Schlüssel oder Benutzerkonto.
  *
  * Stufe 1 (sofort, offline): PLZ-Zentroide aus gebündeltem Lookup
  *   (~8.300 deutsche Postleitzahlen). Genauigkeit: Ortsmitte.

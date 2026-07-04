@@ -214,6 +214,13 @@ dialog footer { margin-top: 14px; display: flex; justify-content: flex-end; gap:
 }
 
 .info-content ul { padding-left: 1.2em; }
+.note-private {
+    background: var(--color-surface-2);
+    border-left: 4px solid var(--color-primary);
+    padding: 8px 12px;
+    border-radius: var(--radius-s);
+    font-size: 0.9rem;
+}
 
 /* Dropzone (Drag & Drop) */
 .dropzone {

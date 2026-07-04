@@ -2,17 +2,32 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Datenschutzerklärung – GeoFuchs</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datenschutzerklärung – GeoFuchs Vertrieb</title>
 <style>
-body { font-family: Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: auto; padding: 20px; }
-h1 { color: #333; }
-a { color: #0077cc; }
+  :root { --primary: #0d9488; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+         line-height: 1.65; max-width: 760px; margin: auto; padding: 24px; color: #0f172a; }
+  h1 { color: var(--primary); }
+  h2 { margin-top: 1.6em; font-size: 1.15rem; }
+  a { color: #0f766e; }
+  .muted { color: #64748b; }
+  .note { background: #f1f5f9; border-left: 4px solid var(--primary); padding: 12px 16px; border-radius: 8px; }
+  ul { padding-left: 1.2em; }
+  .back { display: inline-block; margin-top: 2em; }
 </style>
 </head>
 <body>
 
 <h1>Datenschutzerklärung</h1>
-<p><strong>Stand:</strong> Februar 2025</p>
+<p class="muted"><strong>Stand:</strong> Juli 2026</p>
+
+<p class="note">
+GeoFuchs Vertrieb ist ein <strong>privates, nicht-kommerzielles Projekt</strong>. Alle von Ihnen
+importierten Kundendaten werden <strong>ausschließlich lokal in Ihrem Browser</strong> verarbeitet und
+gespeichert. Es gibt keinen Server, der Ihre Daten empfängt, keine Cloud, kein Tracking, keine
+Werbung und keine KI-Verarbeitung.
+</p>
 
 <h2>1. Verantwortlicher</h2>
 <p>
@@ -22,47 +37,70 @@ Lönsberg 8<br>
 E-Mail: <a href="mailto:geofuchs@online.de">geofuchs@online.de</a>
 </p>
 
-<h2>2. Allgemeines</h2>
+<h2>2. Art und Zweck der Anwendung</h2>
 <p>
-Diese Anwendung dient der interaktiven Visualisierung und Analyse deutscher Landkreise
-unter Nutzung von OpenStreetMap-Kartenmaterial und optionaler KI-Funktionen.
-Es findet keine dauerhafte Speicherung personenbezogener Daten durch den Betreiber statt.
+Die Anwendung stellt selbst importierte Kundenlisten auf einer Deutschlandkarte dar und unterstützt
+bei der Gebiets- und Besuchsplanung. Die Verarbeitung dient allein diesem Zweck und findet
+vollständig auf Ihrem Endgerät statt.
 </p>
 
-<h2>3. Verarbeitung personenbezogener Daten</h2>
+<h2>3. Lokale Speicherung (keine Serverübertragung)</h2>
+<p>
+Von Ihnen importierte oder erzeugte Inhalte – insbesondere Kundenlisten, Besuchsdaten, gespeicherte
+Touren und Einstellungen – werden im lokalen Speicher Ihres Browsers (IndexedDB) abgelegt, damit sie
+beim erneuten Öffnen erhalten bleiben. Diese Daten verlassen Ihr Gerät nicht und werden nicht an den
+Betreiber übertragen. Sie können sie jederzeit über die Funktion „Daten löschen" in der Anwendung
+oder über das Löschen der Browserdaten entfernen.
+</p>
+
+<h2>4. Kartendarstellung</h2>
+<p>
+Die Kartenkacheln werden beim Betrachten von den folgenden Diensten geladen. Dabei können diese
+Dienste technische Zugriffsdaten (z. B. IP-Adresse) erhalten:
+</p>
 <ul>
-<li>Bei Nutzung der KI-Funktionen werden eingegebene Texte temporär an <strong>OpenAI</strong> (api.openai.com) und/oder <strong>Google Gemini</strong> (generativelanguage.googleapis.com) gesendet.</li>
-<li>Die Verarbeitung erfolgt ausschließlich zur Beantwortung der Anfrage.</li>
-<li>Es erfolgt keine dauerhafte Speicherung durch den Betreiber.</li>
+  <li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap-Mitwirkende</a> (Kartendaten, ODbL)</li>
+  <li><a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> (Kartendarstellung)</li>
 </ul>
 
-<h2>4. Kartendaten</h2>
+<h2>5. Optionale Adress-Geocodierung</h2>
 <p>
-Die Kartenansicht basiert auf OpenStreetMap-Daten, bereitgestellt von:
-<ul>
-<li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap-Mitwirkende</a></li>
-<li><a href="https://carto.com/attribution" target="_blank" rel="noopener">CARTO</a></li>
-</ul>
-Diese Dienste können beim Laden technische Informationen (z. B. IP-Adresse) erhalten.
+Nur wenn Sie die Funktion „Adressen exakt verorten" aktiv auslösen, wird die jeweilige Adresse zur
+Umwandlung in Koordinaten an den Dienst <a href="https://nominatim.org/" target="_blank" rel="noopener">Nominatim</a>
+der OpenStreetMap Foundation gesendet. Ohne diese ausdrückliche Aktion findet keine solche Übertragung
+statt; die Standardverortung erfolgt offline über mitgelieferte Postleitzahl-Koordinaten.
 </p>
 
-<h2>5. Lokale Speicherung</h2>
+<h2>6. Navigation zu Google Maps</h2>
 <p>
-Vom Nutzer erzeugte Inhalte (z. B. Markierungen) können lokal im Browser gespeichert werden, wenn der Nutzer dies auswählt.
-Es erfolgt keine automatische Übertragung an den Betreiber.
+Wenn Sie „In Google Maps navigieren" wählen, wird ein Link zu Google Maps in einem neuen Tab geöffnet.
+Ab diesem Zeitpunkt gelten die Datenschutzbestimmungen von Google. Diese Weiterleitung erfolgt nur auf
+Ihre ausdrückliche Aktion.
 </p>
 
-<h2>6. Rechte der Nutzer:innen</h2>
+<h2>7. Standortbestimmung</h2>
 <p>
-Da keine personenbezogenen Daten dauerhaft gespeichert werden, sind Anfragen gemäß DSGVO aktuell nicht notwendig.
-Sie können sich dennoch jederzeit an den Betreiber wenden.
+Die Funktion „Mein Standort" nutzt die Standortfreigabe Ihres Geräts ausschließlich lokal, um Ihren
+Startpunkt auf der Karte zu setzen. Der Standort wird nicht an den Betreiber oder Dritte übertragen.
 </p>
 
-<h2>7. Kontakt</h2>
+<h2>8. Rechte der Nutzer:innen</h2>
 <p>
-Günter Struck<br>
-E-Mail: <a href="mailto:geofuchs@online.de">geofuchs@online.de</a>
+Da der Betreiber keine personenbezogenen Daten von Ihnen erhebt oder speichert, liegen ihm auch keine
+solchen Daten vor. Für die Rechtmäßigkeit der von Ihnen lokal verarbeiteten Kundendaten sind Sie als
+Nutzer:in selbst verantwortlich. Bei Fragen können Sie sich jederzeit an den oben genannten
+Verantwortlichen wenden.
 </p>
+
+<h2>9. Haftungsausschluss</h2>
+<p>
+Diese Anwendung wird als privates Projekt ohne jegliche Gewährleistung und ohne Haftung bereitgestellt.
+Für die Richtigkeit, Vollständigkeit und Aktualität der dargestellten Daten (u. a. Gebietsgrenzen,
+Postleitzahlen, Koordinaten sowie Entfernungs- und Routenschätzungen) wird keine Gewähr übernommen.
+Einzelheiten siehe <a href="/license.html">Lizenz &amp; Rechtliches</a>.
+</p>
+
+<a class="back" href="/">⬅ Zurück zur Anwendung</a>
 
 </body>
 </html>
