@@ -274,7 +274,17 @@ function renderRegionList() {
     document.getElementById('sim-select-all').checked = visible.length > 0 && visible.every((v) => selected.has(v.region.key));
 
     if (visible.length === 0) {
-        listEl.innerHTML = '<p class="muted small">Keine Gebiete für die aktuellen Filter.</p>';
+        let msg;
+        if (membership.length === 0) {
+            msg = 'Auf dieser Ebene sind keine Kunden verortet. Bitte Kunden laden bzw. per PLZ verorten oder eine andere Ebene wählen.';
+        } else if (searchDigits()) {
+            msg = `Keine PLZ-Gebiete „${escapeHtml(searchDigits())}xxx" mit Kunden. Es werden nur Gebiete angezeigt, in denen Kunden liegen.`;
+        } else if (filters.search.trim()) {
+            msg = `Kein Gebiet mit Kunden passt zu „${escapeHtml(filters.search.trim())}". Es werden nur Gebiete angezeigt, in denen Kunden liegen.`;
+        } else {
+            msg = 'Keine Gebiete für die aktuellen Filter. Es werden nur Gebiete angezeigt, in denen Kunden liegen.';
+        }
+        listEl.innerHTML = `<p class="muted small">${msg}</p>`;
         return;
     }
 
