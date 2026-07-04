@@ -62,10 +62,34 @@
 .balance-note.ok { background: #dcfce7; color: #166534; }
 .balance-note.warn { background: #fef3c7; color: #92400e; }
 
-.sim-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
-.sim-controls select { flex: 1; min-width: 120px; }
-.sim-arrow { color: var(--color-text-muted); font-weight: 700; }
 .change-row { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--color-surface-2); }
+
+/* Cockpit-Simulation: Filter + Gebietsliste */
+.sim-filters { display: flex; flex-wrap: wrap; gap: 8px 10px; margin: 8px 0; }
+.sim-field { display: flex; flex-direction: column; font-size: 0.75rem; color: var(--color-text-muted); gap: 3px; }
+.sim-field select, .sim-field input { font-size: 0.86rem; min-width: 130px; }
+#sim-dim-filters { display: contents; }
+
+.sim-region-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 4px; flex-wrap: wrap; }
+
+.sim-region-list { border: 1px solid var(--color-border); border-radius: var(--radius-s); max-height: 240px; }
+.sim-region-list > p { padding: 10px; margin: 0; }
+.sim-region-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--color-surface-2);
+    cursor: pointer;
+    font-size: 0.88rem;
+}
+.sim-region-row:hover { background: var(--color-surface-2); }
+.sim-region-row input { accent-color: var(--color-primary); flex-shrink: 0; }
+.sim-region-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sim-region-meta { display: inline-flex; align-items: center; gap: 4px; color: var(--color-text-muted); font-size: 0.8rem; white-space: nowrap; }
+
+.sim-assign { display: flex; align-items: flex-end; gap: 10px; margin: 12px 0 4px; flex-wrap: wrap; }
+.sim-assign .sim-field { flex: 1; }
 
 .field-label { display: block; font-size: 0.85rem; color: var(--color-text-muted); margin: 10px 0 4px; }
 .level-row { display: flex; align-items: center; gap: 10px; }
@@ -119,6 +143,9 @@
 }
 .filter-bulk { display: flex; gap: 6px; margin: 6px 0 12px; }
 .filter-bulk button { font-size: 0.78rem; padding: 3px 10px; }
+
+.dim-block { margin-bottom: 6px; }
+.dim-block h3 { margin-top: 0.9em; }
 
 /* Besuchsplaner */
 .start-chip {

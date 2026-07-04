@@ -50,9 +50,13 @@ async function restorePersistedState() {
                 if (state.reps.has(name)) state.reps.get(name).visible = visible;
             }
         }
-        if (settings?.groupVisibility) {
-            for (const [name, visible] of Object.entries(settings.groupVisibility)) {
-                if (state.groups.has(name)) state.groups.get(name).visible = visible;
+        if (settings?.dimVisibility) {
+            for (const [dimId, values] of Object.entries(settings.dimVisibility)) {
+                const dim = state.dims[dimId];
+                if (!dim) continue;
+                for (const [name, visible] of Object.entries(values)) {
+                    if (dim.values.has(name)) dim.values.get(name).visible = visible;
+                }
             }
         }
         emit('customers:changed');

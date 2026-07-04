@@ -14,7 +14,9 @@ export const FIELDS = [
     { key: 'plz',     label: 'PLZ',                    required: true,  synonyms: ['plz', 'postleitzahl', 'zip', 'zipcode', 'postcode'] },
     { key: 'ort',     label: 'Ort',                    required: false, synonyms: ['ort', 'stadt', 'city', 'gemeinde', 'wohnort'] },
     { key: 'vb',      label: 'Vertriebsbeauftragter',  required: false, synonyms: ['vertriebsbeauftragter', 'vertriebsbeauftragte', 'vb', 'betreuer', 'außendienst', 'aussendienst', 'ad', 'vertriebler', 'verkäufer', 'verkaeufer', 'sales rep', 'mitarbeiter', 'ansprechpartner vertrieb', 'gebietsleiter', 'kam'] },
-    { key: 'gruppe',  label: 'Vertriebsgruppe',        required: false, synonyms: ['vertriebsgruppe', 'gruppe', 'kundengruppe', 'kundenkreis', 'segment', 'kategorie', 'sparte', 'branche', 'klasse', 'team', 'region'] },
+    { key: 'channel', label: 'Vertriebschannel',       required: false, synonyms: ['vertriebschannel', 'vertriebskanal', 'channel', 'kanal', 'absatzkanal', 'vertriebsweg', 'saleschannel', 'sales channel', 'vertriebslinie'] },
+    { key: 'gruppe',  label: 'Vertriebsgruppe',        required: false, synonyms: ['vertriebsgruppe', 'gruppe', 'kundengruppe', 'kundenkreis', 'segment', 'kategorie', 'sparte', 'branche', 'klasse', 'team'] },
+    { key: 'bezirk',  label: 'Betriebsbezirk',         required: false, synonyms: ['betriebsbezirk', 'bezirk', 'vertriebsbezirk', 'verkaufsbezirk', 'gebietsbezirk', 'außendienstbezirk', 'aussendienstbezirk', 'district', 'gebiet'] },
     { key: 'ansprechpartner', label: 'Ansprechpartner', required: false, synonyms: ['ansprechpartner', 'kontaktperson', 'kontakt', 'contact', 'ap', 'ansprechpartner in'] },
     { key: 'telefon', label: 'Telefon',                required: false, synonyms: ['telefon', 'tel', 'telefonnummer', 'phone', 'mobil', 'handy', 'rufnummer', 'festnetz'] },
     { key: 'email',   label: 'E-Mail',                 required: false, synonyms: ['email', 'e-mail', 'mail', 'e mail', 'emailadresse', 'e-mail-adresse'] },
@@ -158,7 +160,9 @@ export function rowsToCustomers(rows, mapping) {
             plz: cleanPlz(get('plz')),
             ort: get('ort'),
             vb: get('vb'),
+            channel: get('channel'),
             gruppe: get('gruppe'),
+            bezirk: get('bezirk'),
             ansprechpartner: get('ansprechpartner'),
             telefon: get('telefon'),
             email: get('email'),
@@ -180,27 +184,30 @@ export function downloadTemplate() {
         {
             'Kundennummer': '10001', 'Kundenname': 'Autohaus Schmidt GmbH',
             'Straße': 'Hauptstraße 12', 'PLZ': '50667', 'Ort': 'Köln',
-            'Vertriebsbeauftragter': 'Max Mustermann', 'Vertriebsgruppe': 'Handel',
+            'Vertriebsbeauftragter': 'Max Mustermann',
+            'Vertriebschannel': 'Fachhandel', 'Vertriebsgruppe': 'Handel', 'Betriebsbezirk': 'Bezirk West',
             'Ansprechpartner': 'Herr Schmidt', 'Telefon': '0221 1234567', 'E-Mail': 'info@autohaus-schmidt.de',
             'Umsatz': 125000, 'Besuchsrhythmus (Wochen)': 6, 'Letzter Besuch': '12.05.2026'
         },
         {
             'Kundennummer': '10002', 'Kundenname': 'Bäckerei Müller KG',
             'Straße': 'Marktplatz 3', 'PLZ': '80331', 'Ort': 'München',
-            'Vertriebsbeauftragter': 'Anna Beispiel', 'Vertriebsgruppe': 'Lebensmittel',
+            'Vertriebsbeauftragter': 'Anna Beispiel',
+            'Vertriebschannel': 'Direktvertrieb', 'Vertriebsgruppe': 'Lebensmittel', 'Betriebsbezirk': 'Bezirk Süd',
             'Ansprechpartner': 'Frau Müller', 'Telefon': '089 7654321', 'E-Mail': 'kontakt@baeckerei-mueller.de',
             'Umsatz': 48000, 'Besuchsrhythmus (Wochen)': 4, 'Letzter Besuch': '28.06.2026'
         },
         {
             'Kundennummer': '10003', 'Kundenname': 'Elektro Weber e.K.',
             'Straße': 'Industrieweg 8', 'PLZ': '04109', 'Ort': 'Leipzig',
-            'Vertriebsbeauftragter': 'Max Mustermann', 'Vertriebsgruppe': 'Handwerk',
+            'Vertriebsbeauftragter': 'Max Mustermann',
+            'Vertriebschannel': 'Direktvertrieb', 'Vertriebsgruppe': 'Handwerk', 'Betriebsbezirk': 'Bezirk Ost',
             'Ansprechpartner': '', 'Telefon': '0341 9998877', 'E-Mail': '',
             'Umsatz': 87500, 'Besuchsrhythmus (Wochen)': 8, 'Letzter Besuch': ''
         }
     ];
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 22 }, { wch: 8 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 12 }, { wch: 20 }, { wch: 16 }];
+    ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 22 }, { wch: 8 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 12 }, { wch: 20 }, { wch: 16 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Kunden');
     XLSX.writeFile(wb, 'geofuchs-kundenliste-vorlage.xlsx');
@@ -215,7 +222,9 @@ export function exportCustomers(customers) {
         'PLZ': c.plz,
         'Ort': c.ort,
         'Vertriebsbeauftragter': c.vb,
+        'Vertriebschannel': c.channel ?? '',
         'Vertriebsgruppe': c.gruppe,
+        'Betriebsbezirk': c.bezirk ?? '',
         'Ansprechpartner': c.ansprechpartner ?? '',
         'Telefon': c.telefon ?? '',
         'E-Mail': c.email ?? '',
@@ -267,6 +276,17 @@ export function demoCustomers() {
     // Tage seit letztem Besuch – gemischt, damit Status ok/fällig/überfällig sichtbar wird
     const daysAgoChoices = [7, 20, 45, 70, 110, null];
 
+    // Vertriebshierarchie: Channel (oben) -> Gruppe -> Betriebsbezirk (unten)
+    const channelByGruppe = { Handel: 'Fachhandel', Lebensmittel: 'Fachhandel', Handwerk: 'Direktvertrieb', Industrie: 'Key Account' };
+    const bezirkByOrt = {
+        'Köln': 'Bezirk Rheinland-Ruhr', 'Düsseldorf': 'Bezirk Rheinland-Ruhr', 'Essen': 'Bezirk Rheinland-Ruhr', 'Bochum': 'Bezirk Rheinland-Ruhr', 'Duisburg': 'Bezirk Rheinland-Ruhr',
+        'Hannover': 'Bezirk Niedersachsen',
+        'München': 'Bezirk Oberbayern', 'Augsburg': 'Bezirk Oberbayern', 'Starnberg': 'Bezirk Oberbayern', 'Kempten': 'Bezirk Oberbayern',
+        'Passau': 'Bezirk Ostbayern', 'Regensburg': 'Bezirk Ostbayern', 'Nürnberg': 'Bezirk Ostbayern',
+        'Hamburg': 'Bezirk Küste', 'Wilhelmshaven': 'Bezirk Küste', 'Bremen': 'Bezirk Küste', 'Kiel': 'Bezirk Küste', 'Lübeck': 'Bezirk Küste',
+        'Berlin': 'Bezirk Ost', 'Dresden': 'Bezirk Ost', 'Leipzig': 'Bezirk Ost'
+    };
+
     return data.map(([name, strasse, plz, ort, vb, gruppe, umsatz], i) => {
         const rhythmusWochen = rhythmChoices[i % rhythmChoices.length];
         const daysAgo = daysAgoChoices[i % daysAgoChoices.length];
@@ -279,7 +299,10 @@ export function demoCustomers() {
         return {
             id: `demo-${i}`,
             nummer: String(20000 + i),
-            name, strasse, plz, ort, vb, gruppe,
+            name, strasse, plz, ort, vb,
+            channel: channelByGruppe[gruppe] ?? 'Direktvertrieb',
+            gruppe,
+            bezirk: bezirkByOrt[ort] ?? 'Bezirk West',
             ansprechpartner: '',
             telefon: `0${(1500 + i)} ${100000 + i * 137}`,
             email: `info@${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20)}.de`,
