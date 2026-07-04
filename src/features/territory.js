@@ -8,7 +8,7 @@
  */
 
 import { UNASSIGNED } from '../core/state.js';
-import { pointInFeature, regionKey } from '../services/geodata.js';
+import { pointInFeature, regionKey, regionName } from '../services/geodata.js';
 
 /**
  * @param {string} level  aktive Ebene ('kreise' | 'plz1' | ...)
@@ -64,4 +64,24 @@ export function dominantRep(entry) {
         if (count > bestCount) { best = vb; bestCount = count; }
     }
     return best;
+}
+
+/**
+ * Zuordnung Gebiet -> Kunden-IDs (für das Gebiets-Cockpit / What-if).
+ * Nur Gebiete mit mindestens einem Kunden werden zurückgegeben.
+ * @returns {Array<{ key, name, customerIds: string[] }>} nach Kundenzahl sortiert
+ */
+export function regionMembership(level, geojson, customers) {
+    const stats = aggregateByRegion(level, geojson, customers);
+    const nameByKey = new Map();
+    for (const feature of geojson.features) {
+        nameByKey.set(regionKey(level, feature), regionName(level, feature));
+    }
+    return [...stats.entries()]
+        .map(([key, entry]) => ({
+            key,
+            name: nameByKey.get(key) ?? key,
+            customerIds: entry.customers.map((c) => c.id)
+        }))
+        .sort((a, b) => b.customerIds.length - a.customerIds.length);
 }

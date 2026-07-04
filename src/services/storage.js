@@ -11,7 +11,8 @@ const { dbName, dbVersion, storeName } = CONFIG.storage;
 const KEYS = {
     dataset: 'kundendaten',
     geocodeCache: 'geocode-cache',
-    settings: 'einstellungen'
+    settings: 'einstellungen',
+    tours: 'gespeicherte-touren'
 };
 
 function openDatabase() {
@@ -115,5 +116,23 @@ export async function loadSettings() {
         return (await loadFromCache(KEYS.settings)) ?? null;
     } catch {
         return null;
+    }
+}
+
+// ---- Gespeicherte Touren ----
+
+export async function loadTours() {
+    try {
+        return (await loadFromCache(KEYS.tours)) ?? [];
+    } catch {
+        return [];
+    }
+}
+
+export async function saveTours(tours) {
+    try {
+        await saveToCache(KEYS.tours, tours);
+    } catch (error) {
+        console.warn('Touren konnten nicht gespeichert werden:', error);
     }
 }

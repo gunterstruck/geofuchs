@@ -8,9 +8,10 @@ import L from 'leaflet';
 import 'leaflet.markercluster';
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, repColor, visibleCustomers, getCustomer, UNASSIGNED } from '../core/state.js';
+import { state, on, emit, repColor, visibleCustomers, getCustomer, markDirty, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
+import { visitStatus, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
 
 let map = null;
 let regionLayer = null;
@@ -53,16 +54,27 @@ export function initMap(containerId) {
 
     // Buttons in Popups (Event-Delegation)
     map.on('popupopen', (e) => {
-        e.popup.getElement()?.querySelectorAll('[data-action]').forEach((btn) => {
+        const el = e.popup.getElement();
+        if (!el) return;
+        el.querySelectorAll('[data-action]').forEach((btn) => {
             btn.addEventListener('click', () => {
-                handlePopupAction(btn.dataset.action, btn.dataset.id);
-                map.closePopup();
+                const keepOpen = handlePopupAction(btn.dataset.action, btn.dataset.id);
+                if (!keepOpen) map.closePopup();
             });
+        });
+        // Rhythmus-Auswahl direkt im Popup
+        el.querySelector('[data-rhythm]')?.addEventListener('change', (ev) => {
+            const customer = getCustomer(ev.target.dataset.rhythm);
+            if (!customer) return;
+            const val = parseInt(ev.target.value, 10);
+            customer.rhythmusWochen = Number.isFinite(val) && val > 0 ? val : null;
+            markDirty();
         });
     });
 
     on('customers:changed', refreshAll);
     on('filters:changed', refreshAll);
+    on('colormode:changed', () => { renderMarkers(); });
     on('level:changed', () => { setLevel(state.level); });
     on('tour:changed', renderTour);
 
@@ -70,9 +82,10 @@ export function initMap(containerId) {
     return map;
 }
 
+/** @returns {boolean} true, wenn das Popup offen bleiben soll */
 function handlePopupAction(action, customerId) {
     const customer = getCustomer(customerId);
-    if (!customer) return;
+    if (!customer) return false;
     if (action === 'tour-add') {
         if (!state.tour.stops.includes(customer.id)) {
             state.tour.stops.push(customer.id);
@@ -85,7 +98,12 @@ function handlePopupAction(action, customerId) {
             strasse: customer.strasse, plz: customer.plz, ort: customer.ort
         };
         emit('tour:changed');
+    } else if (action === 'mark-visited') {
+        markVisitedToday(customer);
+        markDirty();
+        emit('toast', { type: 'success', text: `Besuch bei ${customer.name} für heute eingetragen.` });
     }
+    return false;
 }
 
 function refreshAll() {
@@ -183,15 +201,59 @@ function regionPopupHtml(feature) {
 
 // ---- Kundenmarker ----
 
+function markerColor(customer) {
+    if (state.colorMode === 'status') return STATUS_COLORS[visitStatus(customer)];
+    return repColor(customer.vb);
+}
+
 function customerIcon(customer) {
-    const color = repColor(customer.vb);
+    const color = markerColor(customer);
     const inTour = state.tour.stops.includes(customer.id);
+    const overdue = state.colorMode !== 'status' && visitStatus(customer) === 'ueberfaellig';
     return L.divIcon({
         className: 'customer-marker-wrapper',
-        html: `<div class="customer-marker${customer.geo === 'plz' ? ' approx' : ''}${inTour ? ' in-tour' : ''}" style="background:${color}"></div>`,
+        html: `<div class="customer-marker${customer.geo === 'plz' ? ' approx' : ''}${inTour ? ' in-tour' : ''}${overdue ? ' overdue' : ''}" style="background:${color}"></div>`,
         iconSize: [16, 16],
         iconAnchor: [8, 8]
     });
+}
+
+const RHYTHM_OPTIONS = [
+    ['', 'kein Rhythmus'], ['2', 'alle 2 Wochen'], ['4', 'alle 4 Wochen'],
+    ['6', 'alle 6 Wochen'], ['8', 'alle 8 Wochen'], ['12', 'alle 12 Wochen'], ['26', 'alle 26 Wochen']
+];
+
+function visitBlockHtml(customer) {
+    const status = visitStatus(customer);
+    const last = lastVisit(customer);
+    const statusBadge = customer.rhythmusWochen
+        ? `<span class="status-badge" style="background:${STATUS_COLORS[status]}">${STATUS_LABELS[status]}</span>`
+        : '';
+    const rhythmSelect = `<select class="rhythm-select" data-rhythm="${escapeHtml(customer.id)}">
+        ${RHYTHM_OPTIONS.map(([v, l]) => `<option value="${v}"${String(customer.rhythmusWochen ?? '') === v ? ' selected' : ''}>${l}</option>`).join('')}
+    </select>`;
+    return `<div class="visit-block">
+        <p class="visit-line">🗓️ Letzter Besuch: <b>${last ? formatDateDe(last) : '—'}</b> <span class="muted small">(${agoText(last)})</span> ${statusBadge}</p>
+        <div class="visit-controls">
+            <button data-action="mark-visited" data-id="${escapeHtml(customer.id)}">✓ Heute besucht</button>
+            ${rhythmSelect}
+        </div>
+    </div>`;
+}
+
+function contactBlockHtml(customer) {
+    const parts = [];
+    if (customer.ansprechpartner) parts.push(`<p class="muted small">👤 ${escapeHtml(customer.ansprechpartner)}</p>`);
+    const links = [];
+    if (customer.telefon) {
+        const tel = String(customer.telefon).replace(/[^\d+]/g, '');
+        links.push(`<a class="contact-link" href="tel:${escapeHtml(tel)}">📞 Anrufen</a>`);
+    }
+    if (customer.email) {
+        links.push(`<a class="contact-link" href="mailto:${escapeHtml(customer.email)}">✉️ E-Mail</a>`);
+    }
+    if (links.length) parts.push(`<div class="contact-links">${links.join('')}</div>`);
+    return parts.join('');
 }
 
 export function customerPopupHtml(customer) {
@@ -207,6 +269,8 @@ export function customerPopupHtml(customer) {
             ${customer.gruppe ? ` · ${escapeHtml(customer.gruppe)}` : ''}
         </p>
         ${customer.umsatz ? `<p class="muted">Umsatz: ${customer.umsatz.toLocaleString('de-DE')} €</p>` : ''}
+        ${contactBlockHtml(customer)}
+        ${visitBlockHtml(customer)}
         ${customer.geo === 'plz' ? '<p class="muted small">📍 Position: PLZ-Mittelpunkt (ungefähr)</p>' : ''}
         <div class="popup-actions">
             <button data-action="tour-start" data-id="${escapeHtml(customer.id)}">🚩 Als Start</button>

@@ -9,6 +9,9 @@
 }
 .customer-marker.approx { border-style: dashed; opacity: 0.92; }
 .customer-marker.in-tour { outline: 3px solid #0d9488; outline-offset: 1px; }
+.customer-marker.overdue {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #dc2626, 0 1px 4px rgba(0, 0, 0, 0.45);
+}
 
 .cluster-wrapper { background: transparent; }
 .cluster-icon {
@@ -54,5 +57,37 @@
 .popup .cust-list .mini { font-size: 0.8rem; padding: 1px 0; }
 .popup-actions { display: flex; gap: 6px; margin-top: 8px; }
 .popup-actions button { font-size: 0.8rem; padding: 4px 8px; flex: 1; }
+
+.contact-links { display: flex; gap: 6px; margin: 4px 0; }
+.contact-link {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--color-surface-2, #f1f5f9);
+    border-radius: 99px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--color-primary-dark, #0f766e);
+}
+
+.visit-block {
+    margin: 8px 0 4px;
+    padding: 8px;
+    background: var(--color-surface-2, #f1f5f9);
+    border-radius: 8px;
+}
+.visit-line { margin: 0 0 6px; font-size: 0.82rem; }
+.visit-controls { display: flex; gap: 6px; align-items: center; }
+.visit-controls button { font-size: 0.8rem; padding: 4px 8px; white-space: nowrap; }
+.rhythm-select { font-size: 0.8rem; padding: 4px 6px; flex: 1; min-width: 0; }
+.status-badge {
+    display: inline-block;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 1px 8px;
+    border-radius: 99px;
+    vertical-align: middle;
+}
 
 .leaflet-container { font-family: var(--font); }
