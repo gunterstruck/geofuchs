@@ -25,16 +25,31 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
 let overdueFirst = false;
 let savedTours = [];
 let tourBezirk = null;   // '__all__' | Bezirksname | null (noch nicht gewählt)
+let scopeExpanded = false; // Bezirk-Auswahl aufgeklappt?
+let tourExpert = false;    // Experten-Modus (mehr Optionen)
 
 export function initTourPanel() {
     document.getElementById('btn-my-location').addEventListener('click', useMyLocation);
     document.getElementById('btn-nearby').addEventListener('click', findNearby);
 
-    // Schritt 0: Bezirk wählen -> fokussiert die Kundenauswahl der Tour
-    document.getElementById('tour-bezirk').addEventListener('change', (e) => {
+    // Schritt 0: Bezirk wählen (Auswahl klappt danach auf eine schmale Zeile ein)
+    const scopeEl = document.getElementById('tour-scope');
+    scopeEl.addEventListener('change', (e) => {
+        if (e.target.id !== 'tour-bezirk') return;
         tourBezirk = e.target.value;
+        scopeExpanded = false;
+        renderTourScope();
         updatePlannerVisibility();
         renderPanel();
+    });
+    scopeEl.addEventListener('click', (e) => {
+        if (e.target.closest('#scope-toggle')) { scopeExpanded = true; renderTourScope(); }
+    });
+
+    // Basis-/Experten-Umschalter
+    tourExpert = localStorage.getItem('gf_tour_expert') === '1';
+    document.querySelectorAll('#tour-mode-toggle .seg').forEach((btn) => {
+        btn.addEventListener('click', () => applyTourMode(btn.dataset.tourmode));
     });
 
     const radius = document.getElementById('radius-slider');
@@ -154,41 +169,81 @@ export function initTourPanel() {
     on('tour:changed', renderPanel);
     on('customers:changed', () => { renderTourScope(); renderPanel(); });
     on('filters:changed', renderSuggestions);
+    applyTourMode(tourExpert ? 'expert' : 'basic', false);
     renderTourScope();
     renderPanel();
 }
 
-/** Bezirks-Auswahl aufbauen; ohne Bezirks-Ebene entfällt das Gate */
+/** Bezirks-Auswahl aufbauen; nach Wahl auf eine schmale Zeile eingeklappt */
 function renderTourScope() {
     const scope = document.getElementById('tour-scope');
-    const sel = document.getElementById('tour-bezirk');
+    if (!scope) return;
     const dim = state.dims.bezirk;
     if (!dim?.active || state.customers.length === 0) {
-        if (scope) scope.hidden = true;
+        scope.hidden = true;
         tourBezirk = state.customers.length ? '__all__' : null;
         updatePlannerVisibility();
         return;
     }
-    if (scope) scope.hidden = false;
+    scope.hidden = false;
+
+    const bezirke = [...dim.values.keys()].sort((a, b) => a.localeCompare(b, 'de'));
+    if (tourBezirk && tourBezirk !== '__all__' && !bezirke.includes(tourBezirk)) tourBezirk = null;
+    const chosen = tourBezirk && tourBezirk !== '__none__';
+
+    if (chosen && !scopeExpanded) {
+        // Eingeklappt: schmale Zeile
+        const label = tourBezirk === '__all__' ? 'Alle Bezirke' : tourBezirk;
+        scope.innerHTML = `<button type="button" id="scope-toggle" class="scope-collapsed">🗺️ Bezirk: <b>${escapeHtml(label)}</b><span class="muted"> · ändern ▸</span></button>`;
+        updatePlannerVisibility();
+        return;
+    }
+
+    // Aufgeklappt: voller Picker + Erklärung
     const counts = new Map();
     for (const c of state.customers) {
         const b = String(c.bezirk ?? '').trim() || UNASSIGNED;
         counts.set(b, (counts.get(b) ?? 0) + 1);
     }
-    const bezirke = [...dim.values.keys()].sort((a, b) => a.localeCompare(b, 'de'));
-    sel.innerHTML = [
-        '<option value="__none__">– Bezirk wählen –</option>',
-        `<option value="__all__">Alle Bezirke (${state.customers.length})</option>`
-    ].concat(bezirke.map((b) => `<option value="${escapeHtml(b)}">${escapeHtml(b)} (${counts.get(b) ?? 0})</option>`)).join('');
-
-    if (tourBezirk && (tourBezirk === '__all__' || bezirke.includes(tourBezirk))) sel.value = tourBezirk;
-    else { tourBezirk = null; sel.value = '__none__'; }
+    const opts = ['<option value="__none__">– Bezirk wählen –</option>',
+        `<option value="__all__">Alle Bezirke (${state.customers.length})</option>`]
+        .concat(bezirke.map((b) => `<option value="${escapeHtml(b)}">${escapeHtml(b)} (${counts.get(b) ?? 0})</option>`)).join('');
+    scope.innerHTML = `<label class="field-label" for="tour-bezirk">Für welchen Bezirk planst du?</label>
+        <select id="tour-bezirk">${opts}</select>
+        <p class="muted small">Wähle deinen Vertriebsbezirk – GeoFuchs schlägt dann nur Kunden aus <b>diesem</b> Gebiet für deine Tour vor. Start, Ziel und Route legst du danach fest. („Alle Bezirke" zeigt sämtliche Kunden.)</p>`;
+    document.getElementById('tour-bezirk').value = chosen ? tourBezirk : '__none__';
     updatePlannerVisibility();
 }
 
 function updatePlannerVisibility() {
     const planner = document.getElementById('tour-planner');
     if (planner) planner.hidden = !(tourBezirk && tourBezirk !== '__none__');
+}
+
+/**
+ * Basis- vs. Experten-Modus. Basis zeigt nur das Essenzielle (Bezirk, „In meiner
+ * Nähe", Start, Umkreis-Vorschläge, Tour + Google Maps). Experte blendet Ziel/
+ * Korridor, Kartenansicht, Rundreise, Export und gespeicherte Touren ein.
+ */
+function applyTourMode(mode, doEmit = true) {
+    tourExpert = mode === 'expert';
+    try { localStorage.setItem('gf_tour_expert', tourExpert ? '1' : '0'); } catch (e) { /* egal */ }
+    const planner = document.getElementById('tour-planner');
+    if (planner) planner.classList.toggle('basic', !tourExpert);
+    document.querySelectorAll('#tour-mode-toggle .seg').forEach((b) =>
+        b.classList.toggle('active', b.dataset.tourmode === (tourExpert ? 'expert' : 'basic')));
+    // Schritt-Nummerierung an den Modus anpassen
+    const sh = document.getElementById('suggest-head');
+    const mh = document.getElementById('mytour-head');
+    if (sh) sh.textContent = tourExpert ? '3. Vorschläge' : '2. Vorschläge';
+    if (mh) mh.textContent = tourExpert ? '4. Meine Tour' : '3. Meine Tour';
+    if (!tourExpert) {
+        // Basis: nur Umkreis-Vorschläge, kein Ziel
+        state.tour.suggestMode = 'radius';
+        state.tour.destination = null;
+    }
+    updateSuggestModeUi();
+    if (doEmit) emit('tour:changed');
 }
 
 /** Kundenauswahl der Tour: sichtbare Kunden, ggf. auf den gewählten Bezirk beschränkt */

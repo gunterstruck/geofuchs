@@ -150,16 +150,12 @@
             <section id="tab-tour" class="tab-panel">
                 <h2>Besuchsplaner</h2>
 
-                <!-- Schritt 0: eigenen Bezirk wählen (fokussiert die Tourplanung) -->
-                <div id="tour-scope" class="tour-scope">
-                    <label class="field-label" for="tour-bezirk">Für welchen Bezirk planst du?</label>
-                    <select id="tour-bezirk"></select>
-                    <p class="muted small">Wähle deinen Vertriebsbezirk – GeoFuchs schlägt dann nur Kunden aus <b>diesem</b> Gebiet für deine Tour vor. Start, Ziel und Route legst du danach fest. („Alle Bezirke" zeigt sämtliche Kunden.)</p>
-                </div>
+                <!-- Schritt 0: eigenen Bezirk wählen (nach Wahl auf schmale Zeile eingeklappt) -->
+                <div id="tour-scope" class="tour-scope"></div>
 
                 <div id="tour-planner" hidden>
                 <button id="btn-nearby" class="primary btn-nearby">📍 Was ist in meiner Nähe?</button>
-                <div class="aussen-view-block">
+                <div class="aussen-view-block expert-only">
                     <span class="field-label">Kartenansicht</span>
                     <div class="seg-toggle" id="aussen-view" role="group" aria-label="Kartenansicht">
                         <button type="button" class="seg" data-view="rep">Kunden</button>
@@ -179,15 +175,17 @@
                     <div id="start-results"></div>
                 </div>
 
-                <h3>2. Ziel <span class="muted small">(optional)</span></h3>
-                <div id="tour-dest"></div>
-                <div class="start-search-wrap">
-                    <input id="dest-search" type="search" placeholder="Zielkunde wählen – Vorschläge dann entlang der Strecke" autocomplete="off">
-                    <div id="dest-results"></div>
+                <div class="expert-only">
+                    <h3>2. Ziel <span class="muted small">(optional)</span></h3>
+                    <div id="tour-dest"></div>
+                    <div class="start-search-wrap">
+                        <input id="dest-search" type="search" placeholder="Zielkunde wählen – Vorschläge dann entlang der Strecke" autocomplete="off">
+                        <div id="dest-results"></div>
+                    </div>
                 </div>
 
-                <h3>3. Vorschläge</h3>
-                <div class="seg-toggle" id="suggest-mode" role="group" aria-label="Vorschlagsmodus">
+                <h3 id="suggest-head">2. Vorschläge</h3>
+                <div class="seg-toggle expert-only" id="suggest-mode" role="group" aria-label="Vorschlagsmodus">
                     <button type="button" id="mode-radius" class="seg active" data-mode="radius">Umkreis um Start</button>
                     <button type="button" id="mode-route" class="seg" data-mode="route">Entlang der Tour</button>
                 </div>
@@ -197,25 +195,36 @@
                 <label class="check-inline"><input type="checkbox" id="overdue-first"> Überfällige zuerst</label>
                 <div id="tour-suggestions" class="scroll-list"></div>
 
-                <h3>4. Meine Tour</h3>
-                <label class="check-inline"><input type="checkbox" id="round-trip"> 🔁 Rundreise (zurück zum Start)</label>
+                <h3 id="mytour-head">3. Meine Tour</h3>
+                <label class="check-inline expert-only"><input type="checkbox" id="round-trip"> 🔁 Rundreise (zurück zum Start)</label>
                 <div id="tour-stops"></div>
                 <p id="tour-summary"></p>
                 <div class="button-column">
                     <button id="btn-optimize" class="primary" disabled>⚡ Reihenfolge optimieren</button>
                     <button id="btn-gmaps" disabled>🧭 In Google Maps navigieren</button>
-                    <button id="btn-tour-print" disabled>🖨️ Tagesplan drucken</button>
-                    <button id="btn-tour-ics" disabled>📅 Kalender-Export (.ics)</button>
-                    <button id="btn-tour-copy" disabled>📋 Als Text kopieren (Outlook/Copilot)</button>
+                    <button id="btn-tour-print" class="expert-only" disabled>🖨️ Tagesplan drucken</button>
+                    <button id="btn-tour-ics" class="expert-only" disabled>📅 Kalender-Export (.ics)</button>
+                    <button id="btn-tour-copy" class="expert-only" disabled>📋 Als Text kopieren (Outlook/Copilot)</button>
                     <button id="btn-tour-clear" class="danger" disabled>✕ Tour leeren</button>
                 </div>
 
-                <h3>Gespeicherte Touren</h3>
-                <div class="button-row">
-                    <input id="tour-name" type="text" placeholder="Tourname, z. B. Dienstag Nord" autocomplete="off">
-                    <button id="btn-tour-save" disabled>💾</button>
+                <div class="expert-only">
+                    <h3>Gespeicherte Touren</h3>
+                    <div class="button-row">
+                        <input id="tour-name" type="text" placeholder="Tourname, z. B. Dienstag Nord" autocomplete="off">
+                        <button id="btn-tour-save" disabled>💾</button>
+                    </div>
+                    <div id="saved-tours"></div>
                 </div>
-                <div id="saved-tours"></div>
+
+                <!-- Basis-/Experten-Umschalter (ganz unten) -->
+                <div class="tour-mode">
+                    <span class="muted small">Ansicht</span>
+                    <div class="seg-toggle" id="tour-mode-toggle" role="group" aria-label="Ansichtsmodus">
+                        <button type="button" class="seg" data-tourmode="basic">Basis</button>
+                        <button type="button" class="seg" data-tourmode="expert">Experte</button>
+                    </div>
+                </div>
                 </div><!-- /#tour-planner -->
             </section>
         </aside>
