@@ -26,6 +26,32 @@ function toHexColor(value) {
 }
 
 let geocodeHandle = null;
+let autoRevealTimer = null;
+
+/** Sidebar auf-/zuklappen (mobil) gemäß state.ui.sidebarOpen */
+function applySidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    sidebar.classList.toggle('open', state.ui.sidebarOpen);
+    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', String(state.ui.sidebarOpen));
+}
+
+/**
+ * Beim Start ohne Daten das Menü nach kurzer Verzögerung automatisch einblenden,
+ * damit der Nutzer nach der blanken Karte zum geführten Einstieg gelangt.
+ * Nur wenn die Sidebar zu ist (mobil) und keine Daten vorliegen; bricht ab,
+ * sobald der Nutzer die Sidebar selbst bedient oder Daten geladen werden.
+ */
+export function autoRevealIfEmpty() {
+    if (state.ui.sidebarOpen || state.customers.length > 0) return;
+    clearTimeout(autoRevealTimer);
+    autoRevealTimer = setTimeout(() => {
+        if (!state.ui.sidebarOpen && state.customers.length === 0) {
+            state.ui.sidebarOpen = true;
+            applySidebar();
+        }
+    }, 2500);
+}
 
 // Welche Tabs gehören zu welchem Modus, und welcher Tab ist der Einstieg?
 const MODE_CONFIG = {
@@ -130,12 +156,8 @@ export function initSidebar() {
     applyMode(state.ui.mode, false, false);
 
     // Sidebar-Toggle (mobil)
-    const sidebar = document.getElementById('sidebar');
-    const applySidebar = () => {
-        sidebar.classList.toggle('open', state.ui.sidebarOpen);
-        document.getElementById('sidebar-toggle').setAttribute('aria-expanded', String(state.ui.sidebarOpen));
-    };
     document.getElementById('sidebar-toggle').addEventListener('click', () => {
+        clearTimeout(autoRevealTimer); // Nutzer übernimmt -> kein automatisches Einblenden mehr
         state.ui.sidebarOpen = !state.ui.sidebarOpen;
         applySidebar();
     });
