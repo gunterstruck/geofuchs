@@ -1,5 +1,53 @@
 /* Wiederverwendbare Komponenten */
 
+/* Geführter Einstieg (Onboarding) */
+.ob-hero { text-align: center; padding: 8px 4px 4px; }
+.ob-fox { font-size: 2.6rem; line-height: 1; }
+.ob-hero h2 { margin: 6px 0 4px; }
+.ob-hero p { margin: 0 auto; max-width: 34ch; }
+
+.ob-steps { list-style: none; margin: 18px 0 10px; padding: 0; }
+.ob-step { position: relative; display: flex; gap: 12px; padding: 0 0 16px 0; }
+/* Verbindungslinie zwischen den Schritt-Nummern */
+.ob-step:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 15px; top: 34px; bottom: 4px;
+    width: 2px;
+    background: var(--color-border);
+}
+.ob-num {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1;
+}
+.ob-body { flex: 1; min-width: 0; }
+.ob-body > b { display: block; margin-bottom: 2px; }
+.ob-body p { margin: 0 0 8px; }
+.ob-body button { width: 100%; }
+
+.ob-then {
+    background: var(--color-primary-light);
+    border-radius: var(--radius-s);
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    margin: 4px 0 16px;
+}
+.ob-alt {
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-s);
+    padding: 12px;
+    background: var(--color-surface-2);
+}
+.ob-alt b { display: block; margin-bottom: 2px; }
+.ob-alt p { margin: 0 0 8px; }
+.ob-alt button { width: 100%; }
+
 .button-column { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
 .button-row { display: flex; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
 .button-row input[type="text"] { flex: 1; min-width: 0; }
