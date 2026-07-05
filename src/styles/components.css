@@ -20,6 +20,20 @@
 .segmented button + button { border-left: 1px solid var(--color-border); }
 .segmented button.active { background: var(--color-primary); color: #fff; font-weight: 600; }
 
+/* Segmented control (Vorschlagsmodus im Besuchsplaner) */
+.seg-toggle { display: flex; border: 1px solid var(--color-border); border-radius: var(--radius-s); overflow: hidden; margin: 4px 0 8px; }
+.seg-toggle .seg {
+    flex: 1;
+    border: none;
+    border-radius: 0;
+    background: var(--color-surface);
+    padding: 8px 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+.seg-toggle .seg + .seg { border-left: 1px solid var(--color-border); }
+.seg-toggle .seg.active { background: var(--color-primary); color: #fff; font-weight: 600; }
+
 /* Legende */
 .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 6px 0 10px; }
 .legend-item { display: inline-flex; align-items: center; font-size: 0.8rem; color: var(--color-text-muted); }
@@ -121,6 +135,20 @@
 .re-row input { accent-color: var(--color-primary); flex-shrink: 0; }
 .re-name { flex: 1; line-height: 1.25; overflow: hidden; }
 .re-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--color-text-muted); white-space: nowrap; }
+
+.re-territory-box { margin: 8px 0 4px; }
+.re-territory-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--color-primary);
+    background: var(--color-primary-light);
+    border-radius: var(--radius-s);
+    cursor: pointer;
+    font-size: 0.88rem;
+}
+.re-territory-row input { accent-color: var(--color-primary); flex-shrink: 0; }
 
 .field-label { display: block; font-size: 0.85rem; color: var(--color-text-muted); margin: 10px 0 4px; }
 .level-row { display: flex; align-items: center; gap: 10px; }

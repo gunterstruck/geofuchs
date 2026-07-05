@@ -619,6 +619,7 @@ function renderTour() {
 
     if (start && stopCustomers.length > 0) {
         const points = [[start.lat, start.lng], ...stopCustomers.map((c) => [c.lat, c.lng])];
+        if (state.tour.roundTrip) points.push([start.lat, start.lng]); // Rundreise: zurück zum Start
         L.polyline(points, { color: '#0d9488', weight: 3, dashArray: '8 6', opacity: 0.85 }).addTo(tourLayer);
     }
 }

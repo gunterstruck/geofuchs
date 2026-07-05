@@ -10,7 +10,7 @@
 
 import { CONFIG } from '../core/config.js';
 import { state, on, emit, getCustomer, repColor, visibleCustomers } from '../core/state.js';
-import { suggestNearby, optimizeOrder, routeDistance, googleMapsLink } from '../features/tour.js';
+import { suggestNearby, suggestAlongRoute, optimizeOrder, routeDistance, googleMapsLink } from '../features/tour.js';
 import { printDayPlan, downloadIcs } from '../features/tourExport.js';
 import { visitStatus, STATUS_COLORS, STATUS_LABELS } from '../features/visits.js';
 import { loadTours, saveTours } from '../services/storage.js';
@@ -36,10 +36,27 @@ export function initTourPanel() {
         renderSuggestions();
     });
 
+    // Vorschlagsmodus: Umkreis um Start vs. Korridor entlang der Tour
+    document.querySelectorAll('.seg-toggle .seg').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            state.tour.suggestMode = btn.dataset.mode;
+            updateSuggestModeUi();
+            renderSuggestions();
+        });
+    });
+
+    document.getElementById('round-trip').checked = state.tour.roundTrip;
+    document.getElementById('round-trip').addEventListener('change', (e) => {
+        state.tour.roundTrip = e.target.checked;
+        emit('tour:changed');
+    });
+
     document.getElementById('overdue-first').addEventListener('change', (e) => {
         overdueFirst = e.target.checked;
         renderSuggestions();
     });
+
+    updateSuggestModeUi();
 
     document.getElementById('btn-optimize').addEventListener('click', optimizeTour);
     document.getElementById('btn-gmaps').addEventListener('click', openInGoogleMaps);
@@ -189,8 +206,9 @@ function renderStops() {
     const summary = document.getElementById('tour-summary');
     const locatedStops = stops.filter((c) => c.lat !== null);
     if (state.tour.start && locatedStops.length > 0) {
-        const { airKm, roadKmEstimate } = routeDistance(state.tour.start, locatedStops);
-        summary.innerHTML = `Strecke: <b>~${Math.round(roadKmEstimate)} km</b> <span class="muted small">(${Math.round(airKm)} km Luftlinie${locatedStops.length > CONFIG.tour.maxWaypoints + 1 ? `, Google-Maps-Export: max. ${CONFIG.tour.maxWaypoints + 1} Stopps` : ''})</span>`;
+        const { airKm, roadKmEstimate } = routeDistance(state.tour.start, locatedStops, state.tour.roundTrip);
+        const rt = state.tour.roundTrip ? ' inkl. Rückweg' : '';
+        summary.innerHTML = `Strecke${rt}: <b>~${Math.round(roadKmEstimate)} km</b> <span class="muted small">(${Math.round(airKm)} km Luftlinie${locatedStops.length > CONFIG.tour.maxWaypoints + 1 ? `, Google-Maps-Export: max. ${CONFIG.tour.maxWaypoints + 1} Stopps` : ''})</span>`;
     } else {
         summary.innerHTML = '';
     }
@@ -203,6 +221,18 @@ function renderStops() {
     document.getElementById('btn-tour-clear').disabled = !(state.tour.start || stops.length > 0);
 }
 
+/** Segment-Umschalter + Slider-Beschriftung an den Modus anpassen */
+function updateSuggestModeUi() {
+    const route = state.tour.suggestMode === 'route';
+    document.querySelectorAll('.seg-toggle .seg').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.mode === state.tour.suggestMode);
+    });
+    document.getElementById('radius-label').textContent = route ? 'Korridor (Abstand zur Route)' : 'Umkreis';
+    document.getElementById('suggest-hint').textContent = route
+        ? 'Kunden entlang der gesamten Strecke (Start → Stopps → zurück), höchstens so weit neben dem Weg.'
+        : 'Kunden im Umkreis des Startpunkts.';
+}
+
 function renderSuggestions() {
     const el = document.getElementById('tour-suggestions');
     if (!state.tour.start) { el.innerHTML = ''; return; }
@@ -210,10 +240,16 @@ function renderSuggestions() {
     const exclude = new Set(state.tour.stops);
     if (state.tour.start.customerId) exclude.add(state.tour.start.customerId);
 
-    const suggestions = suggestNearby(state.tour.start, visibleCustomers(), state.tour.radiusKm, exclude, overdueFirst);
+    const routeMode = state.tour.suggestMode === 'route';
+    const stops = tourStops();
+    const suggestions = routeMode
+        ? suggestAlongRoute(state.tour.start, stops, visibleCustomers(), state.tour.radiusKm, exclude, state.tour.roundTrip, overdueFirst)
+        : suggestNearby(state.tour.start, visibleCustomers(), state.tour.radiusKm, exclude, overdueFirst);
 
     if (suggestions.length === 0) {
-        el.innerHTML = '<p class="muted">Keine weiteren (sichtbaren) Kunden im gewählten Umkreis.</p>';
+        el.innerHTML = routeMode
+            ? '<p class="muted">Keine weiteren (sichtbaren) Kunden im Korridor entlang der Tour. Tipp: Stopps hinzufügen oder Korridor vergrößern.</p>'
+            : '<p class="muted">Keine weiteren (sichtbaren) Kunden im gewählten Umkreis.</p>';
         return;
     }
     el.innerHTML = suggestions.map(({ customer: c, km }) => {
@@ -246,10 +282,10 @@ function renderSuggestions() {
 function optimizeTour() {
     const stops = state.tour.stops.map(getCustomer).filter((c) => c && c.lat !== null);
     if (!state.tour.start || stops.length < 2) return;
-    const before = routeDistance(state.tour.start, stops).airKm;
-    const optimized = optimizeOrder(state.tour.start, stops);
+    const before = routeDistance(state.tour.start, stops, state.tour.roundTrip).airKm;
+    const optimized = optimizeOrder(state.tour.start, stops, state.tour.roundTrip);
     state.tour.stops = optimized.map((c) => c.id);
-    const after = routeDistance(state.tour.start, optimized).airKm;
+    const after = routeDistance(state.tour.start, optimized, state.tour.roundTrip).airKm;
     emit('tour:changed');
     const savedKm = (before - after) * CONFIG.tour.roadFactor;
     showToast(savedKm > 0.5
@@ -263,7 +299,7 @@ function openInGoogleMaps() {
     if (stops.length > CONFIG.tour.maxWaypoints + 1) {
         showToast(`Google Maps unterstützt max. ${CONFIG.tour.maxWaypoints + 1} Stopps – es werden die ersten ${CONFIG.tour.maxWaypoints + 1} übergeben.`, 'info', 6000);
     }
-    const link = googleMapsLink(state.tour.start, stops);
+    const link = googleMapsLink(state.tour.start, stops, state.tour.roundTrip);
     if (link) window.open(link, '_blank', 'noopener');
 }
 

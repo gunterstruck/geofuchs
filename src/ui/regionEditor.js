@@ -26,6 +26,7 @@ let ctx = null;              // { level, key, name, feature }
 let selected = new Set();    // ausgewählte Kunden-IDs
 let search = '';
 let assignAttr = 'bezirk';   // 'vb' | 'bezirk' | 'gruppe' | 'channel'
+let territorySelected = false; // „Ganze Fläche" (Gebietszuordnung) mit zuweisen
 const undoStack = [];        // [{ label, changes:[{id,attr,old}], territory }]
 
 export function initRegionEditor() {
@@ -55,6 +56,8 @@ export function openRegionEditor(context) {
     const customers = customersInRegion();
     selected = new Set(customers.map((c) => c.id));
     search = '';
+    // Ohne Kunden ist die Flächenzuordnung das Naheliegende -> vorausgewählt
+    territorySelected = customers.length === 0;
     // Standard-Ziel: Betriebsbezirk (sofern vorhanden), sonst VB
     assignAttr = state.dims.bezirk?.active ? 'bezirk' : 'vb';
     document.getElementById('re-search').value = '';
@@ -84,10 +87,27 @@ function renderAttrSelect() {
 function render() {
     document.getElementById('re-title').textContent = ctx.name;
     renderTargetSelect();
+    renderTerritoryRow();
     renderList();
     document.getElementById('re-undo').disabled = undoStack.length === 0;
     document.getElementById('re-undo').textContent = undoStack.length
         ? `↩ Rückgängig (${undoStack.length})` : '↩ Rückgängig';
+}
+
+/** Feste Zeile ganz oben: die ganze Fläche zuordnen (auch ohne Kunden) */
+function renderTerritoryRow() {
+    const el = document.getElementById('re-territory');
+    const terr = getTerritory(ctx.level, ctx.key) || {};
+    const current = terr[assignAttr];
+    const chip = current
+        ? `<span class="re-chip"><span class="dot" style="background:${attrColor(assignAttr, current)}"></span>${escapeHtml(current)}</span>`
+        : '<span class="re-chip muted">nicht zugeordnet</span>';
+    el.innerHTML = `<label class="re-row re-territory-row">
+        <input type="checkbox" id="re-territory-check" ${territorySelected ? 'checked' : ''}>
+        <span class="re-name">🗺️ Ganze Fläche zuordnen<br><span class="muted small">wirkt auch ohne Kunden – ordnet das ganze Gebiet dem Ziel zu</span></span>
+        ${chip}
+    </label>`;
+    el.querySelector('#re-territory-check').addEventListener('change', (e) => { territorySelected = e.target.checked; });
 }
 
 function renderTargetSelect() {
@@ -112,7 +132,7 @@ function renderList() {
         `${all.length} Kunde${all.length === 1 ? '' : 'n'} im Gebiet${q ? ` · ${shown.length} gefiltert` : ''} · ${selected.size} ausgewählt`;
 
     if (all.length === 0) {
-        listEl.innerHTML = '<p class="muted small">Keine (verorteten) Kunden in diesem Gebiet. Über „Auswahl zuweisen" lässt sich dennoch die Fläche selbst zuordnen (siehe Häkchen unten).</p>';
+        listEl.innerHTML = '<p class="muted small">Keine (verorteten) Kunden in diesem Gebiet. Über die Zeile „🗺️ Ganze Fläche zuordnen" oben lässt sich das Gebiet dennoch einem Ziel zuweisen.</p>';
         document.getElementById('re-select-all').checked = false;
         return;
     }
@@ -158,7 +178,6 @@ function applyAssign() {
     const target = document.getElementById('re-target').value;
     if (!target) { showToast('Kein Ziel verfügbar.', 'info'); return; }
 
-    const alsoTerritory = document.getElementById('re-also-territory').checked;
     const changes = [];
     for (const id of selected) {
         const c = getCustomer(id);
@@ -170,21 +189,23 @@ function applyAssign() {
     }
 
     let territory = null;
-    if (alsoTerritory && (attr === 'vb' || attr === 'bezirk')) {
+    if (territorySelected) {
         const old = getTerritory(ctx.level, ctx.key)?.[attr] ?? '';
-        territory = { level: ctx.level, key: ctx.key, attr, old };
-        setTerritory(ctx.level, ctx.key, attr, target, ctx.name);
+        if (old !== target) {
+            territory = { level: ctx.level, key: ctx.key, attr, old };
+            setTerritory(ctx.level, ctx.key, attr, target, ctx.name);
+        }
     }
 
     if (changes.length === 0 && !territory) {
-        showToast(`Keine Änderung – Auswahl gehört bereits zu „${target}".`, 'info');
+        showToast(`Keine Änderung – bereits „${target}".`, 'info');
         return;
     }
 
     undoStack.push({ label: `${changes.length} → ${target}`, changes, territory });
     persistAndRefresh();
     render();
-    showToast(`${changes.length} Kunde(n)${territory ? ' + Fläche' : ''} → ${target}`, 'success');
+    showToast(`${changes.length} Kunde(n)${territory ? ' + ganze Fläche' : ''} → ${target}`, 'success');
 }
 
 function undo() {
