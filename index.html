@@ -40,23 +40,67 @@
 
             <!-- Tab: Daten -->
             <section id="tab-daten" class="tab-panel active">
-                <h2>Kundendaten</h2>
-                <div id="data-status"></div>
-                <div class="button-column">
-                    <button id="btn-upload" class="primary">📤 Excel-Liste hochladen</button>
-                    <input id="file-input" type="file" accept=".xlsx,.xls,.csv,.ods" hidden>
-                    <button id="btn-template">📋 Excel-Vorlage herunterladen</button>
-                    <button id="btn-demo">✨ Demo-Daten laden</button>
-                </div>
-                <div id="data-actions" style="display:none">
-                    <hr>
-                    <div class="button-column">
-                        <button id="btn-geocode">🎯 Adressen exakt verorten</button>
-                        <div id="geocode-progress" class="muted small" style="display:none"></div>
-                        <button id="btn-export">💾 Als Excel exportieren</button>
-                        <button id="btn-clear" class="danger">🗑 Daten löschen</button>
+                <input id="file-input" type="file" accept=".xlsx,.xls,.csv,.ods" hidden>
+
+                <!-- Geführter Einstieg (nur solange keine Daten geladen sind) -->
+                <div id="onboarding">
+                    <div class="ob-hero">
+                        <div class="ob-fox">🦊</div>
+                        <h2>Willkommen bei GeoFuchs</h2>
+                        <p class="muted">In drei Schritten startklar: deine Kundenliste auf der Deutschlandkarte – für Tourenplanung und Gebietsarbeit.</p>
+                    </div>
+
+                    <ol class="ob-steps">
+                        <li class="ob-step">
+                            <span class="ob-num">1</span>
+                            <div class="ob-body">
+                                <b>Vorlage herunterladen</b>
+                                <p class="muted small">Die Beispiel-Excelliste – schon mit Beispielzeilen und allen Spalten.</p>
+                                <button id="btn-template">📋 Excel-Vorlage herunterladen</button>
+                            </div>
+                        </li>
+                        <li class="ob-step">
+                            <span class="ob-num">2</span>
+                            <div class="ob-body">
+                                <b>Mit deinen Kunden füllen</b>
+                                <p class="muted small">Name, Adresse und Vertriebsbeauftragte(n) eintragen – Gebiet/Gruppe optional. Der Name allein genügt schon zum Start.</p>
+                            </div>
+                        </li>
+                        <li class="ob-step">
+                            <span class="ob-num">3</span>
+                            <div class="ob-body">
+                                <b>Liste hochladen</b>
+                                <p class="muted small">Deine ausgefüllte Datei hochladen – oder einfach auf die Karte ziehen.</p>
+                                <button id="btn-upload" class="primary">📤 Excel-Liste hochladen</button>
+                            </div>
+                        </li>
+                    </ol>
+
+                    <p class="ob-then">Danach wählst du oben deinen Fokus: <b>🚗 Außendienst</b> (Tour planen) oder <b>🗺️ Gebietsplanung</b>.</p>
+
+                    <div class="ob-alt">
+                        <b>💡 Nur mal reinschauen?</b>
+                        <p class="muted small">Lade unverbindlich Beispieldaten und lerne alle Funktionen kennen – du kannst sie jederzeit wieder löschen.</p>
+                        <button id="btn-demo">✨ Demo-Daten laden &amp; ausprobieren</button>
                     </div>
                 </div>
+
+                <!-- Datenübersicht + Verwaltung (nur mit geladenen Daten) -->
+                <div id="data-loaded" style="display:none">
+                    <h2>Kundendaten</h2>
+                    <div id="data-status"></div>
+                    <div id="data-actions">
+                        <div class="button-column">
+                            <button id="btn-upload-more">📤 Andere Excel-Liste laden</button>
+                            <button id="btn-template-2">📋 Excel-Vorlage herunterladen</button>
+                            <button id="btn-geocode">🎯 Adressen exakt verorten</button>
+                            <div id="geocode-progress" class="muted small" style="display:none"></div>
+                            <button id="btn-export">💾 Als Excel exportieren</button>
+                            <button id="btn-clear" class="danger">🗑 Daten löschen</button>
+                        </div>
+                    </div>
+                </div>
+
                 <p class="privacy-note">🔒 Ihre Daten bleiben ausschließlich in diesem Browser – kein Server, keine Cloud, keine KI.</p>
             </section>
 

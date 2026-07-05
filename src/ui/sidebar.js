@@ -268,12 +268,16 @@ function persistSettings() {
 // ---- Daten-Tab ----
 
 function renderDataStatus() {
+    const onboarding = document.getElementById('onboarding');
+    const loaded = document.getElementById('data-loaded');
     const el = document.getElementById('data-status');
     if (state.customers.length === 0) {
-        el.innerHTML = '<p class="muted">Noch keine Daten geladen.<br>Laden Sie eine Excel-Liste hoch oder probieren Sie die Demo-Daten.</p>';
-        document.getElementById('data-actions').style.display = 'none';
+        if (onboarding) onboarding.style.display = '';
+        if (loaded) loaded.style.display = 'none';
         return;
     }
+    if (onboarding) onboarding.style.display = 'none';
+    if (loaded) loaded.style.display = 'block';
     const total = state.customers.length;
     const located = state.customers.filter((c) => c.lat !== null).length;
     const exact = state.customers.filter((c) => c.geo === 'exakt').length;
@@ -289,7 +293,6 @@ function renderDataStatus() {
         <p class="muted small">${escapeHtml(state.fileName ?? '')}</p>
         <p class="muted small">📍 ${located} verortet (davon ${exact} adressgenau)</p>
     `;
-    document.getElementById('data-actions').style.display = 'block';
 }
 
 async function toggleExactGeocoding() {

@@ -29,13 +29,17 @@ export function initImportWizard() {
     dialog = document.getElementById('import-dialog');
 
     const fileInput = document.getElementById('file-input');
-    document.getElementById('btn-upload').addEventListener('click', () => fileInput.click());
+    const openFilePicker = () => fileInput.click();
+    document.getElementById('btn-upload').addEventListener('click', openFilePicker);
+    document.getElementById('btn-upload-more')?.addEventListener('click', openFilePicker);
     fileInput.addEventListener('change', (e) => {
         if (e.target.files[0]) handleFile(e.target.files[0]);
         fileInput.value = '';
     });
 
-    document.getElementById('btn-template').addEventListener('click', async () => (await excel()).downloadTemplate());
+    const downloadTemplate = async () => (await excel()).downloadTemplate();
+    document.getElementById('btn-template').addEventListener('click', downloadTemplate);
+    document.getElementById('btn-template-2')?.addEventListener('click', downloadTemplate);
     document.getElementById('btn-demo').addEventListener('click', loadDemo);
 
     resultDialog = document.getElementById('import-result-dialog');
