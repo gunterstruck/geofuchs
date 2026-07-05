@@ -12,6 +12,7 @@ import { CONFIG } from '../core/config.js';
 import { state, on, emit, getCustomer, repColor, visibleCustomers } from '../core/state.js';
 import { suggestNearby, suggestAlongRoute, optimizeOrder, routeDistance, googleMapsLink } from '../features/tour.js';
 import { printDayPlan, downloadIcs } from '../features/tourExport.js';
+import { copyText, tourText } from '../features/handoff.js';
 import { visitStatus, STATUS_COLORS, STATUS_LABELS } from '../features/visits.js';
 import { loadTours, saveTours } from '../services/storage.js';
 import { flyToCustomer, focusPoint } from '../features/map.js';
@@ -73,6 +74,16 @@ export function initTourPanel() {
         if (!state.tour.start || eff.length === 0) return;
         downloadIcs(state.tour.start, eff, { tourName: currentTourName() });
         showToast('Kalender-Datei (.ics) erstellt.', 'success');
+    });
+    document.getElementById('btn-tour-copy').addEventListener('click', async () => {
+        const eff = effStops();
+        if (!state.tour.start || eff.length === 0) return;
+        const roadKm = routeDistance(state.tour.start, eff, state.tour.roundTrip).roadKmEstimate;
+        const text = tourText(state.tour.start, tourStops(), destPoint(), {
+            tourName: currentTourName(), roadKm, roundTrip: state.tour.roundTrip
+        });
+        const ok = await copyText(text);
+        showToast(ok ? 'Tour als Text in die Zwischenablage kopiert.' : 'Kopieren nicht möglich.', ok ? 'success' : 'error');
     });
     document.getElementById('btn-tour-clear').addEventListener('click', () => {
         state.tour.stops = [];
@@ -347,6 +358,7 @@ function renderStops() {
     document.getElementById('btn-gmaps').disabled = !hasRoute;
     document.getElementById('btn-tour-print').disabled = !hasRoute;
     document.getElementById('btn-tour-ics').disabled = !hasRoute;
+    document.getElementById('btn-tour-copy').disabled = !hasRoute;
     document.getElementById('btn-tour-save').disabled = !hasRoute;
     document.getElementById('btn-tour-clear').disabled = !(state.tour.start || state.tour.destination || stops.length > 0);
 }

@@ -12,6 +12,7 @@ import { state, on, emit, repColor, attrColor, visibleCustomers, getCustomer, ma
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
+import { copyText, customerText } from './handoff.js';
 import { openRegionEditor } from '../ui/regionEditor.js';
 
 let map = null;
@@ -137,6 +138,10 @@ function handlePopupAction(action, customerId) {
         markVisitedToday(customer);
         markDirty();
         emit('toast', { type: 'success', text: `Besuch bei ${customer.name} für heute eingetragen.` });
+    } else if (action === 'copy-customer') {
+        copyText(customerText(customer)).then((ok) => emit('toast', ok
+            ? { type: 'success', text: `${customer.name} in die Zwischenablage kopiert.` }
+            : { type: 'error', text: 'Kopieren nicht möglich.' }));
     }
     return false;
 }
@@ -619,6 +624,7 @@ export function customerPopupHtml(customer) {
             <button data-action="tour-start" data-id="${escapeHtml(customer.id)}">🚩 Als Start</button>
             <button data-action="tour-dest" data-id="${escapeHtml(customer.id)}" ${isDest ? 'disabled' : ''}>${isDest ? '✓ Ziel' : '🏁 Als Ziel'}</button>
             <button data-action="tour-add" data-id="${escapeHtml(customer.id)}" ${inTour ? 'disabled' : ''}>${inTour ? '✓ In Tour' : '➕ Zur Tour'}</button>
+            <button data-action="copy-customer" data-id="${escapeHtml(customer.id)}" title="Als Text für Outlook/Copilot kopieren">📋 Kopieren</button>
         </div>
     </div>`;
 }
