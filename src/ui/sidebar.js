@@ -228,6 +228,18 @@ export function initSidebar() {
     document.getElementById('btn-geocode').addEventListener('click', toggleExactGeocoding);
 
     initTeamFilters();
+
+    // Nach dem Demo-Laden: direkt in den Außendienst-Modus (Karte + Tour).
+    // Mobil das Menü schließen, damit die bunten Pins auf der Karte den Aha-Moment liefern.
+    on('demo:loaded', () => {
+        clearTimeout(autoRevealTimer);
+        applyMode('aussendienst', true);
+        if (window.innerWidth < 768) {
+            state.ui.sidebarOpen = false;
+            applySidebar();
+        }
+    });
+
     on('customers:changed', () => { renderDataStatus(); renderTeamFilters(); renderLegend(); });
     on('filters:changed', renderDataStatus);
     renderDataStatus();
@@ -373,12 +385,12 @@ function renderDataStatus() {
     const located = state.customers.filter((c) => c.lat !== null).length;
     const exact = state.customers.filter((c) => c.geo === 'exakt').length;
     const visible = visibleCustomers().length;
-    const gruppenCount = state.dims.gruppe?.active ? state.dims.gruppe.values.size : 0;
+    const bezirkeCount = state.dims.bezirk?.active ? state.dims.bezirk.values.size : 0;
     el.innerHTML = `
         <div class="stat-grid">
             <div class="stat"><b>${total}</b><span>Kunden</span></div>
+            <div class="stat"><b>${bezirkeCount}</b><span>Bezirke</span></div>
             <div class="stat"><b>${state.reps.size}</b><span>Vertriebler</span></div>
-            <div class="stat"><b>${gruppenCount}</b><span>Gruppen</span></div>
             <div class="stat"><b>${visible}</b><span>sichtbar</span></div>
         </div>
         <p class="muted small">${escapeHtml(state.fileName ?? '')}</p>

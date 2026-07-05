@@ -343,7 +343,13 @@ export function demoCustomers() {
         ['Spree Elektro', 'Karl-Marx-Str. 60', '12043', 'Berlin', 'Lena Krüger', 'Handwerk', 49000, 'Bezirk Ost'],
         ['Havel Handwerk Potsdam', 'Zeppelinstr. 9', '14467', 'Potsdam', 'Lena Krüger', 'Handwerk', 36000, 'Bezirk Ost'],
         ['Leipziger Kaffeehaus', 'Grimmaische Str. 10', '04109', 'Leipzig', 'Lena Krüger', 'Lebensmittel', 33000, 'Bezirk Ost'],
-        ['Sächsische Werkzeuge', 'Könneritzstr. 25', '01067', 'Dresden', 'Lena Krüger', 'Industrie', 142000, 'Bezirk Ost']
+        ['Sächsische Werkzeuge', 'Könneritzstr. 25', '01067', 'Dresden', 'Lena Krüger', 'Industrie', 142000, 'Bezirk Ost'],
+
+        // Bezirk Südwest – (noch) keinem Vertriebsbeauftragten zugeordnet:
+        // ein Bezirk ist üblicherweise mit einem VB verknüpft, muss es aber nicht.
+        ['Kessler Präzision', 'Neckarstr. 12', '70173', 'Stuttgart', '', 'Industrie', 195000, 'Bezirk Südwest'],
+        ['Baden Weinhandel', 'Kaiserstr. 40', '76133', 'Karlsruhe', '', 'Lebensmittel', 58000, 'Bezirk Südwest'],
+        ['Schwarzwald Werkzeug', 'Bertoldstr. 7', '79098', 'Freiburg', '', 'Handwerk', 41000, 'Bezirk Südwest']
     ];
     const rhythmChoices = [4, 6, 6, 8, 12];
     // Tage seit letztem Besuch – gemischt, damit Status ok/fällig/überfällig sichtbar wird

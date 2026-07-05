@@ -29,24 +29,59 @@
 .ob-body { flex: 1; min-width: 0; }
 .ob-body > b { display: block; margin-bottom: 2px; }
 .ob-body p { margin: 0 0 8px; }
-.ob-body button { width: 100%; }
+.ob-body button:not(.linklike) { width: 100%; }
 
-.ob-then {
-    background: var(--color-primary-light);
-    border-radius: var(--radius-s);
-    padding: 10px 12px;
-    font-size: 0.9rem;
-    margin: 4px 0 16px;
+/* Demo-first: dominanter Primär-Button */
+.ob-demo-btn {
+    width: 100%;
+    font-size: 1.05rem;
+    padding: 14px 12px;
+    margin-top: 8px;
+    box-shadow: 0 2px 8px rgba(13, 148, 136, 0.28);
 }
-.ob-alt {
-    border: 1px dashed var(--color-border);
+.ob-demo-sub { text-align: center; margin: 6px 0 14px; }
+
+/* Mobile: Brücke zum PC */
+.ob-bridge {
+    background: var(--color-surface-2);
     border-radius: var(--radius-s);
     padding: 12px;
-    background: var(--color-surface-2);
+    font-size: 0.86rem;
+    line-height: 1.4;
+    margin: 4px 0 8px;
 }
-.ob-alt b { display: block; margin-bottom: 2px; }
-.ob-alt p { margin: 0 0 8px; }
-.ob-alt button { width: 100%; }
+
+/* Trenner „oder eigene Kundenliste" */
+.ob-or { display: flex; align-items: center; gap: 10px; margin: 14px 0 10px; color: var(--color-text-muted); font-size: 0.8rem; }
+.ob-or::before, .ob-or::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
+.ob-upload-btn { width: 100%; }
+.ob-upload-sub { margin: 4px 0 8px; }
+
+/* aufklappbare Vorbereitungs-Schritte (Show, don't tell) */
+.ob-details { margin: 8px 0; }
+.ob-details > summary { cursor: pointer; font-size: 0.86rem; color: var(--color-text-muted); padding: 4px 0; }
+.ob-details[open] > summary { margin-bottom: 8px; }
+
+/* Textlink-artiger Button (Vorlage) */
+.linklike {
+    border: none; background: transparent; padding: 0;
+    color: var(--color-primary-dark); text-decoration: underline;
+    font-size: 0.86rem; cursor: pointer; width: auto;
+}
+.linklike:hover:not(:disabled) { background: transparent; color: var(--color-primary); }
+
+.ob-then { text-align: center; margin: 12px 0 4px; }
+
+/* Kontext-abhängige Sichtbarkeit im Onboarding */
+@media (max-width: 768px) { .only-desktop { display: none !important; } }
+@media (min-width: 769px) { .only-mobile { display: none !important; } }
+
+/* kurzer Aufmerksamkeits-Puls (z. B. „In meiner Nähe" nach Demo) */
+@keyframes gf-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.5); }
+    50% { box-shadow: 0 0 0 8px rgba(13, 148, 136, 0); }
+}
+.pulse { animation: gf-pulse 1s ease-out 3; }
 
 .button-column { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
 .button-row { display: flex; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
