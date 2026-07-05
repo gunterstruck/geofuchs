@@ -2,6 +2,7 @@
 
 /* Mobile-Vorschau (nur Desktop, zu Demonstrationszwecken) */
 @media (max-width: 900px) { #btn-mobile-preview { display: none; } }
+#btn-mobile-preview.active { background: var(--color-primary); color: #fff; border-radius: var(--radius-s); }
 .in-mobile-preview #btn-mobile-preview { display: none; }
 .mobile-preview { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; }
 .mobile-preview[hidden] { display: none; }
