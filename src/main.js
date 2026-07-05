@@ -11,7 +11,7 @@ import { state, on, emit, setCustomers, datasetSnapshot } from './core/state.js'
 import { loadDataset, saveDataset, loadSettings } from './services/storage.js';
 import { geocodeByPlz } from './services/geocode.js';
 import { initMap } from './features/map.js';
-import { initSidebar, applyMode } from './ui/sidebar.js';
+import { initSidebar, applyMode, autoRevealIfEmpty } from './ui/sidebar.js';
 import { initImportWizard } from './ui/importWizard.js';
 import { initTourPanel } from './ui/tourPanel.js';
 import { initCockpit } from './ui/cockpit.js';
@@ -116,6 +116,9 @@ async function init() {
     } catch (error) {
         console.warn('Gespeicherter Zustand konnte nicht wiederhergestellt werden:', error);
     }
+
+    // Ohne Daten: nach der blanken Karte das Menü mit dem Einstieg einblenden (mobil)
+    autoRevealIfEmpty();
 
     // Info-Dialog
     const infoDialog = document.getElementById('info-dialog');
