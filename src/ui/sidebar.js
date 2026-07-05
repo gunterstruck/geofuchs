@@ -7,7 +7,7 @@ import { CONFIG } from '../core/config.js';
 import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, activeDims, DIMENSIONS, datasetSnapshot } from '../core/state.js';
 import { geocodeExact } from '../services/geocode.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
-import { STATUS_COLORS, STATUS_LABELS } from '../features/visits.js';
+import { STATUS_COLORS, STATUS_LABELS, isOpportunity } from '../features/visits.js';
 import { showToast } from './toast.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
@@ -161,11 +161,21 @@ export function initSidebar() {
     colorSelect.value = state.colorMode;
     colorSelect.addEventListener('change', () => {
         state.colorMode = colorSelect.value;
+        state.ui.opportunityOnly = false; // Gebietsplanung-Auswahl hebt den Chancen-Fokus auf
         renderLegend();
         emit('colormode:changed');
         persistSettings();
     });
     renderLegend();
+
+    // Außendienst-Kartenansicht (Kunden / Status / Chancen)
+    document.querySelectorAll('#aussen-view .seg').forEach((btn) => {
+        btn.addEventListener('click', () => setAussenView(btn.dataset.view));
+    });
+    on('colormode:changed', syncAussenView);
+    on('customers:changed', () => { syncAussenView(); updateChancenCount(); });
+    on('filters:changed', updateChancenCount);
+    syncAussenView();
 
     // Gebiets-Cockpit öffnen
     document.getElementById('btn-cockpit').addEventListener('click', () => {
@@ -239,6 +249,57 @@ function renderLegend() {
     } else {
         // auto
         el.innerHTML = legendFromMap([...state.reps.entries()].slice(0, 14));
+    }
+}
+
+// ---- Außendienst-Kartenansicht ----
+
+/** Aktuelle Ansicht aus State ableiten: 'chancen' | 'status' | 'rep' */
+function currentAussenView() {
+    if (state.ui.opportunityOnly) return 'chancen';
+    return state.colorMode === 'status' ? 'status' : 'rep';
+}
+
+function setAussenView(view) {
+    if (view === 'chancen') {
+        state.colorMode = 'status';
+        state.ui.opportunityOnly = true;
+    } else {
+        state.colorMode = view === 'status' ? 'status' : 'rep';
+        state.ui.opportunityOnly = false;
+    }
+    const sel = document.getElementById('colormode-select');
+    if (sel) sel.value = state.colorMode;
+    renderLegend();
+    emit('colormode:changed');
+    persistSettings();
+    // syncAussenView läuft über den colormode:changed-Listener; Zähler aktualisieren
+    updateChancenCount();
+}
+
+/** Segment-Umschalter an den aktuellen Zustand anpassen */
+function syncAussenView() {
+    const view = currentAussenView();
+    document.querySelectorAll('#aussen-view .seg').forEach((btn) =>
+        btn.classList.toggle('active', btn.dataset.view === view));
+    updateChancenCount();
+}
+
+/** Zähler „X von Y fällig/überfällig" unter dem Umschalter */
+function updateChancenCount() {
+    const el = document.getElementById('chancen-count');
+    if (!el) return;
+    if (state.customers.length === 0) { el.textContent = ''; return; }
+    const shown = visibleCustomers();
+    const chancen = shown.filter((c) => isOpportunity(c)).length;
+    if (currentAussenView() === 'chancen') {
+        el.textContent = chancen === 0
+            ? 'Aktuell keine fälligen oder überfälligen Kunden (bei den sichtbaren).'
+            : `Zeigt ${chancen} fällige/überfällige von ${shown.length} sichtbaren Kunden.`;
+    } else {
+        el.textContent = chancen > 0
+            ? `${chancen} Kunde(n) fällig oder überfällig – „🎯 Chancen" hebt sie hervor.`
+            : '';
     }
 }
 

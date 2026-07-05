@@ -11,7 +11,7 @@ import { CONFIG } from '../core/config.js';
 import { state, on, emit, repColor, attrColor, visibleCustomers, getCustomer, markDirty, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
-import { visitStatus, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
+import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
 import { openRegionEditor } from '../ui/regionEditor.js';
 
 let map = null;
@@ -586,6 +586,8 @@ function renderMarkers() {
     const markers = [];
     for (const customer of visibleCustomers()) {
         if (customer.lat === null || customer.lng === null) continue;
+        // Chancen-Fokus: nur fällige/überfällige Kunden zeigen
+        if (state.ui.opportunityOnly && !isOpportunity(customer)) continue;
         const marker = L.marker([customer.lat, customer.lng], {
             icon: customerIcon(customer),
             title: customer.name
@@ -682,4 +684,10 @@ export function fitToCustomers() {
 
 export function getMap() {
     return map;
+}
+
+/** Karte auf einen Punkt (z. B. GPS-Standort) zentrieren */
+export function focusPoint(lat, lng, zoom) {
+    if (!map || lat === null || lng === null) return;
+    map.flyTo([lat, lng], Math.max(map.getZoom(), zoom ?? 11), { duration: 0.8 });
 }

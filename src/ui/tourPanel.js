@@ -14,7 +14,7 @@ import { suggestNearby, suggestAlongRoute, optimizeOrder, routeDistance, googleM
 import { printDayPlan, downloadIcs } from '../features/tourExport.js';
 import { visitStatus, STATUS_COLORS, STATUS_LABELS } from '../features/visits.js';
 import { loadTours, saveTours } from '../services/storage.js';
-import { flyToCustomer } from '../features/map.js';
+import { flyToCustomer, focusPoint } from '../features/map.js';
 import { showToast } from './toast.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
@@ -26,6 +26,7 @@ let savedTours = [];
 
 export function initTourPanel() {
     document.getElementById('btn-my-location').addEventListener('click', useMyLocation);
+    document.getElementById('btn-nearby').addEventListener('click', findNearby);
 
     const radius = document.getElementById('radius-slider');
     radius.value = state.tour.radiusKm;
@@ -37,7 +38,7 @@ export function initTourPanel() {
     });
 
     // Vorschlagsmodus: Umkreis um Start vs. Korridor entlang der Tour
-    document.querySelectorAll('.seg-toggle .seg').forEach((btn) => {
+    document.querySelectorAll('#suggest-mode .seg').forEach((btn) => {
         btn.addEventListener('click', () => {
             state.tour.suggestMode = btn.dataset.mode;
             updateSuggestModeUi();
@@ -187,6 +188,42 @@ function useMyLocation() {
     );
 }
 
+/**
+ * „Was ist in meiner Nähe?": GPS-Standort als Start, Umkreis-Modus, überfällige
+ * zuerst – sofort ohne vorher eine Tour zu bauen. Zeigt die nächsten Kunden.
+ */
+function findNearby() {
+    if (!navigator.geolocation) {
+        showToast('Standortbestimmung wird von diesem Browser nicht unterstützt.', 'error');
+        return;
+    }
+    if (state.customers.length === 0) {
+        showToast('Bitte zuerst Kundendaten laden.', 'info');
+        return;
+    }
+    showToast('Standort wird ermittelt…', 'info', 2000);
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const here = { lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'Mein Standort' };
+            state.tour.start = here;
+            state.tour.suggestMode = 'radius';
+            overdueFirst = true;
+            const cb = document.getElementById('overdue-first');
+            if (cb) cb.checked = true;
+            updateSuggestModeUi();
+            emit('tour:changed');
+            focusPoint(here.lat, here.lng, 11);
+            const near = suggestNearby(here, visibleCustomers(), state.tour.radiusKm, new Set(), true);
+            showToast(near.length
+                ? `${near.length} Kunde(n) im Umkreis von ${state.tour.radiusKm} km – überfällige zuerst.`
+                : `Keine sichtbaren Kunden im Umkreis von ${state.tour.radiusKm} km. Umkreis erhöhen?`,
+                near.length ? 'success' : 'info', 5000);
+        },
+        () => showToast('Standort konnte nicht ermittelt werden. Bitte Freigabe prüfen.', 'error'),
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
+}
+
 function tourStops() {
     return state.tour.stops.map(getCustomer).filter((c) => c && c.lat !== null);
 }
@@ -317,7 +354,7 @@ function renderStops() {
 /** Segment-Umschalter + Slider-Beschriftung an den Modus anpassen */
 function updateSuggestModeUi() {
     const route = state.tour.suggestMode === 'route';
-    document.querySelectorAll('.seg-toggle .seg').forEach((btn) => {
+    document.querySelectorAll('#suggest-mode .seg').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.mode === state.tour.suggestMode);
     });
     document.getElementById('radius-label').textContent = route ? 'Korridor (Abstand zur Route)' : 'Umkreis';
