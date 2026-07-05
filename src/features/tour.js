@@ -82,13 +82,15 @@ export function suggestAlongRoute(start, stops, customers, corridorKm, excludeId
 }
 
 /**
- * Reihenfolge der Stopps optimieren (Start fix).
+ * Reihenfolge der Zwischenstopps optimieren (Start fix, Ende optional fix).
  * @param {{lat,lng}} start
- * @param {Array} stops  Kunden mit Koordinaten
- * @param {boolean} roundTrip  bei Rundreise wird der Rückweg zum Start mitbewertet
- * @returns {Array} Stopps in optimierter Reihenfolge
+ * @param {Array} stops  Zwischenstopps (Kunden mit Koordinaten)
+ * @param {{lat,lng}|null} endPoint  fester Streckenendpunkt (z. B. Zielkunde oder – bei
+ *        Rundreise ohne Ziel – der Start). Wird in der Bewertung als letzte Kante mitgezählt,
+ *        aber nicht umsortiert.
+ * @returns {Array} Zwischenstopps in optimierter Reihenfolge
  */
-export function optimizeOrder(start, stops, roundTrip = false) {
+export function optimizeOrder(start, stops, endPoint = null) {
     if (stops.length <= 1) return [...stops];
 
     // 1) Nearest Neighbor
@@ -106,9 +108,9 @@ export function optimizeOrder(start, stops, roundTrip = false) {
         route.push(current);
     }
 
-    // 2) 2-Opt-Verbesserung (Start fix; bei Rundreise schließt sich die Route zum Start)
+    // 2) 2-Opt-Verbesserung (Start fix; Ende ggf. fix an endPoint)
     const points = [start, ...route];
-    const closingEdge = (idx) => roundTrip ? distanceKm(points[idx], start) : 0;
+    const closingEdge = (idx) => endPoint ? distanceKm(points[idx], endPoint) : 0;
     let improved = true;
     while (improved) {
         improved = false;

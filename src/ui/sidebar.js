@@ -14,6 +14,17 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
 ));
 
+/** Farbwert für <input type="color"> normalisieren (braucht #rrggbb) */
+function toHexColor(value) {
+    const v = String(value ?? '').trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) return v.toLowerCase();
+    if (/^#[0-9a-fA-F]{3}$/.test(v)) return ('#' + v.slice(1).split('').map((c) => c + c).join('')).toLowerCase();
+    // rgb(…)-Notation umwandeln, sonst neutrales Grau
+    const m = v.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+    if (m) return '#' + [m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, '0')).join('');
+    return '#94a3b8';
+}
+
 let geocodeHandle = null;
 
 // Welche Tabs gehören zu welchem Modus, und welcher Tab ist der Einstieg?
@@ -233,9 +244,13 @@ function renderLegend() {
 
 function persistSettings() {
     const dimVisibility = {};
+    const dimColors = {};
     for (const def of DIMENSIONS) {
         const dim = state.dims[def.id];
-        if (dim) dimVisibility[def.id] = Object.fromEntries([...dim.values].map(([k, v]) => [k, v.visible]));
+        if (dim) {
+            dimVisibility[def.id] = Object.fromEntries([...dim.values].map(([k, v]) => [k, v.visible]));
+            dimColors[def.id] = Object.fromEntries([...dim.values].map(([k, v]) => [k, v.color]));
+        }
     }
     saveSettings({
         mode: state.ui.mode,
@@ -243,7 +258,9 @@ function persistSettings() {
         level: state.level,
         colorMode: state.colorMode,
         repVisibility: Object.fromEntries([...state.reps].map(([k, v]) => [k, v.visible])),
+        repColors: Object.fromEntries([...state.reps].map(([k, v]) => [k, v.color])),
         dimVisibility,
+        dimColors,
         radiusKm: state.tour.radiusKm
     });
 }
@@ -337,12 +354,12 @@ function renderTeamFilters() {
         return;
     }
 
-    // Vertriebsbeauftragte (mit Farbe)
+    // Vertriebsbeauftragte (mit anpassbarer Farbe)
     const repCounts = countBy('vb');
     repsEl.innerHTML = [...state.reps.entries()].map(([name, rep]) => `
         <label class="filter-row">
             <input type="checkbox" data-rep="${escapeHtml(name)}" ${rep.visible ? 'checked' : ''}>
-            <span class="dot" style="background:${rep.color}"></span>
+            <input type="color" class="color-dot" data-repcolor="${escapeHtml(name)}" value="${toHexColor(rep.color)}" title="Farbe von „${escapeHtml(name)}" ändern" aria-label="Farbe ändern">
             <span class="filter-name">${escapeHtml(name)}</span>
             <span class="count">${repCounts.get(name) ?? 0}</span>
         </label>`).join('') + `
@@ -354,6 +371,15 @@ function renderTeamFilters() {
     repsEl.querySelectorAll('input[data-rep]').forEach((cb) => {
         cb.addEventListener('change', () => {
             state.reps.get(cb.dataset.rep).visible = cb.checked;
+            emit('filters:changed');
+            persistSettings();
+        });
+    });
+    repsEl.querySelectorAll('input[data-repcolor]').forEach((ci) => {
+        ci.addEventListener('input', () => {
+            const rep = state.reps.get(ci.dataset.repcolor);
+            if (rep) rep.color = ci.value;
+            renderLegend();
             emit('filters:changed');
             persistSettings();
         });
@@ -379,6 +405,7 @@ function renderTeamFilters() {
         const rows = [...dim.values.entries()].map(([name, v]) => `
             <label class="filter-row">
                 <input type="checkbox" data-dim="${def.id}" data-value="${escapeHtml(name)}" ${v.visible ? 'checked' : ''}>
+                <input type="color" class="color-dot" data-dimcolor="${def.id}" data-value="${escapeHtml(name)}" value="${toHexColor(v.color)}" title="Farbe von „${escapeHtml(name)}" ändern" aria-label="Farbe ändern">
                 <span class="filter-name">${escapeHtml(name)}</span>
                 <span class="count">${counts.get(name) ?? 0}</span>
             </label>`).join('');
@@ -396,6 +423,15 @@ function renderTeamFilters() {
         cb.addEventListener('change', () => {
             const entry = state.dims[cb.dataset.dim]?.values.get(cb.dataset.value);
             if (entry) entry.visible = cb.checked;
+            emit('filters:changed');
+            persistSettings();
+        });
+    });
+    dimsEl.querySelectorAll('input[data-dimcolor]').forEach((ci) => {
+        ci.addEventListener('input', () => {
+            const entry = state.dims[ci.dataset.dimcolor]?.values.get(ci.dataset.value);
+            if (entry) entry.color = ci.value;
+            renderLegend();
             emit('filters:changed');
             persistSettings();
         });

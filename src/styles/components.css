@@ -193,6 +193,23 @@
 .filter-row:hover { background: var(--color-surface-2); }
 .filter-row input { flex-shrink: 0; accent-color: var(--color-primary); }
 .filter-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Anklickbarer Farb-Swatch (Farbe eines VB/Bezirks/Gruppe ändern) */
+.color-dot {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.color-dot::-webkit-color-swatch-wrapper { padding: 0; }
+.color-dot::-webkit-color-swatch { border: none; border-radius: 50%; }
+.color-dot::-moz-color-swatch { border: none; border-radius: 50%; }
 .count {
     background: var(--color-surface-2);
     border-radius: 99px;
@@ -208,13 +225,30 @@
 
 /* Besuchsplaner */
 .start-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     background: var(--color-primary-light);
     border-radius: var(--radius-s);
     padding: 8px 10px;
     font-size: 0.9rem;
 }
+.start-chip .chip-x {
+    margin-left: auto;
+    border: none;
+    background: transparent;
+    padding: 2px 6px;
+    font-size: 0.9rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--color-text-muted);
+}
+.start-chip .chip-x:hover { color: #b91c1c; background: transparent; }
 .start-search-wrap { position: relative; margin-top: 8px; }
-#start-results { margin-top: 4px; }
+#start-results, #dest-results { margin-top: 4px; }
+/* Ziel-Zeile in der Tourliste (fester Streckenabschluss) */
+.stop-row.dest-row { background: #fef2f2; border-radius: var(--radius-s); }
+.stop-row.dest-row .stop-num { background: #b91c1c; }
 
 .scroll-list { max-height: 220px; overflow-y: auto; }
 

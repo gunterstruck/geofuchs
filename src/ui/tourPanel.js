@@ -61,21 +61,22 @@ export function initTourPanel() {
     document.getElementById('btn-optimize').addEventListener('click', optimizeTour);
     document.getElementById('btn-gmaps').addEventListener('click', openInGoogleMaps);
     document.getElementById('btn-tour-print').addEventListener('click', () => {
-        const stops = tourStops();
-        if (!state.tour.start || stops.length === 0) return;
-        if (!printDayPlan(state.tour.start, stops, { tourName: currentTourName() })) {
+        const eff = effStops();
+        if (!state.tour.start || eff.length === 0) return;
+        if (!printDayPlan(state.tour.start, eff, { tourName: currentTourName() })) {
             showToast('Bitte Pop-ups für den Druck erlauben.', 'error');
         }
     });
     document.getElementById('btn-tour-ics').addEventListener('click', () => {
-        const stops = tourStops();
-        if (!state.tour.start || stops.length === 0) return;
-        downloadIcs(state.tour.start, stops, { tourName: currentTourName() });
+        const eff = effStops();
+        if (!state.tour.start || eff.length === 0) return;
+        downloadIcs(state.tour.start, eff, { tourName: currentTourName() });
         showToast('Kalender-Datei (.ics) erstellt.', 'success');
     });
     document.getElementById('btn-tour-clear').addEventListener('click', () => {
         state.tour.stops = [];
         state.tour.start = null;
+        state.tour.destination = null;
         emit('tour:changed');
     });
     document.getElementById('btn-tour-save').addEventListener('click', saveCurrentTour);
@@ -115,10 +116,55 @@ export function initTourPanel() {
         });
     });
 
+    // Zielpunkt per Suchfeld (Kunden)
+    wireCustomerSearch('dest-search', 'dest-results', (c) => {
+        const first = !state.tour.destination;
+        state.tour.destination = {
+            lat: c.lat, lng: c.lng, label: c.name, customerId: c.id,
+            strasse: c.strasse, plz: c.plz, ort: c.ort
+        };
+        // Ein Ziel macht die „Entlang der Tour"-Vorschläge sinnvoll -> beim ersten Mal umschalten
+        if (first && state.tour.suggestMode !== 'route') {
+            state.tour.suggestMode = 'route';
+            updateSuggestModeUi();
+        }
+        emit('tour:changed');
+    });
+
     on('tour:changed', renderPanel);
     on('customers:changed', renderPanel);
     on('filters:changed', renderSuggestions);
     renderPanel();
+}
+
+/** Kundensuche an ein Eingabefeld hängen (Treffer -> onPick(customer)) */
+function wireCustomerSearch(inputId, resultsId, onPick) {
+    const input = document.getElementById(inputId);
+    const results = document.getElementById(resultsId);
+    input.addEventListener('input', () => {
+        const q = input.value.trim().toLowerCase();
+        if (q.length < 2) { results.innerHTML = ''; return; }
+        const hits = state.customers
+            .filter((c) => c.lat !== null && (
+                c.name.toLowerCase().includes(q) ||
+                c.ort.toLowerCase().includes(q) ||
+                c.plz.startsWith(q)
+            ))
+            .slice(0, 6);
+        results.innerHTML = hits.map((c) => `
+            <button type="button" class="result-row" data-id="${escapeHtml(c.id)}">
+                <b>${escapeHtml(c.name)}</b> <span class="muted">${escapeHtml(c.plz)} ${escapeHtml(c.ort)}</span>
+            </button>`).join('');
+        results.querySelectorAll('[data-id]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const c = getCustomer(btn.dataset.id);
+                if (!c) return;
+                input.value = '';
+                results.innerHTML = '';
+                onPick(c);
+            });
+        });
+    });
 }
 
 function useMyLocation() {
@@ -145,6 +191,23 @@ function tourStops() {
     return state.tour.stops.map(getCustomer).filter((c) => c && c.lat !== null);
 }
 
+/** Zielpunkt (falls gesetzt und verortet) – bevorzugt das echte Kundenobjekt */
+function destPoint() {
+    const d = state.tour.destination;
+    if (!d) return null;
+    if (d.customerId) {
+        const c = getCustomer(d.customerId);
+        if (c && c.lat !== null) return c; // volle Kundendaten für Druck/ICS/Maps
+    }
+    return d.lat !== null && d.lng !== null ? d : null;
+}
+
+/** Effektive Streckenpunkte nach dem Start: Zwischenstopps + optionales Ziel am Ende */
+function effStops() {
+    const dest = destPoint();
+    return dest ? [...tourStops(), dest] : tourStops();
+}
+
 function currentTourName() {
     const input = document.getElementById('tour-name');
     return (input.value.trim()) || (state.tour.start ? `Tour ab ${state.tour.start.label}` : 'Tagestour');
@@ -152,8 +215,25 @@ function currentTourName() {
 
 function renderPanel() {
     renderStart();
+    renderDest();
+    updateSuggestModeUi(); // Modus kann auch von der Karte („Als Ziel") gesetzt werden
     renderStops();
     renderSuggestions();
+}
+
+function renderDest() {
+    const el = document.getElementById('tour-dest');
+    const d = state.tour.destination;
+    if (!d) {
+        el.innerHTML = '<p class="muted small">Kein Ziel gewählt. Mit Ziel liegen die Vorschläge entlang der Strecke Start → Ziel – ideal, um unterwegs passende Kunden mitzunehmen.</p>';
+        return;
+    }
+    el.innerHTML = `<div class="start-chip">🏁 <b>${escapeHtml(d.label)}</b>
+        <button type="button" id="btn-dest-clear" class="chip-x" title="Ziel entfernen">✕</button></div>`;
+    document.getElementById('btn-dest-clear').addEventListener('click', () => {
+        state.tour.destination = null;
+        emit('tour:changed');
+    });
 }
 
 function renderStart() {
@@ -202,23 +282,36 @@ function renderStops() {
         }));
     }
 
-    // Distanz & Aktions-Buttons
+    // Ziel als fester Streckenabschluss anzeigen
+    if (destPoint() || state.tour.destination) {
+        const d = state.tour.destination;
+        el.insertAdjacentHTML('beforeend', `
+            <div class="stop-row dest-row">
+                <span class="stop-num">🏁</span>
+                <span class="stop-name" title="${escapeHtml(d.label)}">Ziel: ${escapeHtml(d.label)}</span>
+                <span class="stop-actions"><button type="button" id="dest-row-x" title="Ziel entfernen">✕</button></span>
+            </div>`);
+        const x = document.getElementById('dest-row-x');
+        if (x) x.addEventListener('click', () => { state.tour.destination = null; emit('tour:changed'); });
+    }
+
+    // Distanz & Aktions-Buttons – Ziel zählt als letzter Streckenpunkt mit
     const summary = document.getElementById('tour-summary');
-    const locatedStops = stops.filter((c) => c.lat !== null);
-    if (state.tour.start && locatedStops.length > 0) {
-        const { airKm, roadKmEstimate } = routeDistance(state.tour.start, locatedStops, state.tour.roundTrip);
+    const eff = effStops();
+    if (state.tour.start && eff.length > 0) {
+        const { airKm, roadKmEstimate } = routeDistance(state.tour.start, eff, state.tour.roundTrip);
         const rt = state.tour.roundTrip ? ' inkl. Rückweg' : '';
-        summary.innerHTML = `Strecke${rt}: <b>~${Math.round(roadKmEstimate)} km</b> <span class="muted small">(${Math.round(airKm)} km Luftlinie${locatedStops.length > CONFIG.tour.maxWaypoints + 1 ? `, Google-Maps-Export: max. ${CONFIG.tour.maxWaypoints + 1} Stopps` : ''})</span>`;
+        summary.innerHTML = `Strecke${rt}: <b>~${Math.round(roadKmEstimate)} km</b> <span class="muted small">(${Math.round(airKm)} km Luftlinie${eff.length > CONFIG.tour.maxWaypoints + 1 ? `, Google-Maps-Export: max. ${CONFIG.tour.maxWaypoints + 1} Stopps` : ''})</span>`;
     } else {
         summary.innerHTML = '';
     }
-    const hasRoute = state.tour.start && locatedStops.length >= 1;
-    document.getElementById('btn-optimize').disabled = !(state.tour.start && locatedStops.length >= 2);
+    const hasRoute = state.tour.start && eff.length >= 1;
+    document.getElementById('btn-optimize').disabled = !(state.tour.start && tourStops().length >= 2);
     document.getElementById('btn-gmaps').disabled = !hasRoute;
     document.getElementById('btn-tour-print').disabled = !hasRoute;
     document.getElementById('btn-tour-ics').disabled = !hasRoute;
     document.getElementById('btn-tour-save').disabled = !hasRoute;
-    document.getElementById('btn-tour-clear').disabled = !(state.tour.start || stops.length > 0);
+    document.getElementById('btn-tour-clear').disabled = !(state.tour.start || state.tour.destination || stops.length > 0);
 }
 
 /** Segment-Umschalter + Slider-Beschriftung an den Modus anpassen */
@@ -239,16 +332,19 @@ function renderSuggestions() {
 
     const exclude = new Set(state.tour.stops);
     if (state.tour.start.customerId) exclude.add(state.tour.start.customerId);
+    if (state.tour.destination?.customerId) exclude.add(state.tour.destination.customerId);
 
     const routeMode = state.tour.suggestMode === 'route';
-    const stops = tourStops();
     const suggestions = routeMode
-        ? suggestAlongRoute(state.tour.start, stops, visibleCustomers(), state.tour.radiusKm, exclude, state.tour.roundTrip, overdueFirst)
+        ? suggestAlongRoute(state.tour.start, effStops(), visibleCustomers(), state.tour.radiusKm, exclude, state.tour.roundTrip, overdueFirst)
         : suggestNearby(state.tour.start, visibleCustomers(), state.tour.radiusKm, exclude, overdueFirst);
 
     if (suggestions.length === 0) {
+        const noRoute = routeMode && effStops().length === 0;
         el.innerHTML = routeMode
-            ? '<p class="muted">Keine weiteren (sichtbaren) Kunden im Korridor entlang der Tour. Tipp: Stopps hinzufügen oder Korridor vergrößern.</p>'
+            ? (noRoute
+                ? '<p class="muted">Für Vorschläge entlang der Strecke bitte ein <b>Ziel</b> wählen (oder einen Stopp hinzufügen). Dann werden Kunden entlang des Wegs vorgeschlagen.</p>'
+                : '<p class="muted">Keine weiteren (sichtbaren) Kunden im Korridor entlang der Strecke. Tipp: Korridor vergrößern.</p>')
             : '<p class="muted">Keine weiteren (sichtbaren) Kunden im gewählten Umkreis.</p>';
         return;
     }
@@ -280,12 +376,15 @@ function renderSuggestions() {
 }
 
 function optimizeTour() {
-    const stops = state.tour.stops.map(getCustomer).filter((c) => c && c.lat !== null);
+    const stops = tourStops();
     if (!state.tour.start || stops.length < 2) return;
-    const before = routeDistance(state.tour.start, stops, state.tour.roundTrip).airKm;
-    const optimized = optimizeOrder(state.tour.start, stops, state.tour.roundTrip);
+    // Fester Streckenendpunkt: Zielkunde, sonst bei Rundreise der Start, sonst offen
+    const endPoint = destPoint() || (state.tour.roundTrip ? state.tour.start : null);
+    const before = routeDistance(state.tour.start, effStops(), state.tour.roundTrip).airKm;
+    const optimized = optimizeOrder(state.tour.start, stops, endPoint);
     state.tour.stops = optimized.map((c) => c.id);
-    const after = routeDistance(state.tour.start, optimized, state.tour.roundTrip).airKm;
+    const dest = destPoint();
+    const after = routeDistance(state.tour.start, dest ? [...optimized, dest] : optimized, state.tour.roundTrip).airKm;
     emit('tour:changed');
     const savedKm = (before - after) * CONFIG.tour.roadFactor;
     showToast(savedKm > 0.5
@@ -294,19 +393,19 @@ function optimizeTour() {
 }
 
 function openInGoogleMaps() {
-    const stops = state.tour.stops.map(getCustomer).filter((c) => c && c.lat !== null);
-    if (!state.tour.start || stops.length === 0) return;
-    if (stops.length > CONFIG.tour.maxWaypoints + 1) {
+    const eff = effStops();
+    if (!state.tour.start || eff.length === 0) return;
+    if (eff.length > CONFIG.tour.maxWaypoints + 1) {
         showToast(`Google Maps unterstützt max. ${CONFIG.tour.maxWaypoints + 1} Stopps – es werden die ersten ${CONFIG.tour.maxWaypoints + 1} übergeben.`, 'info', 6000);
     }
-    const link = googleMapsLink(state.tour.start, stops, state.tour.roundTrip);
+    const link = googleMapsLink(state.tour.start, eff, state.tour.roundTrip);
     if (link) window.open(link, '_blank', 'noopener');
 }
 
 // ---- Gespeicherte Touren ----
 
 async function saveCurrentTour() {
-    if (!state.tour.start || state.tour.stops.length === 0) return;
+    if (!state.tour.start || (state.tour.stops.length === 0 && !state.tour.destination)) return;
     const name = currentTourName();
     // Startpunkt vollständig sichern (auch GPS-Standorte ohne Kunden-Id)
     const tour = {
@@ -314,6 +413,7 @@ async function saveCurrentTour() {
         name,
         savedAt: new Date().toISOString(),
         start: { ...state.tour.start },
+        destination: state.tour.destination ? { ...state.tour.destination } : null,
         stopIds: [...state.tour.stops]
     };
     // gleicher Name -> ersetzen
@@ -331,6 +431,9 @@ function loadSavedTour(id) {
     // nur noch existierende Kunden übernehmen
     const validIds = tour.stopIds.filter((sid) => getCustomer(sid));
     state.tour.start = { ...tour.start };
+    // Ziel übernehmen, sofern der Kunde (falls verknüpft) noch existiert
+    state.tour.destination = (tour.destination && (!tour.destination.customerId || getCustomer(tour.destination.customerId)))
+        ? { ...tour.destination } : null;
     state.tour.stops = validIds;
     emit('tour:changed');
     const lost = tour.stopIds.length - validIds.length;
