@@ -116,7 +116,14 @@
                     <div id="start-results"></div>
                 </div>
 
-                <h3>2. Vorschläge</h3>
+                <h3>2. Ziel <span class="muted small">(optional)</span></h3>
+                <div id="tour-dest"></div>
+                <div class="start-search-wrap">
+                    <input id="dest-search" type="search" placeholder="Zielkunde wählen – Vorschläge dann entlang der Strecke" autocomplete="off">
+                    <div id="dest-results"></div>
+                </div>
+
+                <h3>3. Vorschläge</h3>
                 <div class="seg-toggle" role="group" aria-label="Vorschlagsmodus">
                     <button type="button" id="mode-radius" class="seg active" data-mode="radius">Umkreis um Start</button>
                     <button type="button" id="mode-route" class="seg" data-mode="route">Entlang der Tour</button>
@@ -127,7 +134,7 @@
                 <label class="check-inline"><input type="checkbox" id="overdue-first"> Überfällige zuerst</label>
                 <div id="tour-suggestions" class="scroll-list"></div>
 
-                <h3>3. Meine Tour</h3>
+                <h3>4. Meine Tour</h3>
                 <label class="check-inline"><input type="checkbox" id="round-trip"> 🔁 Rundreise (zurück zum Start)</label>
                 <div id="tour-stops"></div>
                 <p id="tour-summary"></p>

@@ -42,7 +42,8 @@ export const state = {
 
     tour: {
         start: null,        // { lat, lng, label, customerId? }
-        stops: [],          // Array von Kunden-IDs (in Besuchsreihenfolge)
+        destination: null,  // optionaler Zielpunkt { lat, lng, label, customerId? } – bleibt am Streckenende
+        stops: [],          // Array von Kunden-IDs (Zwischenstopps in Besuchsreihenfolge)
         radiusKm: CONFIG.tour.defaultRadiusKm,
         roundTrip: false,   // Rundreise: am Ende zurück zum Start
         suggestMode: 'radius' // 'radius' = Umkreis um Start | 'route' = Korridor entlang der Tour
@@ -146,6 +147,9 @@ export function setCustomers(customers, meta = {}) {
     state.tour.stops = state.tour.stops.filter((id) => ids.has(id));
     if (state.tour.start?.customerId && !ids.has(state.tour.start.customerId)) {
         state.tour.start = null;
+    }
+    if (state.tour.destination?.customerId && !ids.has(state.tour.destination.customerId)) {
+        state.tour.destination = null;
     }
 
     emit('customers:changed');

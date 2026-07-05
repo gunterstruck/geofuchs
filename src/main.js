@@ -62,6 +62,21 @@ async function restorePersistedState() {
                 }
             }
         }
+        // Persistierte, benutzerdefinierte Farben anwenden
+        if (settings?.repColors) {
+            for (const [name, color] of Object.entries(settings.repColors)) {
+                if (state.reps.has(name) && color) state.reps.get(name).color = color;
+            }
+        }
+        if (settings?.dimColors) {
+            for (const [dimId, values] of Object.entries(settings.dimColors)) {
+                const dim = state.dims[dimId];
+                if (!dim) continue;
+                for (const [name, color] of Object.entries(values)) {
+                    if (dim.values.has(name) && color) dim.values.get(name).color = color;
+                }
+            }
+        }
         emit('customers:changed');
         fitToCustomers();
     } else if (dataset?.territories && Object.keys(dataset.territories).length) {

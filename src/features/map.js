@@ -122,6 +122,16 @@ function handlePopupAction(action, customerId) {
             strasse: customer.strasse, plz: customer.plz, ort: customer.ort
         };
         emit('tour:changed');
+    } else if (action === 'tour-dest') {
+        const first = !state.tour.destination;
+        state.tour.destination = {
+            lat: customer.lat, lng: customer.lng,
+            label: customer.name, customerId: customer.id,
+            strasse: customer.strasse, plz: customer.plz, ort: customer.ort
+        };
+        // Ziel gesetzt -> „Entlang der Tour"-Vorschläge werden sinnvoll
+        if (first && state.tour.suggestMode !== 'route') state.tour.suggestMode = 'route';
+        emit('tour:changed');
     } else if (action === 'mark-visited') {
         markVisitedToday(customer);
         markDirty();
@@ -546,6 +556,7 @@ export function customerPopupHtml(customer) {
     const addr = [customer.strasse, `${customer.plz} ${customer.ort}`.trim()]
         .filter(Boolean).map(escapeHtml).join('<br>');
     const inTour = state.tour.stops.includes(customer.id);
+    const isDest = state.tour.destination?.customerId === customer.id;
     return `<div class="popup">
         <h3>${escapeHtml(customer.name)}</h3>
         ${customer.nummer ? `<p class="muted">Kd.-Nr. ${escapeHtml(customer.nummer)}</p>` : ''}
@@ -562,6 +573,7 @@ export function customerPopupHtml(customer) {
         ${customer.geo === 'plz' ? '<p class="muted small">📍 Position: PLZ-Mittelpunkt (ungefähr)</p>' : ''}
         <div class="popup-actions">
             <button data-action="tour-start" data-id="${escapeHtml(customer.id)}">🚩 Als Start</button>
+            <button data-action="tour-dest" data-id="${escapeHtml(customer.id)}" ${isDest ? 'disabled' : ''}>${isDest ? '✓ Ziel' : '🏁 Als Ziel'}</button>
             <button data-action="tour-add" data-id="${escapeHtml(customer.id)}" ${inTour ? 'disabled' : ''}>${inTour ? '✓ In Tour' : '➕ Zur Tour'}</button>
         </div>
     </div>`;
@@ -590,8 +602,14 @@ function renderTour() {
     tourLayer.clearLayers();
     renderMarkers(); // "in-tour"-Status der Marker aktualisieren
 
-    const { start, stops } = state.tour;
+    const { start, stops, destination } = state.tour;
     const stopCustomers = stops.map(getCustomer).filter((c) => c && c.lat !== null);
+    // Ziel als Punkt (echtes Kundenobjekt bevorzugt, sonst der gespeicherte Punkt)
+    let dest = null;
+    if (destination) {
+        const c = destination.customerId ? getCustomer(destination.customerId) : null;
+        dest = (c && c.lat !== null) ? c : (destination.lat !== null ? destination : null);
+    }
 
     if (start) {
         L.marker([start.lat, start.lng], {
@@ -617,10 +635,26 @@ function renderTour() {
         }).bindTooltip(`${i + 1}. ${c.name}`).addTo(tourLayer);
     });
 
-    if (start && stopCustomers.length > 0) {
-        const points = [[start.lat, start.lng], ...stopCustomers.map((c) => [c.lat, c.lng])];
-        if (state.tour.roundTrip) points.push([start.lat, start.lng]); // Rundreise: zurück zum Start
-        L.polyline(points, { color: '#0d9488', weight: 3, dashArray: '8 6', opacity: 0.85 }).addTo(tourLayer);
+    if (dest) {
+        L.marker([dest.lat, dest.lng], {
+            icon: L.divIcon({
+                className: 'tour-marker-wrapper',
+                html: '<div class="tour-marker dest">🏁</div>',
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            }),
+            zIndexOffset: 1000
+        }).bindTooltip(`Ziel: ${dest.name || destination.label}`).addTo(tourLayer);
+    }
+
+    // Streckenlinie: Start -> Zwischenstopps -> Ziel (-> Start bei Rundreise)
+    const routePts = [];
+    if (start) routePts.push([start.lat, start.lng]);
+    stopCustomers.forEach((c) => routePts.push([c.lat, c.lng]));
+    if (dest) routePts.push([dest.lat, dest.lng]);
+    if (start && routePts.length > 1) {
+        if (state.tour.roundTrip) routePts.push([start.lat, start.lng]); // Rundreise: zurück zum Start
+        L.polyline(routePts, { color: '#0d9488', weight: 3, dashArray: '8 6', opacity: 0.85 }).addTo(tourLayer);
     }
 }
 
