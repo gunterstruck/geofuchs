@@ -124,6 +124,12 @@
     white-space: nowrap;
 }
 .tab-button[hidden] { display: none; }
+
+/* Onboarding (keine Daten): Modus-Umschalter, Hinweis und Tab-Leiste ausblenden
+   – der Einstieg zeigt nur Willkommen + Demo. */
+.sidebar.onboarding .mode-switch,
+.sidebar.onboarding .mode-hint,
+.sidebar.onboarding .tabs { display: none; }
 .tab-button.active {
     background: var(--color-surface);
     border-bottom-color: var(--color-primary);

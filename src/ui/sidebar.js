@@ -374,7 +374,12 @@ function renderDataStatus() {
     const onboarding = document.getElementById('onboarding');
     const loaded = document.getElementById('data-loaded');
     const el = document.getElementById('data-status');
-    if (state.customers.length === 0) {
+    const sidebar = document.getElementById('sidebar');
+    const empty = state.customers.length === 0;
+    // Onboarding-Modus: Modus-Umschalter, Hinweis und Tab-Leiste ausblenden,
+    // damit der Einstieg maximal einfach ist (nur Willkommen + Demo).
+    if (sidebar) sidebar.classList.toggle('onboarding', empty);
+    if (empty) {
         if (onboarding) onboarding.style.display = '';
         if (loaded) loaded.style.display = 'none';
         return;
