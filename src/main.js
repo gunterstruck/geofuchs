@@ -11,7 +11,7 @@ import { state, on, emit, setCustomers, datasetSnapshot } from './core/state.js'
 import { loadDataset, saveDataset, loadSettings } from './services/storage.js';
 import { geocodeByPlz } from './services/geocode.js';
 import { initMap } from './features/map.js';
-import { initSidebar } from './ui/sidebar.js';
+import { initSidebar, applyMode } from './ui/sidebar.js';
 import { initImportWizard } from './ui/importWizard.js';
 import { initTourPanel } from './ui/tourPanel.js';
 import { initCockpit } from './ui/cockpit.js';
@@ -68,6 +68,13 @@ async function restorePersistedState() {
         // Nur Gebietszuordnungen ohne Kunden -> Karte neu einfärben
         emit('customers:changed');
     }
+
+    // Fokus-Modus wiederherstellen (Farbmodus wurde bereits oben gesetzt -> nicht überschreiben)
+    if (typeof settings?.activeTab === 'string') state.ui.activeTab = settings.activeTab;
+    if (settings?.mode === 'aussendienst' || settings?.mode === 'gebietsplanung') {
+        state.ui.mode = settings.mode;
+    }
+    applyMode(state.ui.mode, false);
 }
 
 // Kundendaten nach inhaltlichen Änderungen (Besuch, Rhythmus, Gebiete) speichern – gedrosselt

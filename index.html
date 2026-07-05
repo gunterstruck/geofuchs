@@ -25,11 +25,17 @@
         </header>
 
         <aside id="sidebar" class="sidebar">
+            <div class="mode-switch" role="group" aria-label="Fokus wählen">
+                <button type="button" class="mode-btn active" data-mode="aussendienst">🚗 Außendienst</button>
+                <button type="button" class="mode-btn" data-mode="gebietsplanung">🗺️ Gebietsplanung</button>
+            </div>
+            <p id="mode-hint" class="mode-hint"></p>
+
             <nav class="tabs" role="tablist">
-                <button class="tab-button active" data-tab="daten" role="tab">📄 Daten</button>
-                <button class="tab-button" data-tab="gebiete" role="tab">🗺️ Gebiete</button>
-                <button class="tab-button" data-tab="team" role="tab">👥 Team</button>
-                <button class="tab-button" data-tab="tour" role="tab">🚗 Tour</button>
+                <button class="tab-button active" data-tab="tour" data-modes="aussendienst" role="tab">🚗 Tour</button>
+                <button class="tab-button" data-tab="gebiete" data-modes="gebietsplanung" role="tab">🗺️ Gebiete</button>
+                <button class="tab-button" data-tab="team" data-modes="aussendienst gebietsplanung" role="tab">👥 Team</button>
+                <button class="tab-button" data-tab="daten" data-modes="aussendienst gebietsplanung" role="tab">📄 Daten</button>
             </nav>
 
             <!-- Tab: Daten -->
