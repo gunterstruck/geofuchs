@@ -9,7 +9,7 @@
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, getCustomer, repColor, visibleCustomers } from '../core/state.js';
+import { state, on, emit, getCustomer, repColor, visibleCustomers, UNASSIGNED } from '../core/state.js';
 import { suggestNearby, suggestAlongRoute, optimizeOrder, routeDistance, googleMapsLink } from '../features/tour.js';
 import { printDayPlan, downloadIcs } from '../features/tourExport.js';
 import { copyText, tourText } from '../features/handoff.js';
@@ -24,10 +24,18 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
 
 let overdueFirst = false;
 let savedTours = [];
+let tourBezirk = null;   // '__all__' | Bezirksname | null (noch nicht gewählt)
 
 export function initTourPanel() {
     document.getElementById('btn-my-location').addEventListener('click', useMyLocation);
     document.getElementById('btn-nearby').addEventListener('click', findNearby);
+
+    // Schritt 0: Bezirk wählen -> fokussiert die Kundenauswahl der Tour
+    document.getElementById('tour-bezirk').addEventListener('change', (e) => {
+        tourBezirk = e.target.value;
+        updatePlannerVisibility();
+        renderPanel();
+    });
 
     const radius = document.getElementById('radius-slider');
     radius.value = state.tour.radiusKm;
@@ -101,7 +109,7 @@ export function initTourPanel() {
     startInput.addEventListener('input', () => {
         const q = startInput.value.trim().toLowerCase();
         if (q.length < 2) { startResults.innerHTML = ''; return; }
-        const hits = state.customers
+        const hits = tourPool()
             .filter((c) => c.lat !== null && (
                 c.name.toLowerCase().includes(q) ||
                 c.ort.toLowerCase().includes(q) ||
@@ -144,9 +152,51 @@ export function initTourPanel() {
     });
 
     on('tour:changed', renderPanel);
-    on('customers:changed', renderPanel);
+    on('customers:changed', () => { renderTourScope(); renderPanel(); });
     on('filters:changed', renderSuggestions);
+    renderTourScope();
     renderPanel();
+}
+
+/** Bezirks-Auswahl aufbauen; ohne Bezirks-Ebene entfällt das Gate */
+function renderTourScope() {
+    const scope = document.getElementById('tour-scope');
+    const sel = document.getElementById('tour-bezirk');
+    const dim = state.dims.bezirk;
+    if (!dim?.active || state.customers.length === 0) {
+        if (scope) scope.hidden = true;
+        tourBezirk = state.customers.length ? '__all__' : null;
+        updatePlannerVisibility();
+        return;
+    }
+    if (scope) scope.hidden = false;
+    const counts = new Map();
+    for (const c of state.customers) {
+        const b = String(c.bezirk ?? '').trim() || UNASSIGNED;
+        counts.set(b, (counts.get(b) ?? 0) + 1);
+    }
+    const bezirke = [...dim.values.keys()].sort((a, b) => a.localeCompare(b, 'de'));
+    sel.innerHTML = [
+        '<option value="__none__">– Bezirk wählen –</option>',
+        `<option value="__all__">Alle Bezirke (${state.customers.length})</option>`
+    ].concat(bezirke.map((b) => `<option value="${escapeHtml(b)}">${escapeHtml(b)} (${counts.get(b) ?? 0})</option>`)).join('');
+
+    if (tourBezirk && (tourBezirk === '__all__' || bezirke.includes(tourBezirk))) sel.value = tourBezirk;
+    else { tourBezirk = null; sel.value = '__none__'; }
+    updatePlannerVisibility();
+}
+
+function updatePlannerVisibility() {
+    const planner = document.getElementById('tour-planner');
+    if (planner) planner.hidden = !(tourBezirk && tourBezirk !== '__none__');
+}
+
+/** Kundenauswahl der Tour: sichtbare Kunden, ggf. auf den gewählten Bezirk beschränkt */
+function tourPool() {
+    if (!tourBezirk || tourBezirk === '__none__') return [];
+    const base = visibleCustomers();
+    if (tourBezirk === '__all__') return base;
+    return base.filter((c) => (String(c.bezirk ?? '').trim() || UNASSIGNED) === tourBezirk);
 }
 
 /** Kundensuche an ein Eingabefeld hängen (Treffer -> onPick(customer)) */
@@ -156,7 +206,7 @@ function wireCustomerSearch(inputId, resultsId, onPick) {
     input.addEventListener('input', () => {
         const q = input.value.trim().toLowerCase();
         if (q.length < 2) { results.innerHTML = ''; return; }
-        const hits = state.customers
+        const hits = tourPool()
             .filter((c) => c.lat !== null && (
                 c.name.toLowerCase().includes(q) ||
                 c.ort.toLowerCase().includes(q) ||
@@ -224,7 +274,7 @@ function findNearby() {
             updateSuggestModeUi();
             emit('tour:changed');
             focusPoint(here.lat, here.lng, 11);
-            const near = suggestNearby(here, visibleCustomers(), state.tour.radiusKm, new Set(), true);
+            const near = suggestNearby(here, tourPool(), state.tour.radiusKm, new Set(), true);
             showToast(near.length
                 ? `${near.length} Kunde(n) im Umkreis von ${state.tour.radiusKm} km – überfällige zuerst.`
                 : `Keine sichtbaren Kunden im Umkreis von ${state.tour.radiusKm} km. Umkreis erhöhen?`,
@@ -384,9 +434,10 @@ function renderSuggestions() {
     if (state.tour.destination?.customerId) exclude.add(state.tour.destination.customerId);
 
     const routeMode = state.tour.suggestMode === 'route';
+    const pool = tourPool();
     const suggestions = routeMode
-        ? suggestAlongRoute(state.tour.start, effStops(), visibleCustomers(), state.tour.radiusKm, exclude, state.tour.roundTrip, overdueFirst)
-        : suggestNearby(state.tour.start, visibleCustomers(), state.tour.radiusKm, exclude, overdueFirst);
+        ? suggestAlongRoute(state.tour.start, effStops(), pool, state.tour.radiusKm, exclude, state.tour.roundTrip, overdueFirst)
+        : suggestNearby(state.tour.start, pool, state.tour.radiusKm, exclude, overdueFirst);
 
     if (suggestions.length === 0) {
         const noRoute = routeMode && effStops().length === 0;

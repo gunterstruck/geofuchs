@@ -266,7 +266,7 @@ function showImportResult({ customerCount, areaCount, skipped, errors }) {
 
 async function loadDemo() {
     const { demoCustomers } = await excel();
-    await applyCustomers(demoCustomers(), 'Demo-Daten');
+    await applyCustomers(await demoCustomers(), 'Demo-Daten');
     emit('demo:loaded');
     showToast('Demo geladen – tippe auf einen Pin oder plane eine Tour. Eigene Daten? Lade jederzeit deine Excel-Liste.', 'success', 6000);
 }

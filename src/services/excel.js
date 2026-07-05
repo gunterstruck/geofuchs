@@ -5,6 +5,7 @@
  */
 
 import * as XLSX from 'xlsx';
+import { loadPlzCentroids } from './geocode.js';
 
 /** Interne Felder mit deutschen Labels und Erkennungs-Synonymen */
 export const FIELDS = [
@@ -306,70 +307,102 @@ export function exportCustomers(customers) {
  * Betriebsbezirke (benachbarte Städte/Kreise), quer durch Deutschland.
  * Spalten: [name, straße, plz, ort, vb, gruppe, umsatz, bezirk]
  */
-export function demoCustomers() {
-    // Bezirke (mit optionalem VB) und Städte quer über ganz Deutschland –
-    // ein Bezirk ist üblicherweise, aber nicht zwingend, mit einem VB verknüpft.
-    const bezirke = [
-        { name: 'Bezirk Rheinland', vb: 'Max Mustermann', cities: [['Köln', '50667'], ['Bonn', '53111'], ['Düsseldorf', '40210'], ['Leverkusen', '51373'], ['Aachen', '52062'], ['Mönchengladbach', '41061']] },
-        { name: 'Bezirk Ruhrgebiet', vb: 'Max Mustermann', cities: [['Essen', '45127'], ['Bochum', '44787'], ['Dortmund', '44137'], ['Duisburg', '47051'], ['Gelsenkirchen', '45879']] },
-        { name: 'Bezirk Westfalen', vb: 'Jonas Weber', cities: [['Münster', '48143'], ['Bielefeld', '33602'], ['Paderborn', '33098'], ['Siegen', '57072']] },
-        { name: 'Bezirk Niedersachsen', vb: 'Jonas Weber', cities: [['Hannover', '30159'], ['Braunschweig', '38100'], ['Osnabrück', '49074'], ['Göttingen', '37073'], ['Oldenburg', '26122']] },
-        { name: 'Bezirk Küste', vb: 'Lena Krüger', cities: [['Hamburg', '20095'], ['Bremen', '28195'], ['Kiel', '24103'], ['Lübeck', '23552'], ['Flensburg', '24937']] },
-        { name: 'Bezirk Berlin-Brandenburg', vb: 'Tim Schulz', cities: [['Berlin-Mitte', '10115'], ['Berlin-Neukölln', '12043'], ['Potsdam', '14467'], ['Cottbus', '03046'], ['Frankfurt (Oder)', '15230']] },
-        { name: 'Bezirk Sachsen-Thüringen', vb: 'Tim Schulz', cities: [['Leipzig', '04109'], ['Dresden', '01067'], ['Chemnitz', '09111'], ['Erfurt', '99084'], ['Jena', '07743']] },
-        { name: 'Bezirk Hessen', vb: 'Sofia Richter', cities: [['Frankfurt am Main', '60311'], ['Wiesbaden', '65183'], ['Kassel', '34117'], ['Darmstadt', '64283'], ['Gießen', '35390']] },
-        { name: 'Bezirk Baden-Württemberg', vb: 'Sofia Richter', cities: [['Stuttgart', '70173'], ['Karlsruhe', '76133'], ['Mannheim', '68159'], ['Freiburg', '79098'], ['Ulm', '89073'], ['Heilbronn', '74072']] },
-        { name: 'Bezirk Oberbayern', vb: 'Anna Beispiel', cities: [['München', '80331'], ['Augsburg', '86150'], ['Ingolstadt', '85049'], ['Rosenheim', '83022'], ['Landshut', '84028']] },
-        { name: 'Bezirk Franken', vb: 'Anna Beispiel', cities: [['Nürnberg', '90402'], ['Fürth', '90762'], ['Erlangen', '91052'], ['Würzburg', '97070'], ['Bamberg', '96047'], ['Regensburg', '93047']] },
-        // Bezirke ohne VB – zeigt „Bezirk ohne VB" und weiße Flecken bei der VB-Sicht
-        { name: 'Bezirk Südwest', vb: '', cities: [['Saarbrücken', '66111'], ['Koblenz', '56068'], ['Trier', '54290'], ['Mainz', '55116'], ['Kaiserslautern', '67655']] },
-        { name: 'Bezirk Nordost', vb: '', cities: [['Rostock', '18055'], ['Schwerin', '19053'], ['Magdeburg', '39104'], ['Halle (Saale)', '06108']] }
+/**
+ * Umfangreiche, flächendeckende Demodaten.
+ * Hierarchie: Channel „Digital" → Vertriebsgruppe (Nord/Ost/Süd) →
+ * Vertriebsbezirk (viele, je eine Farbe). Jeder Bezirk ist ein zusammenhängendes
+ * Gebiet aus mehreren Landkreisen – realisiert über eine Nächster-Anker-Zuordnung
+ * (Voronoi) aller echten deutschen PLZ zu Bezirks-Ankern. So füllt sich ganz
+ * Deutschland; die Färbung hängt am Vertriebsbezirk.
+ */
+export async function demoCustomers() {
+    const centroids = await loadPlzCentroids();
+
+    // Bezirks-Anker (Name, Vertriebsgruppe, optionaler VB, Position)
+    const anchors = [
+        // Nord (inkl. West)
+        { name: 'Bezirk Hamburg-Küste',   gruppe: 'Nord', vb: 'Lena Krüger',    lat: 53.55, lng: 9.99 },
+        { name: 'Bezirk Bremen-Weser',    gruppe: 'Nord', vb: '',               lat: 53.08, lng: 8.80 },
+        { name: 'Bezirk Hannover-Leine',  gruppe: 'Nord', vb: 'Jonas Weber',    lat: 52.37, lng: 9.73 },
+        { name: 'Bezirk Ruhr-Dortmund',   gruppe: 'Nord', vb: 'Max Mustermann', lat: 51.51, lng: 7.47 },
+        { name: 'Bezirk Rheinland-Köln',  gruppe: 'Nord', vb: 'Max Mustermann', lat: 50.94, lng: 6.96 },
+        // Ost
+        { name: 'Bezirk Berlin-Spree',    gruppe: 'Ost',  vb: 'Tim Schulz',     lat: 52.52, lng: 13.40 },
+        { name: 'Bezirk Rostock-Ostsee',  gruppe: 'Ost',  vb: '',               lat: 54.09, lng: 12.13 },
+        { name: 'Bezirk Magdeburg-Elbe',  gruppe: 'Ost',  vb: 'Tim Schulz',     lat: 52.13, lng: 11.63 },
+        { name: 'Bezirk Leipzig-Sachsen', gruppe: 'Ost',  vb: 'Nina Hoffmann',  lat: 51.34, lng: 12.37 },
+        { name: 'Bezirk Dresden-Elbland', gruppe: 'Ost',  vb: 'Nina Hoffmann',  lat: 51.05, lng: 13.74 },
+        // Süd (inkl. Mitte)
+        { name: 'Bezirk Frankfurt-Main',  gruppe: 'Süd',  vb: 'Sofia Richter',  lat: 50.11, lng: 8.68 },
+        { name: 'Bezirk Stuttgart-Neckar', gruppe: 'Süd', vb: 'Sofia Richter',  lat: 48.78, lng: 9.18 },
+        { name: 'Bezirk Freiburg-Schwarzwald', gruppe: 'Süd', vb: '',           lat: 48.00, lng: 7.85 },
+        { name: 'Bezirk Franken-Nürnberg', gruppe: 'Süd', vb: 'Anna Beispiel',  lat: 49.45, lng: 11.08 },
+        { name: 'Bezirk München-Oberbayern', gruppe: 'Süd', vb: 'Anna Beispiel', lat: 48.14, lng: 11.58 }
     ];
 
-    const typen = ['Autohaus', 'Bäckerei', 'Metallbau', 'Getränke', 'MedTech', 'Baustoffe', 'Elektro', 'Logistik', 'Hotel', 'Feinkost', 'Werkzeuge', 'Maschinenbau', 'Sanitär', 'Druckerei', 'Gartenbau'];
-    const strassen = ['Industriestr.', 'Hauptstr.', 'Bahnhofstr.', 'Marktplatz', 'Gewerbepark'];
-    const gruppen = ['Handel', 'Handwerk', 'Industrie', 'Lebensmittel'];
-    const channelByGruppe = { Handel: 'Fachhandel', Lebensmittel: 'Fachhandel', Handwerk: 'Direktvertrieb', Industrie: 'Key Account' };
-    const umsatzChoices = [28000, 39000, 54000, 72000, 96000, 133000, 175000, 210000, 265000, 340000];
-    const rhythmChoices = [4, 6, 6, 8, 12];
-    // Tage seit letztem Besuch – gemischt, damit Status ok/fällig/überfällig sichtbar wird
-    const daysAgoChoices = [7, 20, 45, 70, 110, null];
-
-    const rows = [];
-    for (const b of bezirke) {
-        b.cities.forEach(([ort, plz], ci) => {
-            rows.push({ ort, plz, vb: b.vb, bezirk: b.name, ci });
-        });
+    // Jede PLZ dem nächstgelegenen Anker zuordnen (Voronoi -> zusammenhängende Bezirke)
+    const pools = anchors.map(() => []);
+    for (const plz in centroids) {
+        const [la, ln] = centroids[plz];
+        let best = 0, bestD = Infinity;
+        for (let a = 0; a < anchors.length; a++) {
+            const dl = la - anchors[a].lat, dn = ln - anchors[a].lng;
+            const d = dl * dl + dn * dn;
+            if (d < bestD) { bestD = d; best = a; }
+        }
+        pools[best].push(plz);
     }
 
-    return rows.map((r, i) => {
-        const gruppe = gruppen[i % gruppen.length];
-        const name = `${typen[i % typen.length]} ${r.ort}${r.ci % 2 ? ' II' : ''}`;
-        const daysAgo = daysAgoChoices[i % daysAgoChoices.length];
-        let besuche = [];
-        if (daysAgo !== null) {
-            const d = new Date();
-            d.setDate(d.getDate() - daysAgo);
-            besuche = [d.toISOString().slice(0, 10)];
+    // Deterministischer Pseudo-Zufall, damit die Demo bei jedem Laden gleich aussieht
+    let seed = 0x9e3779b9;
+    const rnd = () => { seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+
+    const branchen = ['Autohaus', 'Bäckerei', 'Metallbau', 'Getränke', 'MedTech', 'Baustoffe', 'Elektro', 'Logistik', 'Hotel', 'Feinkost', 'Werkzeuge', 'Maschinenbau', 'Sanitär', 'Druckerei', 'Gartenbau', 'Fliesen', 'Dachdecker', 'Kfz-Service', 'Textil', 'Optik'];
+    const namen = ['Müller', 'Schmidt', 'Schneider', 'Fischer', 'Weber', 'Meyer', 'Wagner', 'Becker', 'Schulz', 'Hoffmann', 'Koch', 'Bauer', 'Richter', 'Klein', 'Wolf', 'Neumann', 'Zimmermann', 'Braun', 'Krüger', 'Hartmann', 'Lange', 'Werner', 'Krause', 'Lehmann', 'Köhler', 'Herrmann', 'König', 'Walter', 'Peters', 'Jung'];
+    const rechtsform = [' GmbH', ' KG', ' e.K.', ' GmbH & Co. KG', ' AG', '', ' OHG'];
+    const strassen = ['Industriestr.', 'Hauptstr.', 'Bahnhofstr.', 'Marktplatz', 'Gewerbepark', 'Ringstr.', 'Am Hafen'];
+    const umsatzChoices = [24000, 33000, 48000, 61000, 79000, 104000, 138000, 176000, 224000, 295000, 360000];
+    const rhythmChoices = [4, 6, 6, 8, 12];
+    const daysAgoChoices = [7, 20, 45, 70, 110, null];
+
+    const PER_BEZIRK = 150;
+    const out = [];
+    let i = 0;
+    anchors.forEach((anchor, ai) => {
+        const pool = pools[ai];
+        if (pool.length === 0) return;
+        for (let n = 0; n < PER_BEZIRK; n++) {
+            const plz = pool[Math.floor(rnd() * pool.length)];
+            const name = `${pick(branchen)} ${pick(namen)}${pick(rechtsform)}`;
+            const daysAgo = daysAgoChoices[i % daysAgoChoices.length];
+            let besuche = [];
+            if (daysAgo !== null) {
+                const d = new Date();
+                d.setDate(d.getDate() - daysAgo);
+                besuche = [d.toISOString().slice(0, 10)];
+            }
+            out.push({
+                id: `demo-${i}`,
+                nummer: String(20000 + i),
+                name,
+                strasse: `${pick(strassen)} ${1 + Math.floor(rnd() * 120)}`,
+                plz,
+                ort: '',
+                vb: anchor.vb,
+                channel: 'Digital',
+                gruppe: anchor.gruppe,
+                bezirk: anchor.name,
+                ansprechpartner: '',
+                telefon: `0${1500 + (i % 8000)} ${100000 + i * 137}`,
+                email: `info@${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24)}-${i}.de`,
+                umsatz: pick(umsatzChoices),
+                rhythmusWochen: rhythmChoices[i % rhythmChoices.length],
+                besuche,
+                lat: null, lng: null, geo: 'none'
+            });
+            i++;
         }
-        return {
-            id: `demo-${i}`,
-            nummer: String(20000 + i),
-            name,
-            strasse: `${strassen[i % strassen.length]} ${(i % 80) + 1}`,
-            plz: r.plz,
-            ort: r.ort,
-            vb: r.vb,
-            channel: channelByGruppe[gruppe],
-            gruppe,
-            bezirk: r.bezirk,
-            ansprechpartner: '',
-            telefon: `0${1500 + i} ${100000 + i * 137}`,
-            email: `info@${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24)}.de`,
-            umsatz: umsatzChoices[(i * 7) % umsatzChoices.length],
-            rhythmusWochen: rhythmChoices[i % rhythmChoices.length],
-            besuche,
-            lat: null, lng: null, geo: 'none'
-        };
     });
+    return out;
 }

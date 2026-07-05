@@ -150,6 +150,14 @@
             <section id="tab-tour" class="tab-panel">
                 <h2>Besuchsplaner</h2>
 
+                <!-- Schritt 0: eigenen Bezirk wählen (fokussiert die Tourplanung) -->
+                <div id="tour-scope" class="tour-scope">
+                    <label class="field-label" for="tour-bezirk">Für welchen Bezirk planst du?</label>
+                    <select id="tour-bezirk"></select>
+                    <p class="muted small">Wähle deinen Vertriebsbezirk – GeoFuchs schlägt dann nur Kunden aus <b>diesem</b> Gebiet für deine Tour vor. Start, Ziel und Route legst du danach fest. („Alle Bezirke" zeigt sämtliche Kunden.)</p>
+                </div>
+
+                <div id="tour-planner" hidden>
                 <button id="btn-nearby" class="primary btn-nearby">📍 Was ist in meiner Nähe?</button>
                 <div class="aussen-view-block">
                     <span class="field-label">Kartenansicht</span>
@@ -208,6 +216,7 @@
                     <button id="btn-tour-save" disabled>💾</button>
                 </div>
                 <div id="saved-tours"></div>
+                </div><!-- /#tour-planner -->
             </section>
         </aside>
 
