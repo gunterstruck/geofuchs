@@ -130,6 +130,10 @@ async function confirmImport() {
         showToast('Ohne PLZ (oder Koordinaten) können Kunden nicht auf der Karte verortet werden.', 'error');
         return;
     }
+    if (!mapping.bezirk) {
+        showToast('Bitte die Spalte „Betriebsbezirk" zuordnen – sie ist Pflicht.', 'error');
+        return;
+    }
 
     const { rowsToCustomers } = await excel();
     const { customers, skipped } = rowsToCustomers(parsed.rows, mapping);

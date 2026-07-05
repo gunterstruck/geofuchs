@@ -41,15 +41,15 @@ und können beim Import manuell zugeordnet werden. Empfohlene Spalten:
 | PLZ | ✅ (für die Karte) | 50667 |
 | Straße & Hausnummer | – | Hauptstraße 12 |
 | Ort | – | Köln |
+| Betriebsbezirk | ✅ | Bezirk Rheinland |
 | Vertriebsbeauftragter | – | Max Mustermann |
 | Vertriebschannel | – | Fachhandel |
 | Vertriebsgruppe | – | Handel |
-| Betriebsbezirk | – | Bezirk West |
 | Ansprechpartner, Telefon, E-Mail | – | Herr Schmidt · 0221 123456 |
 | Besuchsrhythmus (Wochen), Letzter Besuch | – | 6 · 12.05.2026 |
 | Kundennummer, Umsatz, Lat/Lng | – | optional |
 
-Die drei Ebenen **Vertriebschannel › Vertriebsgruppe › Betriebsbezirk** bilden eine Hierarchie (oben → unten) und sind jeweils optional – fehlt eine Spalte (z. B. der oberste Channel), ist das unproblematisch, die Ebene wird einfach nicht angezeigt.
+Die drei Ebenen **Vertriebschannel › Vertriebsgruppe › Betriebsbezirk** bilden eine Hierarchie (oben → unten). Der **Betriebsbezirk** (unterste, operative Ebene) ist Pflicht; Vertriebschannel, Vertriebsgruppe und der Vertriebsbeauftragte sind optional – fehlt eine dieser optionalen Spalten, wird die Ebene einfach nicht angezeigt. Im Gebiets-Cockpit lässt sich wahlweise nach **Vertriebsbeauftragtem oder Betriebsbezirk** (bzw. Gruppe/Channel) auswerten und zuweisen.
 
 Eine fertige Vorlage gibt es in der App unter **Daten → Excel-Vorlage herunterladen**.
 

@@ -193,17 +193,17 @@
                 <h2>📊 Gebiets-Cockpit</h2>
                 <button class="dialog-close" aria-label="Schließen">✕</button>
             </header>
-            <p class="muted small">Kennzahlen je Vertriebsbeauftragtem. Weisen Sie unten ein Gebiet der aktuellen Ebene testweise einem anderen Vertriebsbeauftragten zu – die Werte aktualisieren sich sofort (Simulation, ändert Ihre Daten nicht).</p>
+            <p class="muted small">Kennzahlen je Vertriebsbeauftragtem bzw. Betriebsbezirk. Weisen Sie unten ausgewählte Gebiete testweise einem anderen Ziel zu – die Werte aktualisieren sich sofort (Simulation, ändert Ihre Daten nicht).</p>
             <div id="cockpit-summary"></div>
             <div class="table-scroll">
                 <table class="cockpit-table">
-                    <thead><tr><th>Vertriebsbeauftragte(r)</th><th>Kunden</th><th>Umsatz</th><th>Auslastung</th></tr></thead>
+                    <thead><tr><th id="cockpit-attr-head">Vertriebsbeauftragte(r)</th><th>Kunden</th><th>Umsatz</th><th>Auslastung</th></tr></thead>
                     <tbody id="cockpit-rows"></tbody>
                 </table>
             </div>
 
             <h3>Was-wäre-wenn: Gebiete zuweisen</h3>
-            <p class="muted small">Filtern Sie die Gebiete, wählen Sie eine oder mehrere aus (z. B. mehrere Landkreise oder alle PLZ 52xxx) und weisen Sie die gefilterten Kunden testweise einem anderen Vertriebsbeauftragten zu.</p>
+            <p class="muted small">Filtern Sie die Gebiete, wählen Sie eine oder mehrere aus (z. B. mehrere Landkreise oder alle PLZ 52xxx) und weisen Sie die gefilterten Kunden testweise einem anderen Vertriebsbeauftragten oder Betriebsbezirk zu.</p>
             <div class="sim-filters">
                 <label class="sim-field">Ebene
                     <select id="sim-level"></select>
@@ -222,7 +222,10 @@
             </div>
             <div id="sim-region-list" class="scroll-list sim-region-list"></div>
             <div class="sim-assign">
-                <label class="sim-field">Zuweisen an
+                <label class="sim-field">Zuweisen als
+                    <select id="sim-assign-attr"></select>
+                </label>
+                <label class="sim-field">Ziel
                     <select id="sim-rep"></select>
                 </label>
                 <button id="sim-apply" class="primary">Auswahl zuweisen</button>
