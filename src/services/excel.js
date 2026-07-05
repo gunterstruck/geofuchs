@@ -307,59 +307,44 @@ export function exportCustomers(customers) {
  * Spalten: [name, straße, plz, ort, vb, gruppe, umsatz, bezirk]
  */
 export function demoCustomers() {
-    const data = [
-        // Max Mustermann – Bezirk Rheinland (Köln/Bonn/Düsseldorf/Leverkusen)
-        ['Autohaus Schmidt GmbH', 'Hauptstraße 12', '50667', 'Köln', 'Max Mustermann', 'Handel', 125000, 'Bezirk Rheinland'],
-        ['Sanitär Krause', 'Ehrenfeldgürtel 99', '50823', 'Köln', 'Max Mustermann', 'Handwerk', 43000, 'Bezirk Rheinland'],
-        ['Bonner Medizintechnik', 'Adenauerallee 8', '53111', 'Bonn', 'Max Mustermann', 'Industrie', 188000, 'Bezirk Rheinland'],
-        ['Metallbau Peters', 'Bahnhofstr. 5', '40210', 'Düsseldorf', 'Max Mustermann', 'Industrie', 210000, 'Bezirk Rheinland'],
-        ['Rhein Getränke Bayer', 'Kölner Str. 4', '51373', 'Leverkusen', 'Max Mustermann', 'Lebensmittel', 72000, 'Bezirk Rheinland'],
-        // Max Mustermann – Bezirk Ruhrgebiet (Essen/Bochum/Dortmund/Duisburg)
-        ['Getränke Vogel', 'Ruhrallee 20', '45127', 'Essen', 'Max Mustermann', 'Handel', 66000, 'Bezirk Ruhrgebiet'],
-        ['Dachdecker Lorenz', 'Kortumstr. 45', '44787', 'Bochum', 'Max Mustermann', 'Handwerk', 38000, 'Bezirk Ruhrgebiet'],
-        ['Westfalen Stahl', 'Hafenstr. 30', '44137', 'Dortmund', 'Max Mustermann', 'Industrie', 245000, 'Bezirk Ruhrgebiet'],
-        ['Logistik Brandt', 'Hafenstr. 1', '47051', 'Duisburg', 'Max Mustermann', 'Industrie', 175000, 'Bezirk Ruhrgebiet'],
-
-        // Anna Beispiel – Bezirk Oberbayern (München/Augsburg/Ingolstadt/Rosenheim)
-        ['Bäckerei Müller KG', 'Marktplatz 3', '80331', 'München', 'Anna Beispiel', 'Lebensmittel', 48000, 'Bezirk Oberbayern'],
-        ['Metzgerei Alt', 'Sendlinger Str. 21', '81667', 'München', 'Anna Beispiel', 'Lebensmittel', 39000, 'Bezirk Oberbayern'],
-        ['Maschinen Sailer', 'Industriestr. 14', '86150', 'Augsburg', 'Anna Beispiel', 'Industrie', 320000, 'Bezirk Oberbayern'],
-        ['Audi-Zulieferer Ingol', 'Ringstr. 2', '85049', 'Ingolstadt', 'Anna Beispiel', 'Industrie', 410000, 'Bezirk Oberbayern'],
-        ['Hotel Alpenblick', 'Seepromenade 9', '83022', 'Rosenheim', 'Anna Beispiel', 'Handel', 74000, 'Bezirk Oberbayern'],
-        // Anna Beispiel – Bezirk Franken (Nürnberg/Fürth/Erlangen/Würzburg)
-        ['Autoteile Nürnberg', 'Fürther Str. 88', '90402', 'Nürnberg', 'Anna Beispiel', 'Handel', 118000, 'Bezirk Franken'],
-        ['Spielwaren Fürth', 'Schwabacher Str. 5', '90762', 'Fürth', 'Anna Beispiel', 'Handel', 54000, 'Bezirk Franken'],
-        ['MedTech Erlangen', 'Henkestr. 40', '91052', 'Erlangen', 'Anna Beispiel', 'Industrie', 275000, 'Bezirk Franken'],
-        ['Weinkellerei Würzburg', 'Zeller Str. 3', '97070', 'Würzburg', 'Anna Beispiel', 'Lebensmittel', 63000, 'Bezirk Franken'],
-
-        // Lena Krüger – Bezirk Küste (Hamburg/Bremen/Kiel/Lübeck)
-        ['Hafen Service Nord', 'Am Sandtorkai 40', '20095', 'Hamburg', 'Lena Krüger', 'Industrie', 265000, 'Bezirk Küste'],
-        ['Fisch Feinkost Petersen', 'Fischmarkt 11', '22767', 'Hamburg', 'Lena Krüger', 'Lebensmittel', 58000, 'Bezirk Küste'],
-        ['Baustoffe Lüders', 'Industriering 6', '28195', 'Bremen', 'Lena Krüger', 'Handel', 133000, 'Bezirk Küste'],
-        ['Kieler Segelservice', 'Kaistr. 30', '24103', 'Kiel', 'Lena Krüger', 'Handwerk', 27000, 'Bezirk Küste'],
-        ['Druckerei Nordlicht', 'Papierweg 3', '23552', 'Lübeck', 'Lena Krüger', 'Industrie', 88000, 'Bezirk Küste'],
-        // Lena Krüger – Bezirk Ost (Berlin/Potsdam/Leipzig/Dresden)
-        ['Berlin Bio Markt', 'Prenzlauer Allee 200', '10115', 'Berlin', 'Lena Krüger', 'Lebensmittel', 61000, 'Bezirk Ost'],
-        ['Spree Elektro', 'Karl-Marx-Str. 60', '12043', 'Berlin', 'Lena Krüger', 'Handwerk', 49000, 'Bezirk Ost'],
-        ['Havel Handwerk Potsdam', 'Zeppelinstr. 9', '14467', 'Potsdam', 'Lena Krüger', 'Handwerk', 36000, 'Bezirk Ost'],
-        ['Leipziger Kaffeehaus', 'Grimmaische Str. 10', '04109', 'Leipzig', 'Lena Krüger', 'Lebensmittel', 33000, 'Bezirk Ost'],
-        ['Sächsische Werkzeuge', 'Könneritzstr. 25', '01067', 'Dresden', 'Lena Krüger', 'Industrie', 142000, 'Bezirk Ost'],
-
-        // Bezirk Südwest – (noch) keinem Vertriebsbeauftragten zugeordnet:
-        // ein Bezirk ist üblicherweise mit einem VB verknüpft, muss es aber nicht.
-        ['Kessler Präzision', 'Neckarstr. 12', '70173', 'Stuttgart', '', 'Industrie', 195000, 'Bezirk Südwest'],
-        ['Baden Weinhandel', 'Kaiserstr. 40', '76133', 'Karlsruhe', '', 'Lebensmittel', 58000, 'Bezirk Südwest'],
-        ['Schwarzwald Werkzeug', 'Bertoldstr. 7', '79098', 'Freiburg', '', 'Handwerk', 41000, 'Bezirk Südwest']
+    // Bezirke (mit optionalem VB) und Städte quer über ganz Deutschland –
+    // ein Bezirk ist üblicherweise, aber nicht zwingend, mit einem VB verknüpft.
+    const bezirke = [
+        { name: 'Bezirk Rheinland', vb: 'Max Mustermann', cities: [['Köln', '50667'], ['Bonn', '53111'], ['Düsseldorf', '40210'], ['Leverkusen', '51373'], ['Aachen', '52062'], ['Mönchengladbach', '41061']] },
+        { name: 'Bezirk Ruhrgebiet', vb: 'Max Mustermann', cities: [['Essen', '45127'], ['Bochum', '44787'], ['Dortmund', '44137'], ['Duisburg', '47051'], ['Gelsenkirchen', '45879']] },
+        { name: 'Bezirk Westfalen', vb: 'Jonas Weber', cities: [['Münster', '48143'], ['Bielefeld', '33602'], ['Paderborn', '33098'], ['Siegen', '57072']] },
+        { name: 'Bezirk Niedersachsen', vb: 'Jonas Weber', cities: [['Hannover', '30159'], ['Braunschweig', '38100'], ['Osnabrück', '49074'], ['Göttingen', '37073'], ['Oldenburg', '26122']] },
+        { name: 'Bezirk Küste', vb: 'Lena Krüger', cities: [['Hamburg', '20095'], ['Bremen', '28195'], ['Kiel', '24103'], ['Lübeck', '23552'], ['Flensburg', '24937']] },
+        { name: 'Bezirk Berlin-Brandenburg', vb: 'Tim Schulz', cities: [['Berlin-Mitte', '10115'], ['Berlin-Neukölln', '12043'], ['Potsdam', '14467'], ['Cottbus', '03046'], ['Frankfurt (Oder)', '15230']] },
+        { name: 'Bezirk Sachsen-Thüringen', vb: 'Tim Schulz', cities: [['Leipzig', '04109'], ['Dresden', '01067'], ['Chemnitz', '09111'], ['Erfurt', '99084'], ['Jena', '07743']] },
+        { name: 'Bezirk Hessen', vb: 'Sofia Richter', cities: [['Frankfurt am Main', '60311'], ['Wiesbaden', '65183'], ['Kassel', '34117'], ['Darmstadt', '64283'], ['Gießen', '35390']] },
+        { name: 'Bezirk Baden-Württemberg', vb: 'Sofia Richter', cities: [['Stuttgart', '70173'], ['Karlsruhe', '76133'], ['Mannheim', '68159'], ['Freiburg', '79098'], ['Ulm', '89073'], ['Heilbronn', '74072']] },
+        { name: 'Bezirk Oberbayern', vb: 'Anna Beispiel', cities: [['München', '80331'], ['Augsburg', '86150'], ['Ingolstadt', '85049'], ['Rosenheim', '83022'], ['Landshut', '84028']] },
+        { name: 'Bezirk Franken', vb: 'Anna Beispiel', cities: [['Nürnberg', '90402'], ['Fürth', '90762'], ['Erlangen', '91052'], ['Würzburg', '97070'], ['Bamberg', '96047'], ['Regensburg', '93047']] },
+        // Bezirke ohne VB – zeigt „Bezirk ohne VB" und weiße Flecken bei der VB-Sicht
+        { name: 'Bezirk Südwest', vb: '', cities: [['Saarbrücken', '66111'], ['Koblenz', '56068'], ['Trier', '54290'], ['Mainz', '55116'], ['Kaiserslautern', '67655']] },
+        { name: 'Bezirk Nordost', vb: '', cities: [['Rostock', '18055'], ['Schwerin', '19053'], ['Magdeburg', '39104'], ['Halle (Saale)', '06108']] }
     ];
+
+    const typen = ['Autohaus', 'Bäckerei', 'Metallbau', 'Getränke', 'MedTech', 'Baustoffe', 'Elektro', 'Logistik', 'Hotel', 'Feinkost', 'Werkzeuge', 'Maschinenbau', 'Sanitär', 'Druckerei', 'Gartenbau'];
+    const strassen = ['Industriestr.', 'Hauptstr.', 'Bahnhofstr.', 'Marktplatz', 'Gewerbepark'];
+    const gruppen = ['Handel', 'Handwerk', 'Industrie', 'Lebensmittel'];
+    const channelByGruppe = { Handel: 'Fachhandel', Lebensmittel: 'Fachhandel', Handwerk: 'Direktvertrieb', Industrie: 'Key Account' };
+    const umsatzChoices = [28000, 39000, 54000, 72000, 96000, 133000, 175000, 210000, 265000, 340000];
     const rhythmChoices = [4, 6, 6, 8, 12];
     // Tage seit letztem Besuch – gemischt, damit Status ok/fällig/überfällig sichtbar wird
     const daysAgoChoices = [7, 20, 45, 70, 110, null];
 
-    // Vertriebschannel (oberste Ebene) aus der Gruppe abgeleitet
-    const channelByGruppe = { Handel: 'Fachhandel', Lebensmittel: 'Fachhandel', Handwerk: 'Direktvertrieb', Industrie: 'Key Account' };
+    const rows = [];
+    for (const b of bezirke) {
+        b.cities.forEach(([ort, plz], ci) => {
+            rows.push({ ort, plz, vb: b.vb, bezirk: b.name, ci });
+        });
+    }
 
-    return data.map(([name, strasse, plz, ort, vb, gruppe, umsatz, bezirk], i) => {
-        const rhythmusWochen = rhythmChoices[i % rhythmChoices.length];
+    return rows.map((r, i) => {
+        const gruppe = gruppen[i % gruppen.length];
+        const name = `${typen[i % typen.length]} ${r.ort}${r.ci % 2 ? ' II' : ''}`;
         const daysAgo = daysAgoChoices[i % daysAgoChoices.length];
         let besuche = [];
         if (daysAgo !== null) {
@@ -370,15 +355,19 @@ export function demoCustomers() {
         return {
             id: `demo-${i}`,
             nummer: String(20000 + i),
-            name, strasse, plz, ort, vb,
-            channel: channelByGruppe[gruppe] ?? 'Direktvertrieb',
+            name,
+            strasse: `${strassen[i % strassen.length]} ${(i % 80) + 1}`,
+            plz: r.plz,
+            ort: r.ort,
+            vb: r.vb,
+            channel: channelByGruppe[gruppe],
             gruppe,
-            bezirk,
+            bezirk: r.bezirk,
             ansprechpartner: '',
-            telefon: `0${(1500 + i)} ${100000 + i * 137}`,
-            email: `info@${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 20)}.de`,
-            umsatz,
-            rhythmusWochen,
+            telefon: `0${1500 + i} ${100000 + i * 137}`,
+            email: `info@${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24)}.de`,
+            umsatz: umsatzChoices[(i * 7) % umsatzChoices.length],
+            rhythmusWochen: rhythmChoices[i % rhythmChoices.length],
             besuche,
             lat: null, lng: null, geo: 'none'
         };
