@@ -227,6 +227,7 @@ export function initSidebar() {
     // Exakte Geocodierung (Nominatim)
     document.getElementById('btn-geocode').addEventListener('click', toggleExactGeocoding);
 
+    initTeamFilters();
     on('customers:changed', () => { renderDataStatus(); renderTeamFilters(); renderLegend(); });
     on('filters:changed', renderDataStatus);
     renderDataStatus();
@@ -437,104 +438,162 @@ function countBy(field) {
     return counts;
 }
 
-function renderTeamFilters() {
-    const repsEl = document.getElementById('rep-filters');
-    const dimsEl = document.getElementById('dim-filters');
+const COLLAPSE_THRESHOLD = 8;  // ab so vielen Werten standardmäßig eingeklappt
+const SEARCH_THRESHOLD = 8;    // ab so vielen Werten ein Suchfeld zeigen
+const ROW_CAP = 60;            // max. gerenderte Zeilen je Ebene
+const filterUI = { expanded: {}, search: {}, wired: false };
 
-    if (state.reps.size === 0) {
-        repsEl.innerHTML = '<p class="muted">Keine Daten geladen.</p>';
-        dimsEl.innerHTML = '';
-        return;
-    }
-
-    // Vertriebsbeauftragte (mit anpassbarer Farbe)
-    const repCounts = countBy('vb');
-    repsEl.innerHTML = [...state.reps.entries()].map(([name, rep]) => `
-        <label class="filter-row">
-            <input type="checkbox" data-rep="${escapeHtml(name)}" ${rep.visible ? 'checked' : ''}>
-            <input type="color" class="color-dot" data-repcolor="${escapeHtml(name)}" value="${toHexColor(rep.color)}" title="Farbe von „${escapeHtml(name)}" ändern" aria-label="Farbe ändern">
-            <span class="filter-name">${escapeHtml(name)}</span>
-            <span class="count">${repCounts.get(name) ?? 0}</span>
-        </label>`).join('') + `
-        <div class="filter-bulk">
-            <button type="button" data-bulk-rep="1">Alle</button>
-            <button type="button" data-bulk-rep="0">Keine</button>
-        </div>`;
-
-    repsEl.querySelectorAll('input[data-rep]').forEach((cb) => {
-        cb.addEventListener('change', () => {
-            state.reps.get(cb.dataset.rep).visible = cb.checked;
-            emit('filters:changed');
-            persistSettings();
-        });
-    });
-    repsEl.querySelectorAll('input[data-repcolor]').forEach((ci) => {
-        ci.addEventListener('input', () => {
-            const rep = state.reps.get(ci.dataset.repcolor);
-            if (rep) rep.color = ci.value;
-            renderLegend();
-            emit('filters:changed');
-            persistSettings();
-        });
-    });
-    repsEl.querySelectorAll('[data-bulk-rep]').forEach((btn) => btn.addEventListener('click', () => {
-        const value = btn.dataset.bulkRep === '1';
-        state.reps.forEach((v) => { v.visible = value; });
-        repsEl.querySelectorAll('input[data-rep]').forEach((cb) => { cb.checked = value; });
-        emit('filters:changed');
-        persistSettings();
-    }));
-
-    // Vertriebshierarchie (nur aktive Ebenen: Channel -> Gruppe -> Bezirk)
-    const dims = activeDims();
-    if (dims.length === 0) {
-        dimsEl.innerHTML = '<p class="muted small">Keine Hierarchie-Ebenen in den Daten. Ergänzen Sie in der Excel-Liste optional die Spalten Vertriebschannel, Vertriebsgruppe oder Betriebsbezirk.</p>';
-        return;
-    }
-
-    dimsEl.innerHTML = dims.map((dim) => {
+/** Filter-Ebenen: Vertriebsbeauftragte + aktive Hierarchie-Ebenen */
+function filterSections() {
+    const sections = [{ id: 'vb', label: 'Vertriebsbeauftragte', field: 'vb', entries: [...state.reps.entries()] }];
+    for (const dim of activeDims()) {
         const def = DIMENSIONS.find((d) => d.field === dim.field);
-        const counts = countBy(dim.field);
-        const rows = [...dim.values.entries()].map(([name, v]) => `
-            <label class="filter-row">
-                <input type="checkbox" data-dim="${def.id}" data-value="${escapeHtml(name)}" ${v.visible ? 'checked' : ''}>
-                <input type="color" class="color-dot" data-dimcolor="${def.id}" data-value="${escapeHtml(name)}" value="${toHexColor(v.color)}" title="Farbe von „${escapeHtml(name)}" ändern" aria-label="Farbe ändern">
-                <span class="filter-name">${escapeHtml(name)}</span>
-                <span class="count">${counts.get(name) ?? 0}</span>
-            </label>`).join('');
-        return `<div class="dim-block">
-            <h3>${escapeHtml(dim.label)}</h3>
-            ${rows}
-            <div class="filter-bulk">
-                <button type="button" data-bulk-dim="${def.id}" data-on="1">Alle</button>
-                <button type="button" data-bulk-dim="${def.id}" data-on="0">Keine</button>
-            </div>
-        </div>`;
-    }).join('');
+        sections.push({ id: def.id, label: dim.label, field: dim.field, entries: [...dim.values.entries()] });
+    }
+    return sections;
+}
 
-    dimsEl.querySelectorAll('input[data-dim]').forEach((cb) => {
-        cb.addEventListener('change', () => {
-            const entry = state.dims[cb.dataset.dim]?.values.get(cb.dataset.value);
+/** Wert-Eintrag ({visible,color}) einer Ebene holen */
+function sectionEntry(sectionId, value) {
+    return sectionId === 'vb' ? state.reps.get(value) : state.dims[sectionId]?.values.get(value);
+}
+
+function sectionCounts(section, visN) {
+    const total = section.entries.length;
+    return visN === total ? `alle · ${total}` : `${visN}/${total}`;
+}
+
+function renderRows(section, counts, search) {
+    const q = search.trim().toLowerCase();
+    let entries = section.entries;
+    if (q) entries = entries.filter(([name]) => name.toLowerCase().includes(q));
+    const shown = entries.slice(0, ROW_CAP);
+    const rows = shown.map(([name, v]) => `
+        <label class="filter-row">
+            <input type="checkbox" data-filter="${section.id}" data-value="${escapeHtml(name)}" ${v.visible ? 'checked' : ''}>
+            <input type="color" class="color-dot" data-color="${section.id}" data-value="${escapeHtml(name)}" value="${toHexColor(v.color)}" title="Farbe von „${escapeHtml(name)}" ändern" aria-label="Farbe ändern">
+            <span class="filter-name">${escapeHtml(name)}</span>
+            <span class="count">${counts.get(name) ?? 0}</span>
+        </label>`).join('');
+    const more = entries.length > ROW_CAP ? `<p class="muted small">… ${entries.length - ROW_CAP} weitere – bitte oben filtern.</p>` : '';
+    const none = entries.length === 0 ? '<p class="muted small">Kein Treffer.</p>' : '';
+    return rows + more + none;
+}
+
+function renderSection(section) {
+    const counts = countBy(section.field);
+    const total = section.entries.length;
+    const visN = section.entries.filter(([, v]) => v.visible).length;
+    const expanded = !!filterUI.expanded[section.id];
+    const search = filterUI.search[section.id] || '';
+    const body = expanded ? `<div class="filter-body">
+        ${total > SEARCH_THRESHOLD ? `<input type="search" class="filter-search" data-search="${section.id}" placeholder="in „${escapeHtml(section.label)}" filtern…" value="${escapeHtml(search)}" autocomplete="off">` : ''}
+        <div class="filter-rows" data-rows="${section.id}">${renderRows(section, counts, search)}</div>
+        <div class="filter-bulk">
+            <button type="button" data-bulk="${section.id}" data-on="1">Alle</button>
+            <button type="button" data-bulk="${section.id}" data-on="0">Keine</button>
+        </div>
+    </div>` : '';
+    return `<div class="filter-section">
+        <button type="button" class="filter-head" data-toggle="${section.id}" aria-expanded="${expanded}">
+            <span class="fh-caret">${expanded ? '▾' : '▸'}</span>
+            <span class="fh-label">${escapeHtml(section.label)}</span>
+            <span class="fh-badge${visN === total ? '' : ' partial'}">${sectionCounts(section, visN)}</span>
+        </button>
+        ${body}
+    </div>`;
+}
+
+function renderTeamFilters() {
+    const host = document.getElementById('team-filters');
+    if (!host) return;
+    if (state.reps.size === 0) {
+        host.innerHTML = '<p class="muted">Keine Daten geladen.</p>';
+        return;
+    }
+    const sections = filterSections();
+    for (const s of sections) {
+        if (filterUI.expanded[s.id] === undefined) filterUI.expanded[s.id] = s.entries.length <= COLLAPSE_THRESHOLD;
+    }
+    let html = sections.map(renderSection).join('');
+    if (sections.length === 1) {
+        html += '<p class="muted small">Keine Hierarchie-Ebenen in den Daten. Ergänzen Sie in der Excel-Liste optional die Spalten Vertriebschannel, Vertriebsgruppe oder Betriebsbezirk.</p>';
+    }
+    host.innerHTML = html;
+}
+
+/** Nur die Zeilen einer Ebene neu zeichnen (beim Tippen im Suchfeld – hält den Fokus) */
+function renderSectionRows(sectionId) {
+    const section = filterSections().find((s) => s.id === sectionId);
+    const container = document.querySelector(`.filter-rows[data-rows="${sectionId}"]`);
+    if (section && container) container.innerHTML = renderRows(section, countBy(section.field), filterUI.search[sectionId] || '');
+}
+
+/** Badge (sichtbar/gesamt) einer Ebene aktualisieren, ohne alles neu zu zeichnen */
+function updateSectionBadge(sectionId) {
+    const section = filterSections().find((s) => s.id === sectionId);
+    const head = document.querySelector(`.filter-head[data-toggle="${sectionId}"] .fh-badge`);
+    if (!section || !head) return;
+    const visN = section.entries.filter(([, v]) => v.visible).length;
+    head.textContent = sectionCounts(section, visN);
+    head.classList.toggle('partial', visN !== section.entries.length);
+}
+
+function setSectionBulk(sectionId, value) {
+    const section = filterSections().find((s) => s.id === sectionId);
+    if (!section) return;
+    const q = (filterUI.search[sectionId] || '').trim().toLowerCase();
+    for (const [name, v] of section.entries) {
+        if (q && !name.toLowerCase().includes(q)) continue;
+        v.visible = value;
+    }
+    emit('filters:changed');
+    persistSettings();
+    renderTeamFilters();
+}
+
+/** Delegierte Ereignisse für die Team-Filter (einmalig verdrahtet) */
+function initTeamFilters() {
+    const host = document.getElementById('team-filters');
+    if (!host || filterUI.wired) return;
+    filterUI.wired = true;
+
+    host.addEventListener('click', (e) => {
+        const head = e.target.closest('[data-toggle]');
+        if (head) {
+            filterUI.expanded[head.dataset.toggle] = !filterUI.expanded[head.dataset.toggle];
+            renderTeamFilters();
+            return;
+        }
+        const bulk = e.target.closest('[data-bulk]');
+        if (bulk) setSectionBulk(bulk.dataset.bulk, bulk.dataset.on === '1');
+    });
+
+    host.addEventListener('change', (e) => {
+        const cb = e.target.closest('input[data-filter]');
+        if (cb) {
+            const entry = sectionEntry(cb.dataset.filter, cb.dataset.value);
             if (entry) entry.visible = cb.checked;
             emit('filters:changed');
             persistSettings();
-        });
+            updateSectionBadge(cb.dataset.filter);
+        }
     });
-    dimsEl.querySelectorAll('input[data-dimcolor]').forEach((ci) => {
-        ci.addEventListener('input', () => {
-            const entry = state.dims[ci.dataset.dimcolor]?.values.get(ci.dataset.value);
-            if (entry) entry.color = ci.value;
+
+    host.addEventListener('input', (e) => {
+        const col = e.target.closest('input[data-color]');
+        if (col) {
+            const entry = sectionEntry(col.dataset.color, col.dataset.value);
+            if (entry) entry.color = col.value;
             renderLegend();
             emit('filters:changed');
             persistSettings();
-        });
+            return;
+        }
+        const se = e.target.closest('input[data-search]');
+        if (se) {
+            filterUI.search[se.dataset.search] = se.value;
+            renderSectionRows(se.dataset.search);
+        }
     });
-    dimsEl.querySelectorAll('[data-bulk-dim]').forEach((btn) => btn.addEventListener('click', () => {
-        const dim = state.dims[btn.dataset.bulkDim];
-        const value = btn.dataset.on === '1';
-        dim.values.forEach((v) => { v.visible = value; });
-        dimsEl.querySelectorAll(`input[data-dim="${btn.dataset.bulkDim}"]`).forEach((cb) => { cb.checked = value; });
-        emit('filters:changed');
-        persistSettings();
-    }));
 }
