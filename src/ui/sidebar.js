@@ -33,7 +33,7 @@ const MODE_CONFIG = {
         label: 'Außendienst',
         primaryTab: 'tour',
         // Karte startet mit Kundenmarkern statt Gebietsflächen
-        areaColorModes: ['auto', 'bezirk', 'gruppe'],
+        areaColorModes: ['auto', 'bezirk', 'gruppe', 'luecken'],
         defaultColorMode: 'rep',
         hint: 'Alltag: Kundenkarte, Tour planen, Kunden in der Nähe, Übergabe an Maps.'
     },
@@ -228,7 +228,8 @@ function renderLegend() {
         rep: 'Kunden als Punkte, eingefärbt nach Vertriebsbeauftragtem.',
         bezirk: 'Gebiete flächig nach Betriebsbezirk eingefärbt, mit Name und Umsatzsumme.',
         gruppe: 'Gebiete flächig nach Vertriebsgruppe eingefärbt, mit Name und Umsatzsumme.',
-        status: 'Kunden als Punkte, eingefärbt nach Besuchsstatus.'
+        status: 'Kunden als Punkte, eingefärbt nach Besuchsstatus.',
+        luecken: 'Abdeckung je Gebiet: rot = keine Kunden (weißer Fleck), gelb = zugeordnet aber leer, grün = abgedeckt (je kräftiger, desto mehr Kunden).'
     };
     if (hint) hint.textContent = hints[mode] ?? '';
 
@@ -239,6 +240,12 @@ function renderLegend() {
         ];
         el.innerHTML = items.map(([k, label]) =>
             `<span class="legend-item"><span class="dot" style="background:${STATUS_COLORS[k]}"></span>${label}</span>`).join('');
+    } else if (mode === 'luecken') {
+        el.innerHTML = [
+            ['#dc2626', 'weißer Fleck (keine Kunden)'],
+            ['#f59e0b', 'zugeordnet, aber leer'],
+            ['#16a34a', 'abgedeckt']
+        ].map(([c, l]) => `<span class="legend-item"><span class="dot" style="background:${c}"></span>${l}</span>`).join('');
     } else if (mode === 'bezirk' || mode === 'gruppe') {
         const dim = state.dims[mode];
         el.innerHTML = dim?.active

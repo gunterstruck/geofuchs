@@ -301,20 +301,40 @@ function renderTable() {
         </tr>`;
     }).join('');
 
-    const counts = allKeys.filter((k) => k !== UNASSIGNED).map((k) => sim.get(k)?.count ?? 0).filter((n) => n > 0);
+    renderFairness(sim, allKeys, fmtEur);
+}
+
+/**
+ * Fairness-Kennzahl: wie ausgewogen sind Kunden und Umsatz über die Einheiten
+ * (VB bzw. Betriebsbezirk) verteilt? Zeigt jeweils größte/kleinste Einheit und
+ * den Faktor dazwischen; „ausgewogen" bis Faktor 1,5.
+ */
+function renderFairness(sim, allKeys, fmtEur) {
     const summaryEl = document.getElementById('cockpit-summary');
-    if (counts.length >= 2) {
-        const max = Math.max(...counts);
-        const min = Math.min(...counts);
-        const ratio = (max / min).toFixed(1);
-        const balanced = max / min <= 1.5;
-        summaryEl.innerHTML = `<div class="balance-note ${balanced ? 'ok' : 'warn'}">
-            ${balanced ? '✅ Gut ausbalanciert' : '⚠️ Ungleiche Verteilung'} –
-            größte Einheit hat das ${ratio}-fache der kleinsten (${max} vs. ${min} Kunden).
-        </div>`;
-    } else {
-        summaryEl.innerHTML = '';
+    const units = allKeys.filter((k) => k !== UNASSIGNED)
+        .map((k) => ({ key: k, count: sim.get(k)?.count ?? 0, umsatz: sim.get(k)?.umsatz ?? 0 }))
+        .filter((u) => u.count > 0);
+    if (units.length < 2) { summaryEl.innerHTML = ''; return; }
+
+    const byCount = [...units].sort((a, b) => a.count - b.count);
+    const cMin = byCount[0], cMax = byCount[byCount.length - 1];
+    const cRatio = cMax.count / Math.max(1, cMin.count);
+    const balanced = cRatio <= 1.5;
+
+    let revLine = '';
+    const withRev = units.filter((u) => u.umsatz > 0);
+    if (withRev.length >= 2) {
+        const byRev = [...withRev].sort((a, b) => a.umsatz - b.umsatz);
+        const rMin = byRev[0], rMax = byRev[byRev.length - 1];
+        const rRatio = rMax.umsatz / Math.max(1, rMin.umsatz);
+        revLine = `<div class="fairness-line">Umsatz: <b>${escapeHtml(rMax.key)}</b> ${fmtEur(rMax.umsatz)} … <b>${escapeHtml(rMin.key)}</b> ${fmtEur(rMin.umsatz)} <span class="muted">(${rRatio.toFixed(1)}×)</span></div>`;
     }
+
+    summaryEl.innerHTML = `<div class="balance-note ${balanced ? 'ok' : 'warn'}">
+        <div class="fairness-head">${balanced ? '✅ Ausgewogen' : '⚠️ Ungleich verteilt'} · Kunden-Faktor ${cRatio.toFixed(1)}× über ${units.length} ${escapeHtml(attrLabel(assignAttr))}</div>
+        <div class="fairness-line">Kunden: <b>${escapeHtml(cMax.key)}</b> ${cMax.count} … <b>${escapeHtml(cMin.key)}</b> ${cMin.count}</div>
+        ${revLine}
+    </div>`;
 }
 
 // ---- Filter-Steuerung ----
