@@ -110,4 +110,14 @@
     vertical-align: middle;
 }
 
+.terr-assign {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-border, #e2e8f0);
+}
+.terr-assign-title { margin: 0 0 4px; font-weight: 700; font-size: 0.82rem; }
+.terr-row { display: flex; align-items: center; gap: 6px; margin: 4px 0; font-size: 0.8rem; }
+.terr-row span { flex: 0 0 auto; color: var(--color-text-muted, #64748b); min-width: 118px; }
+.terr-row select { flex: 1; min-width: 0; font-size: 0.8rem; padding: 3px 6px; }
+
 .leaflet-container { font-family: var(--font); }

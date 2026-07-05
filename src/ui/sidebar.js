@@ -4,7 +4,7 @@
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, activeDims, DIMENSIONS } from '../core/state.js';
+import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, activeDims, DIMENSIONS, datasetSnapshot } from '../core/state.js';
 import { geocodeExact } from '../services/geocode.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
 import { STATUS_COLORS, STATUS_LABELS } from '../features/visits.js';
@@ -78,15 +78,16 @@ export function initSidebar() {
         exportCustomers(state.customers);
     });
     document.getElementById('btn-clear').addEventListener('click', async () => {
-        if (state.customers.length === 0) return;
-        if (!confirm('Alle Kundendaten aus dem Browser löschen?')) return;
+        if (state.customers.length === 0 && Object.keys(state.territories).length === 0) return;
+        if (!confirm('Alle Kundendaten und Gebietszuordnungen aus dem Browser löschen?')) return;
         await clearDataset();
         state.tour.start = null;
         state.tour.stops = [];
         state.fileName = null;
+        state.territories = {};
         setCustomers([]);
         emit('tour:changed');
-        showToast('Kundendaten gelöscht.', 'success');
+        showToast('Daten gelöscht.', 'success');
     });
 
     // Exakte Geocodierung (Nominatim)
@@ -211,7 +212,7 @@ async function toggleExactGeocoding() {
     btn.textContent = '🎯 Adressen exakt verorten';
     progress.style.display = 'none';
 
-    await saveDataset({ customers: state.customers, fileName: state.fileName, importedAt: state.importedAt });
+    await saveDataset(datasetSnapshot());
     emit('customers:changed');
     showToast(
         result.cancelled

@@ -14,8 +14,8 @@
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, emit, on, repColor, attrColor, setCustomers, getCustomer, activeDims, DIMENSIONS, UNASSIGNED } from '../core/state.js';
-import { loadLevel } from '../services/geodata.js';
+import { state, emit, on, repColor, attrColor, setCustomers, setTerritory, getTerritory, getCustomer, activeDims, DIMENSIONS, UNASSIGNED } from '../core/state.js';
+import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { regionMembership } from '../features/territory.js';
 import { showToast } from './toast.js';
 
@@ -27,10 +27,13 @@ const MAX_ROWS = 400;
 
 let dialog = null;
 let overrides = new Map();     // customerId -> neuer Zielwert (für assignAttr)
+let pendingTerr = new Map();   // territoryId -> { value, name } (für assignAttr)
 let opsLog = [];               // [{ desc, count, toRep }]
-let membership = [];           // [{ key, name, customerIds }] der aktiven Ebene
+let membership = [];           // [{ key, name, customerIds }] mit Kunden
+let allRegions = [];           // ALLE Gebiete der Ebene (auch ohne Kunden)
 let selected = new Set();      // ausgewählte regionKeys
 let assignAttr = 'vb';         // Zuweisungs-Ziel: 'vb' | Hierarchie-Ebene (z. B. 'bezirk')
+let includeEmpty = false;      // Gebiete ohne Kunden einbeziehen
 
 const filters = { search: '', vb: '', dim: {} };
 
@@ -60,6 +63,11 @@ export function initCockpit() {
     document.getElementById('sim-search').addEventListener('input', (e) => { filters.search = e.target.value; renderRegionList(); });
     document.getElementById('sim-filter-vb').addEventListener('change', (e) => { filters.vb = e.target.value; renderRegionList(); });
     document.getElementById('sim-select-all').addEventListener('change', toggleSelectAll);
+    document.getElementById('sim-include-empty').addEventListener('change', (e) => {
+        includeEmpty = e.target.checked;
+        selected = new Set();
+        renderRegionList();
+    });
     document.getElementById('sim-apply').addEventListener('click', assignSelected);
     document.getElementById('sim-reset').addEventListener('click', resetSimulation);
     document.getElementById('sim-commit').addEventListener('click', commitSimulation);
@@ -67,6 +75,7 @@ export function initCockpit() {
         assignAttr = e.target.value;
         // Zuweisungs-Ziel gewechselt -> laufende Simulation verwerfen
         overrides = new Map();
+        pendingTerr = new Map();
         opsLog = [];
         renderAll();
     });
@@ -76,13 +85,16 @@ export function initCockpit() {
 
 async function open() {
     overrides = new Map();
+    pendingTerr = new Map();
     opsLog = [];
     selected = new Set();
     assignAttr = 'vb';
+    includeEmpty = false;
     filters.search = '';
     filters.vb = '';
     filters.dim = {};
     document.getElementById('sim-search').value = '';
+    document.getElementById('sim-include-empty').checked = false;
     renderLevelSelect();
     renderAssignAttrSelect();
     renderFilterControls();
@@ -122,14 +134,22 @@ async function loadMembership() {
     const info = document.getElementById('sim-region-info');
     if (state.level === 'none' || !CONFIG.levels[state.level]?.file) {
         membership = [];
+        allRegions = [];
         info.textContent = 'Bitte eine Gebietsebene wählen.';
         return;
     }
     try {
         const geojson = await loadLevel(state.level);
         membership = geojson ? regionMembership(state.level, geojson, state.customers) : [];
+        // Alle Gebiete der Ebene (auch ohne Kunden) für „Gebiete ohne Kunden einbeziehen"
+        const byKey = new Map(membership.map((r) => [r.key, r]));
+        allRegions = geojson ? geojson.features.map((f) => {
+            const key = regionKey(state.level, f);
+            return byKey.get(key) ?? { key, name: regionName(state.level, f), customerIds: [] };
+        }) : [];
     } catch (error) {
         membership = [];
+        allRegions = [];
         info.textContent = `Gebietsdaten konnten nicht geladen werden: ${error.message}`;
     }
 }
@@ -160,16 +180,30 @@ function filteredIds(region) {
     });
 }
 
-/** Sichtbare Gebiete inkl. gefilterter Kunden und dominantem VB */
+function regionPlz(region) {
+    return region.key.startsWith('plz-') ? region.key.slice(4) : '';
+}
+
+/** Sichtbare Gebiete inkl. gefilterter Kunden und dominantem Wert */
 function visibleRegions() {
     const digits = searchDigits();
     const text = digits ? '' : filters.search.trim().toLowerCase();
+    const source = includeEmpty ? allRegions : membership;
     const result = [];
-    for (const region of membership) {
+    for (const region of source) {
         if (text && !region.name.toLowerCase().includes(text)) continue;
-        const ids = filteredIds(region);
-        if (ids.length === 0) continue;
-        result.push({ region, ids, dom: dominantOf(ids) });
+        const empty = region.customerIds.length === 0;
+
+        if (empty) {
+            if (!includeEmpty) continue;
+            if (digits && !regionPlz(region).startsWith(digits)) continue;
+            const terr = getTerritory(state.level, region.key);
+            result.push({ region, ids: [], dom: (terr && terr[assignAttr]) || '—', empty: true });
+        } else {
+            const ids = filteredIds(region);
+            if (ids.length === 0) continue;
+            result.push({ region, ids, dom: dominantOf(ids), empty: false });
+        }
     }
     return result;
 }
@@ -301,32 +335,34 @@ function renderRegionList() {
     const visible = visibleRegions();
 
     const totalCust = visible.reduce((sum, v) => sum + v.ids.length, 0);
-    infoEl.textContent = `${visible.length} Gebiet${visible.length === 1 ? '' : 'e'} · ${totalCust} Kunden gefiltert`;
+    const emptyCount = visible.filter((v) => v.empty).length;
+    infoEl.textContent = `${visible.length} Gebiet${visible.length === 1 ? '' : 'e'} · ${totalCust} Kunden gefiltert${emptyCount ? ` · ${emptyCount} ohne Kunden` : ''}`;
 
     document.getElementById('sim-apply').disabled = visible.length === 0;
     document.getElementById('sim-select-all').checked = visible.length > 0 && visible.every((v) => selected.has(v.region.key));
 
     if (visible.length === 0) {
+        const suffix = includeEmpty ? '' : ' Aktivieren Sie „Auch Gebiete ohne Kunden einbeziehen", um leere Gebiete zuzuordnen.';
         let msg;
-        if (membership.length === 0) {
-            msg = 'Auf dieser Ebene sind keine Kunden verortet. Bitte Kunden laden bzw. per PLZ verorten oder eine andere Ebene wählen.';
+        if (!includeEmpty && membership.length === 0) {
+            msg = 'Auf dieser Ebene sind keine Kunden verortet.' + suffix;
         } else if (searchDigits()) {
-            msg = `Keine PLZ-Gebiete „${escapeHtml(searchDigits())}xxx" mit Kunden. Es werden nur Gebiete angezeigt, in denen Kunden liegen.`;
+            msg = `Keine Gebiete „${escapeHtml(searchDigits())}xxx".` + suffix;
         } else if (filters.search.trim()) {
-            msg = `Kein Gebiet mit Kunden passt zu „${escapeHtml(filters.search.trim())}". Es werden nur Gebiete angezeigt, in denen Kunden liegen.`;
+            msg = `Kein Gebiet passt zu „${escapeHtml(filters.search.trim())}".` + suffix;
         } else {
-            msg = 'Keine Gebiete für die aktuellen Filter. Es werden nur Gebiete angezeigt, in denen Kunden liegen.';
+            msg = 'Keine Gebiete für die aktuellen Filter.' + suffix;
         }
         listEl.innerHTML = `<p class="muted small">${msg}</p>`;
         return;
     }
 
     const shown = visible.slice(0, MAX_ROWS);
-    listEl.innerHTML = shown.map(({ region, ids, dom }) => `
-        <label class="sim-region-row">
+    listEl.innerHTML = shown.map(({ region, ids, dom, empty }) => `
+        <label class="sim-region-row${empty ? ' is-empty' : ''}">
             <input type="checkbox" data-region="${escapeHtml(region.key)}" ${selected.has(region.key) ? 'checked' : ''}>
-            <span class="sim-region-name">${escapeHtml(region.name)}</span>
-            <span class="sim-region-meta"><span class="dot" style="background:${valueColor(dom)}"></span>${escapeHtml(dom)} · ${ids.length}</span>
+            <span class="sim-region-name">${escapeHtml(region.name)}${empty ? ' <span class="muted small">(leer)</span>' : ''}</span>
+            <span class="sim-region-meta"><span class="dot" style="background:${valueColor(dom)}"></span>${escapeHtml(dom)}${empty ? '' : ` · ${ids.length}`}</span>
         </label>
     `).join('') + (visible.length > MAX_ROWS
         ? `<p class="muted small">… ${visible.length - MAX_ROWS} weitere – bitte Filter verfeinern.</p>` : '');
@@ -358,11 +394,14 @@ function assignSelected() {
     }
 
     let moved = 0;
-    for (const { ids } of chosen) {
+    for (const { region, ids } of chosen) {
+        // Kunden im Gebiet umbuchen
         for (const id of ids) {
             const c = getCustomer(id);
             if (c && attrValueOf(c) !== target) { overrides.set(id, target); moved++; }
         }
+        // Gebietszuordnung (auch für leere Gebiete) merken
+        pendingTerr.set(`${state.level}:${region.key}`, { value: target, name: region.name, level: state.level, key: region.key });
     }
 
     // Kurzbeschreibung mit aktiven Filtern
@@ -376,11 +415,12 @@ function assignSelected() {
     selected = new Set();
     document.getElementById('sim-select-all').checked = false;
     renderAll();
-    showToast(moved > 0 ? `${moved} Kunden → ${target} (Simulation)` : `Keine Änderung – Kunden gehören bereits zu „${target}".`, moved > 0 ? 'success' : 'info');
+    showToast(`${chosen.length} Gebiet${chosen.length === 1 ? '' : 'e'} → ${target}${moved ? `, ${moved} Kunden umgebucht` : ''} (Simulation)`, 'success');
 }
 
 function resetSimulation() {
     overrides = new Map();
+    pendingTerr = new Map();
     opsLog = [];
     selected = new Set();
     document.getElementById('sim-select-all').checked = false;
@@ -389,36 +429,39 @@ function resetSimulation() {
 
 function renderChanges() {
     const el = document.getElementById('sim-changes');
-    document.getElementById('sim-commit').disabled = overrides.size === 0;
-    if (overrides.size === 0) { el.innerHTML = ''; return; }
+    const nothing = overrides.size === 0 && pendingTerr.size === 0;
+    document.getElementById('sim-commit').disabled = nothing;
+    if (nothing) { el.innerHTML = ''; return; }
 
-    // Zusammenfassung je Ziel
+    // Zusammenfassung je Ziel (Gebiete zugeordnet)
     const byTarget = new Map();
-    for (const v of overrides.values()) byTarget.set(v, (byTarget.get(v) ?? 0) + 1);
+    for (const { value } of pendingTerr.values()) byTarget.set(value, (byTarget.get(value) ?? 0) + 1);
     const summary = [...byTarget.entries()].map(([v, n]) =>
-        `<span class="legend-item"><span class="dot" style="background:${valueColor(v)}"></span>${escapeHtml(v)}: <b>+${n}</b></span>`).join('');
+        `<span class="legend-item"><span class="dot" style="background:${valueColor(v)}"></span>${escapeHtml(v)}: <b>${n} Gebiet${n === 1 ? '' : 'e'}</b></span>`).join('');
 
-    el.innerHTML = `<p class="muted small">${overrides.size} Kunden neu zugewiesen:</p>
+    el.innerHTML = `<p class="muted small">${pendingTerr.size} Gebiet${pendingTerr.size === 1 ? '' : 'e'} zugeordnet${overrides.size ? `, ${overrides.size} Kunden umgebucht` : ''}:</p>
         <div class="legend">${summary}</div>` +
         opsLog.map((op) => `
             <div class="change-row">
                 <span>${escapeHtml(op.desc)}</span>
-                <span class="muted small">${op.count} Kd. → <b>${escapeHtml(op.toRep)}</b></span>
+                <span class="muted small">${op.count ? `${op.count} Kd. ` : ''}→ <b>${escapeHtml(op.toRep)}</b></span>
             </div>`).join('');
 }
 
 function commitSimulation() {
-    if (overrides.size === 0) return;
-    const n = overrides.size;
+    if (overrides.size === 0 && pendingTerr.size === 0) return;
     const label = attrLabel(assignAttr).replace(/\(.*\)/, '').trim();
-    if (!confirm(`${n} Kunden dauerhaft dem simulierten ${label} zuweisen?\nDies ändert das Feld „${label}" in Ihren Kundendaten.`)) return;
+    if (!confirm(`${pendingTerr.size} Gebiet(e) und ${overrides.size} Kunden dauerhaft „${label}" zuweisen?\nDies aktualisiert Ihre Gebietszuordnungen${overrides.size ? ` und das Feld „${label}" der betroffenen Kunden` : ''}.`)) return;
 
     for (const c of state.customers) {
         if (overrides.has(c.id)) c[assignAttr] = overrides.get(c.id);
+    }
+    for (const info of pendingTerr.values()) {
+        setTerritory(info.level, info.key, assignAttr, info.value, info.name);
     }
     setCustomers(state.customers, { fileName: state.fileName, importedAt: state.importedAt });
     emit('dataset:dirty');
 
     dialog.close();
-    showToast(`${n} Kunden neu zugewiesen und gespeichert.`, 'success', 6000);
+    showToast(`${pendingTerr.size} Gebiet(e)${overrides.size ? ` und ${overrides.size} Kunden` : ''} zugewiesen und gespeichert.`, 'success', 6000);
 }

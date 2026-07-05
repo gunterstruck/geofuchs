@@ -216,6 +216,7 @@
                 </label>
                 <span id="sim-dim-filters"></span>
             </div>
+            <label class="check-inline"><input type="checkbox" id="sim-include-empty"> Auch Gebiete ohne Kunden einbeziehen (z. B. um leere Landkreise zuzuordnen)</label>
             <div class="sim-region-head">
                 <label class="check-inline"><input type="checkbox" id="sim-select-all"> Alle sichtbaren auswählen</label>
                 <span id="sim-region-info" class="muted small"></span>
@@ -234,6 +235,19 @@
             <footer>
                 <button id="sim-reset">↺ Simulation zurücksetzen</button>
                 <button id="sim-commit" class="primary">Zuweisung übernehmen</button>
+            </footer>
+        </dialog>
+
+        <!-- Import-Ergebnis (Plausibilitätsprüfung) -->
+        <dialog id="import-result-dialog">
+            <header>
+                <h2>Import abgeschlossen</h2>
+                <button class="dialog-close" aria-label="Schließen">✕</button>
+            </header>
+            <div id="import-result-body"></div>
+            <footer>
+                <button id="import-error-download">⬇ Fehlerliste (.xlsx)</button>
+                <button id="import-result-ok" class="primary">OK</button>
             </footer>
         </dialog>
     </div>
