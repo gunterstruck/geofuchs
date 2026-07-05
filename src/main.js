@@ -29,7 +29,7 @@ async function restorePersistedState() {
         emit('level:changed');
     }
     if (settings?.radiusKm) state.tour.radiusKm = settings.radiusKm;
-    const validModes = ['auto', 'rep', 'bezirk', 'gruppe', 'status'];
+    const validModes = ['auto', 'rep', 'bezirk', 'gruppe', 'status', 'luecken'];
     if (validModes.includes(settings?.colorMode)) {
         state.colorMode = settings.colorMode;
         const sel = document.getElementById('colormode-select');

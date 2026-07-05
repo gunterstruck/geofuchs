@@ -20,6 +20,7 @@ let clusterGroup = null;
 let tourLayer = null;
 let labelLayer = null;
 let regionStats = new Map();
+let maxRegionTotal = 1;   // höchste Kundenzahl je Gebiet (für die Abdeckungs-Ansicht)
 let currentLevelData = null;
 let featureByKey = new Map();
 let currentView = { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
@@ -172,6 +173,11 @@ function resolveView() {
 
     if (mode === 'status') return { paint: null, markers: true, labels: false, markerBy: 'status' };
     if (mode === 'rep') return { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
+    if (mode === 'luecken') {
+        // Abdeckung braucht Flächen; ohne Gebietsebene auf Kundenpunkte zurückfallen
+        if (!aggregatable()) return { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
+        return { paint: 'luecken', markers: false, labels: false, markerBy: 'vb' };
+    }
     if (mode === 'bezirk') {
         const p = firstActiveAttr(['bezirk', 'gruppe', 'vb']);
         return { paint: p, markers: false, labels: true, markerBy: 'vb' };
@@ -253,6 +259,7 @@ function computeStats() {
     regionStats = currentLevelData
         ? aggregateByRegion(state.level, currentLevelData, visibleCustomers())
         : new Map();
+    maxRegionTotal = Math.max(1, ...[...regionStats.values()].map((e) => e.total || 0));
     emit('regions:stats', regionStats);
 }
 
@@ -329,7 +336,34 @@ function regionShares(feature, attr) {
     return { shares, assignedOnly: false, total: entry.total };
 }
 
+/** Ist einem Gebiet (außer dem Namen) etwas zugeordnet? */
+function isAssigned(terr) {
+    return !!terr && Object.keys(terr).some((k) => k !== 'name');
+}
+
+/**
+ * Abdeckungs-/„Weiße-Flecken"-Einfärbung:
+ *  rot  = keine Kunden und keine Zuordnung (echter weißer Fleck)
+ *  gelb = zugeordnet, aber (noch) keine Kunden
+ *  grün = abgedeckt (Sättigung nach Kundenzahl)
+ */
+function styleLuecken(feature) {
+    const key = regionKey(state.level, feature);
+    const total = regionStats.get(key)?.total ?? 0;
+    if (total === 0) {
+        const assigned = isAssigned(getTerritory(state.level, key));
+        return {
+            fillColor: assigned ? '#f59e0b' : '#dc2626',
+            color: '#ffffff', weight: 1, dashArray: assigned ? '4 3' : '',
+            opacity: 1, fillOpacity: assigned ? 0.32 : 0.5
+        };
+    }
+    const t = Math.min(1, total / maxRegionTotal);
+    return { fillColor: '#16a34a', color: '#ffffff', weight: 1, dashArray: '', opacity: 1, fillOpacity: 0.18 + t * 0.4 };
+}
+
 function styleFor(feature) {
+    if (currentView.paint === 'luecken') return styleLuecken(feature);
     const attr = currentView.paint;
     const info = attr ? regionShares(feature, attr) : null;
     if (!info) return { ...CONFIG.regionStyle.default };
@@ -351,9 +385,19 @@ function regionTooltip(feature) {
     const name = regionName(state.level, feature);
     const key = regionKey(state.level, feature);
     const entry = regionStats.get(key);
+    const total = entry?.total ?? 0;
+
+    if (currentView.paint === 'luecken') {
+        if (total === 0) {
+            return isAssigned(getTerritory(state.level, key))
+                ? `${name} · zugeordnet, aber 0 Kunden`
+                : `${name} · weißer Fleck – keine Kunden`;
+        }
+        return `${name} · ${total} Kd. abgedeckt`;
+    }
+
     const attr = currentView.paint && currentView.paint !== 'vb' ? currentView.paint : 'vb';
     const terr = getTerritory(state.level, key);
-    const total = entry?.total ?? 0;
 
     if (terr && terr[attr] && total === 0) return `${name} · ${terr[attr]} (zugeordnet, 0 Kunden)`;
     if (!entry || total === 0) return terr ? `${name} · zugeordnet` : name;

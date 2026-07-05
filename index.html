@@ -127,6 +127,7 @@
                     <option value="bezirk">Betriebsbezirk (Flächen)</option>
                     <option value="gruppe">Vertriebsgruppe (Flächen)</option>
                     <option value="status">Besuchsstatus</option>
+                    <option value="luecken">🕳️ Weiße Flecken (Abdeckung)</option>
                 </select>
                 <p class="muted small" id="colormode-hint"></p>
                 <div id="colormode-legend" class="legend"></div>
@@ -263,10 +264,10 @@
         </dialog>
 
         <!-- Gebiets-Cockpit -->
-        <dialog id="cockpit-dialog">
+        <dialog id="cockpit-dialog" class="panel-sheet">
             <header>
-                <h2>📊 Gebiets-Cockpit</h2>
-                <button class="dialog-close" aria-label="Schließen">✕</button>
+                <h2>🗺️ Gebietsplanung · Cockpit</h2>
+                <button class="dialog-close" aria-label="Zurück zur Karte">✕ Zur Karte</button>
             </header>
             <p class="muted small">Kennzahlen je Vertriebsbeauftragtem bzw. Betriebsbezirk. Weisen Sie unten ausgewählte Gebiete testweise einem anderen Ziel zu – die Werte aktualisieren sich sofort (Simulation, ändert Ihre Daten nicht).</p>
             <div id="cockpit-summary"></div>
