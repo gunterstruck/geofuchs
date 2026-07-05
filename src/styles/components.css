@@ -20,6 +20,20 @@
 .segmented button + button { border-left: 1px solid var(--color-border); }
 .segmented button.active { background: var(--color-primary); color: #fff; font-weight: 600; }
 
+/* Segmented control (Vorschlagsmodus im Besuchsplaner) */
+.seg-toggle { display: flex; border: 1px solid var(--color-border); border-radius: var(--radius-s); overflow: hidden; margin: 4px 0 8px; }
+.seg-toggle .seg {
+    flex: 1;
+    border: none;
+    border-radius: 0;
+    background: var(--color-surface);
+    padding: 8px 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+.seg-toggle .seg + .seg { border-left: 1px solid var(--color-border); }
+.seg-toggle .seg.active { background: var(--color-primary); color: #fff; font-weight: 600; }
+
 /* Legende */
 .legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 6px 0 10px; }
 .legend-item { display: inline-flex; align-items: center; font-size: 0.8rem; color: var(--color-text-muted); }
@@ -46,9 +60,19 @@
 .saved-tour-del { flex-shrink: 0; }
 
 /* Cockpit */
+.kpi-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 4px; flex-wrap: wrap; }
+.kpi-tools { display: flex; gap: 6px; align-items: center; }
+.kpi-tools input[type="search"] { width: 130px; padding: 4px 8px; font-size: 0.82rem; }
+.kpi-tools select { padding: 4px 6px; font-size: 0.82rem; }
+.cockpit-kpi-scroll { max-height: 220px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--radius-s); }
+
 .cockpit-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-.cockpit-table th, .cockpit-table td { padding: 8px 8px; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: middle; }
-.cockpit-table th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--color-text-muted); }
+.cockpit-table th, .cockpit-table td { padding: 6px 8px; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: middle; }
+.cockpit-table th {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--color-text-muted);
+    position: sticky; top: 0; z-index: 1; background: var(--color-surface);
+    box-shadow: inset 0 -1px 0 var(--color-border);
+}
 .cockpit-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cockpit-table .bar-cell { width: 34%; }
 .bar-track { display: inline-block; width: calc(100% - 42px); height: 10px; background: var(--color-surface-2); border-radius: 99px; overflow: hidden; vertical-align: middle; }
@@ -111,6 +135,20 @@
 .re-row input { accent-color: var(--color-primary); flex-shrink: 0; }
 .re-name { flex: 1; line-height: 1.25; overflow: hidden; }
 .re-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--color-text-muted); white-space: nowrap; }
+
+.re-territory-box { margin: 8px 0 4px; }
+.re-territory-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--color-primary);
+    background: var(--color-primary-light);
+    border-radius: var(--radius-s);
+    cursor: pointer;
+    font-size: 0.88rem;
+}
+.re-territory-row input { accent-color: var(--color-primary); flex-shrink: 0; }
 
 .field-label { display: block; font-size: 0.85rem; color: var(--color-text-muted); margin: 10px 0 4px; }
 .level-row { display: flex; align-items: center; gap: 10px; }

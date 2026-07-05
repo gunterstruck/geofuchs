@@ -110,13 +110,19 @@
                     <div id="start-results"></div>
                 </div>
 
-                <h3>2. Vorschläge im Umkreis</h3>
-                <label class="field-label" for="radius-slider">Umkreis: <span id="radius-value"></span></label>
+                <h3>2. Vorschläge</h3>
+                <div class="seg-toggle" role="group" aria-label="Vorschlagsmodus">
+                    <button type="button" id="mode-radius" class="seg active" data-mode="radius">Umkreis um Start</button>
+                    <button type="button" id="mode-route" class="seg" data-mode="route">Entlang der Tour</button>
+                </div>
+                <label class="field-label" for="radius-slider"><span id="radius-label">Umkreis</span>: <span id="radius-value"></span></label>
                 <input id="radius-slider" type="range" min="5" max="100" step="5">
+                <p id="suggest-hint" class="muted small"></p>
                 <label class="check-inline"><input type="checkbox" id="overdue-first"> Überfällige zuerst</label>
                 <div id="tour-suggestions" class="scroll-list"></div>
 
                 <h3>3. Meine Tour</h3>
+                <label class="check-inline"><input type="checkbox" id="round-trip"> 🔁 Rundreise (zurück zum Start)</label>
                 <div id="tour-stops"></div>
                 <p id="tour-summary"></p>
                 <div class="button-column">
@@ -195,7 +201,18 @@
             </header>
             <p class="muted small">Kennzahlen je Vertriebsbeauftragtem bzw. Betriebsbezirk. Weisen Sie unten ausgewählte Gebiete testweise einem anderen Ziel zu – die Werte aktualisieren sich sofort (Simulation, ändert Ihre Daten nicht).</p>
             <div id="cockpit-summary"></div>
-            <div class="table-scroll">
+            <div class="kpi-toolbar">
+                <span id="cockpit-kpi-count" class="muted small"></span>
+                <div class="kpi-tools">
+                    <input id="cockpit-kpi-search" type="search" placeholder="filtern…" autocomplete="off">
+                    <select id="cockpit-kpi-sort" aria-label="Sortierung">
+                        <option value="count">Kunden ↓</option>
+                        <option value="umsatz">Umsatz ↓</option>
+                        <option value="name">Name A–Z</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-scroll cockpit-kpi-scroll">
                 <table class="cockpit-table">
                     <thead><tr><th id="cockpit-attr-head">Vertriebsbeauftragte(r)</th><th>Kunden</th><th>Umsatz</th><th>Auslastung</th></tr></thead>
                     <tbody id="cockpit-rows"></tbody>
@@ -254,7 +271,7 @@
                 </label>
                 <button id="re-apply" class="primary">Auswahl zuweisen</button>
             </div>
-            <label class="check-inline"><input type="checkbox" id="re-also-territory"> Auch die Fläche (Gebietszuordnung) auf dieses Ziel setzen</label>
+            <div id="re-territory" class="re-territory-box"></div>
             <div class="re-listhead">
                 <label class="check-inline"><input type="checkbox" id="re-select-all"> Alle (sichtbaren) auswählen</label>
                 <input id="re-search" type="search" placeholder="Kunde/Ort/PLZ filtern…" autocomplete="off">

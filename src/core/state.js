@@ -43,7 +43,9 @@ export const state = {
     tour: {
         start: null,        // { lat, lng, label, customerId? }
         stops: [],          // Array von Kunden-IDs (in Besuchsreihenfolge)
-        radiusKm: CONFIG.tour.defaultRadiusKm
+        radiusKm: CONFIG.tour.defaultRadiusKm,
+        roundTrip: false,   // Rundreise: am Ende zurück zum Start
+        suggestMode: 'radius' // 'radius' = Umkreis um Start | 'route' = Korridor entlang der Tour
     },
 
     ui: {
