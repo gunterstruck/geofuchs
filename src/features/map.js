@@ -252,7 +252,11 @@ export async function setLevel(level) {
             layer.on('mouseout', function () {
                 this.setStyle(styleFor(feature));
             });
-            layer.bindPopup(() => regionPopupHtml(feature), { maxWidth: 320 });
+            layer.bindPopup(() => regionPopupHtml(feature), {
+                maxWidth: 320, maxHeight: 360,
+                autoPanPaddingTopLeft: L.point(12, 64),
+                autoPanPaddingBottomRight: L.point(12, 16)
+            });
             layer.bindTooltip(() => regionTooltip(feature), { sticky: true, direction: 'top' });
         }
     }).addTo(map);
@@ -642,7 +646,11 @@ function renderMarkers() {
             icon: customerIcon(customer),
             title: customer.name
         });
-        marker.bindPopup(() => customerPopupHtml(customer), { maxWidth: 300 });
+        marker.bindPopup(() => customerPopupHtml(customer), {
+            maxWidth: 300, maxHeight: 360,
+            autoPanPaddingTopLeft: L.point(12, 64),
+            autoPanPaddingBottomRight: L.point(12, 16)
+        });
         markers.push(marker);
     }
     clusterGroup.addLayers(markers);
