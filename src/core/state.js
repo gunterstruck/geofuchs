@@ -49,7 +49,10 @@ export const state = {
     },
 
     ui: {
-        activeTab: 'daten',
+        // Fokus-Modus: 'aussendienst' (Alltag: Karte, Tour, Kunden) |
+        //              'gebietsplanung' (Experten: Gebiete schneiden, Cockpit, Simulation)
+        mode: 'aussendienst',
+        activeTab: 'tour',
         sidebarOpen: window.innerWidth > 900
     }
 };

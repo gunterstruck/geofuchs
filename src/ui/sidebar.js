@@ -16,16 +16,107 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
 
 let geocodeHandle = null;
 
+// Welche Tabs gehören zu welchem Modus, und welcher Tab ist der Einstieg?
+const MODE_CONFIG = {
+    aussendienst: {
+        label: 'Außendienst',
+        primaryTab: 'tour',
+        // Karte startet mit Kundenmarkern statt Gebietsflächen
+        areaColorModes: ['auto', 'bezirk', 'gruppe'],
+        defaultColorMode: 'rep',
+        hint: 'Alltag: Kundenkarte, Tour planen, Kunden in der Nähe, Übergabe an Maps.'
+    },
+    gebietsplanung: {
+        label: 'Gebietsplanung',
+        primaryTab: 'gebiete',
+        markerColorModes: ['rep', 'status'],
+        defaultColorMode: 'auto',
+        hint: 'Experten-Modus: Gebiete schneiden, Zuständigkeiten, Cockpit, Simulation.'
+    }
+};
+
+/** Einen Tab aktivieren (DOM + State); Persistenz steuern die Aufrufer */
+function activateTab(tab) {
+    state.ui.activeTab = tab;
+    document.querySelectorAll('.tab-button').forEach((b) =>
+        b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.tab-panel').forEach((p) =>
+        p.classList.toggle('active', p.id === `tab-${tab}`));
+}
+
+/** Prüfen, ob ein Tab im gegebenen Modus sichtbar ist */
+function tabInMode(tabBtn, mode) {
+    return (tabBtn.dataset.modes || '').split(/\s+/).includes(mode);
+}
+
+/**
+ * Fokus-Modus anwenden: passende Tabs zeigen/verbergen, Einstieg wählen und
+ * die Karte auf einen zum Modus passenden Standard einstellen.
+ * @param {'aussendienst'|'gebietsplanung'} mode
+ * @param {boolean} userInitiated  true bei Klick (Karte + Einstieg an Modus anpassen),
+ *                                  false beim Wiederherstellen (gespeicherten Tab/Farbe behalten)
+ * @param {boolean} persist  Einstellungen sichern (beim allerersten Init false,
+ *                           damit der noch nicht geladene gespeicherte Tab nicht überschrieben wird)
+ */
+export function applyMode(mode, userInitiated = true, persist = true) {
+    if (!MODE_CONFIG[mode]) mode = 'aussendienst';
+    const cfg = MODE_CONFIG[mode];
+    state.ui.mode = mode;
+
+    document.querySelectorAll('.mode-btn').forEach((b) =>
+        b.classList.toggle('active', b.dataset.mode === mode));
+    const hintEl = document.getElementById('mode-hint');
+    if (hintEl) hintEl.textContent = cfg.hint;
+
+    // Tabs des Modus ein-/ausblenden
+    const tabs = [...document.querySelectorAll('.tab-button')];
+    tabs.forEach((btn) => { btn.hidden = !tabInMode(btn, mode); });
+
+    // Aktiven Tab wählen:
+    // - leere App (keine Kunden/Gebiete) -> Daten-Tab als Einstieg (Onboarding)
+    // - aktiver Wechsel -> Einstieg des Modus (man will die neue „Welt" sehen)
+    // - Wiederherstellen -> gespeicherten Tab behalten, falls im Modus sichtbar
+    const empty = state.customers.length === 0 && Object.keys(state.territories).length === 0;
+    if (empty) {
+        activateTab('daten');
+    } else if (userInitiated) {
+        activateTab(cfg.primaryTab);
+    } else {
+        const current = tabs.find((b) => b.dataset.tab === state.ui.activeTab);
+        activateTab(!current || current.hidden ? cfg.primaryTab : state.ui.activeTab);
+    }
+
+    // Karten-Standard an den Modus anpassen (nur bei aktivem Umschalten)
+    if (userInitiated) {
+        const mismatched = mode === 'aussendienst'
+            ? cfg.areaColorModes.includes(state.colorMode)
+            : cfg.markerColorModes.includes(state.colorMode);
+        if (mismatched) {
+            state.colorMode = cfg.defaultColorMode;
+            const sel = document.getElementById('colormode-select');
+            if (sel) sel.value = state.colorMode;
+            renderLegend();
+            emit('colormode:changed');
+        }
+    }
+
+    if (persist) persistSettings();
+}
+
 export function initSidebar() {
+    // Fokus-Umschalter
+    document.querySelectorAll('.mode-btn').forEach((btn) => {
+        btn.addEventListener('click', () => applyMode(btn.dataset.mode, true));
+    });
+
     // Tabs
     document.querySelectorAll('.tab-button').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            state.ui.activeTab = btn.dataset.tab;
-            document.querySelectorAll('.tab-button').forEach((b) => b.classList.toggle('active', b === btn));
-            document.querySelectorAll('.tab-panel').forEach((p) =>
-                p.classList.toggle('active', p.id === `tab-${btn.dataset.tab}`));
-        });
+        btn.addEventListener('click', () => { activateTab(btn.dataset.tab); persistSettings(); });
     });
+
+    // Standard-Modus anwenden – ohne zu persistieren, damit der gespeicherte
+    // Tab/Modus beim anschließenden Wiederherstellen nicht überschrieben wird.
+    applyMode(state.ui.mode, false, false);
 
     // Sidebar-Toggle (mobil)
     const sidebar = document.getElementById('sidebar');
@@ -147,6 +238,8 @@ function persistSettings() {
         if (dim) dimVisibility[def.id] = Object.fromEntries([...dim.values].map(([k, v]) => [k, v.visible]));
     }
     saveSettings({
+        mode: state.ui.mode,
+        activeTab: state.ui.activeTab,
         level: state.level,
         colorMode: state.colorMode,
         repVisibility: Object.fromEntries([...state.reps].map(([k, v]) => [k, v.visible])),
