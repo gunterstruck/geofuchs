@@ -18,6 +18,7 @@ import { initCockpit } from './ui/cockpit.js';
 import { initRegionEditor } from './ui/regionEditor.js';
 import { initSearch } from './ui/search.js';
 import { initToasts } from './ui/toast.js';
+import { initMobilePreview } from './ui/mobilePreview.js';
 import { fitToCustomers } from './features/map.js';
 
 async function restorePersistedState() {
@@ -108,6 +109,7 @@ async function init() {
     initCockpit();
     initRegionEditor();
     initSearch();
+    initMobilePreview();
 
     on('dataset:dirty', scheduleSave);
 
