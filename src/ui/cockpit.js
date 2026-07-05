@@ -34,6 +34,8 @@ let allRegions = [];           // ALLE Gebiete der Ebene (auch ohne Kunden)
 let selected = new Set();      // ausgewählte regionKeys
 let assignAttr = 'vb';         // Zuweisungs-Ziel: 'vb' | Hierarchie-Ebene (z. B. 'bezirk')
 let includeEmpty = false;      // Gebiete ohne Kunden einbeziehen
+let kpiSearch = '';            // Kennzahlen-Filter
+let kpiSort = 'count';         // Kennzahlen-Sortierung
 
 const filters = { search: '', vb: '', dim: {} };
 
@@ -71,6 +73,8 @@ export function initCockpit() {
     document.getElementById('sim-apply').addEventListener('click', assignSelected);
     document.getElementById('sim-reset').addEventListener('click', resetSimulation);
     document.getElementById('sim-commit').addEventListener('click', commitSimulation);
+    document.getElementById('cockpit-kpi-search').addEventListener('input', (e) => { kpiSearch = e.target.value; renderTable(); });
+    document.getElementById('cockpit-kpi-sort').addEventListener('change', (e) => { kpiSort = e.target.value; renderTable(); });
     document.getElementById('sim-assign-attr').addEventListener('change', (e) => {
         assignAttr = e.target.value;
         // Zuweisungs-Ziel gewechselt -> laufende Simulation verwerfen
@@ -90,10 +94,14 @@ async function open() {
     selected = new Set();
     assignAttr = 'vb';
     includeEmpty = false;
+    kpiSearch = '';
+    kpiSort = 'count';
     filters.search = '';
     filters.vb = '';
     filters.dim = {};
     document.getElementById('sim-search').value = '';
+    document.getElementById('cockpit-kpi-search').value = '';
+    document.getElementById('cockpit-kpi-sort').value = 'count';
     document.getElementById('sim-include-empty').checked = false;
     renderLevelSelect();
     renderAssignAttrSelect();
@@ -249,11 +257,25 @@ function renderTable() {
     const sim = computeStats(true);
     const hasSim = overrides.size > 0;
 
-    const keys = [...new Set([...base.keys(), ...sim.keys()])]
-        .sort((a, b) => (sim.get(b)?.count ?? 0) - (sim.get(a)?.count ?? 0));
-
+    const allKeys = [...new Set([...base.keys(), ...sim.keys()])];
     const totalCount = state.customers.length || 1;
-    const maxCount = Math.max(1, ...keys.map((k) => sim.get(k)?.count ?? 0));
+    const maxCount = Math.max(1, ...allKeys.map((k) => sim.get(k)?.count ?? 0));
+
+    // Suche + Sortierung (wichtig bei vielen Einträgen, z. B. 40 Bezirke)
+    const sortFns = {
+        count: (a, b) => (sim.get(b)?.count ?? 0) - (sim.get(a)?.count ?? 0),
+        umsatz: (a, b) => (sim.get(b)?.umsatz ?? 0) - (sim.get(a)?.umsatz ?? 0),
+        name: (a, b) => a.localeCompare(b, 'de')
+    };
+    const q = kpiSearch.trim().toLowerCase();
+    let keys = allKeys.filter((k) => !q || k.toLowerCase().includes(q));
+    keys.sort(sortFns[kpiSort] || sortFns.count);
+
+    const countEl = document.getElementById('cockpit-kpi-count');
+    if (countEl) {
+        const unit = assignAttr === 'vb' ? 'Vertriebsbeauftragte' : `${attrLabel(assignAttr)}e`;
+        countEl.textContent = q ? `${keys.length} von ${allKeys.length} ${unit}` : `${allKeys.length} ${unit}`;
+    }
 
     const fmtEur = (n) => n ? `${Math.round(n).toLocaleString('de-DE')} €` : '–';
     const delta = (now, before, suffix = '') => {
@@ -279,7 +301,7 @@ function renderTable() {
         </tr>`;
     }).join('');
 
-    const counts = keys.filter((k) => k !== UNASSIGNED).map((k) => sim.get(k)?.count ?? 0).filter((n) => n > 0);
+    const counts = allKeys.filter((k) => k !== UNASSIGNED).map((k) => sim.get(k)?.count ?? 0).filter((n) => n > 0);
     const summaryEl = document.getElementById('cockpit-summary');
     if (counts.length >= 2) {
         const max = Math.max(...counts);

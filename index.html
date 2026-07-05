@@ -195,7 +195,18 @@
             </header>
             <p class="muted small">Kennzahlen je Vertriebsbeauftragtem bzw. Betriebsbezirk. Weisen Sie unten ausgewählte Gebiete testweise einem anderen Ziel zu – die Werte aktualisieren sich sofort (Simulation, ändert Ihre Daten nicht).</p>
             <div id="cockpit-summary"></div>
-            <div class="table-scroll">
+            <div class="kpi-toolbar">
+                <span id="cockpit-kpi-count" class="muted small"></span>
+                <div class="kpi-tools">
+                    <input id="cockpit-kpi-search" type="search" placeholder="filtern…" autocomplete="off">
+                    <select id="cockpit-kpi-sort" aria-label="Sortierung">
+                        <option value="count">Kunden ↓</option>
+                        <option value="umsatz">Umsatz ↓</option>
+                        <option value="name">Name A–Z</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-scroll cockpit-kpi-scroll">
                 <table class="cockpit-table">
                     <thead><tr><th id="cockpit-attr-head">Vertriebsbeauftragte(r)</th><th>Kunden</th><th>Umsatz</th><th>Auslastung</th></tr></thead>
                     <tbody id="cockpit-rows"></tbody>

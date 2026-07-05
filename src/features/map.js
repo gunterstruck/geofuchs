@@ -272,25 +272,68 @@ function regionValue(feature, attr) {
     return null;
 }
 
-function styleFor(feature) {
+// ---- Proportionale Mehrfarb-Einfärbung ----
+
+function hexToRgb(hex) {
+    let h = String(hex).replace('#', '');
+    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+function toHex2(n) { return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0'); }
+
+/**
+ * Farben mehrerer Werte anteilig „übereinander" transparent mischen
+ * (Alpha-Over-Composite). Dominanter Anteil liegt oben.
+ * @param {Array<{color,share}>} shares
+ */
+function compositeFill(shares, maxOpacity) {
+    const sorted = [...shares].sort((a, b) => a.share - b.share);
+    let R = 0, G = 0, B = 0, A = 0;
+    for (const { color, share } of sorted) {
+        const a = Math.max(0, Math.min(1, share));
+        const [r, g, b] = hexToRgb(color);
+        const A2 = a + A * (1 - a);
+        if (A2 > 0) {
+            R = (r * a + R * A * (1 - a)) / A2;
+            G = (g * a + G * A * (1 - a)) / A2;
+            B = (b * a + B * A * (1 - a)) / A2;
+        }
+        A = A2;
+    }
+    return { fillColor: `#${toHex2(R)}${toHex2(G)}${toHex2(B)}`, fillOpacity: Math.min(maxOpacity, A) };
+}
+
+/** Anteile der Attributwerte in einem Gebiet (oder explizite Zuordnung = 100 %) */
+function regionShares(feature, attr) {
     const key = regionKey(state.level, feature);
-    const entry = regionStats.get(key);
     const terr = getTerritory(state.level, key);
+    if (terr && terr[attr]) return { shares: [{ color: attrColor(attr, terr[attr]), share: 1 }], assignedOnly: true, total: regionStats.get(key)?.total ?? 0 };
+    const entry = regionStats.get(key);
+    if (!entry || entry.total === 0) return null;
+    const counts = new Map();
+    for (const c of entry.customers) {
+        const v = attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
+        counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    const shares = [...counts.entries()].map(([v, n]) => ({ color: attrColor(attr, v), share: n / entry.total }));
+    return { shares, assignedOnly: false, total: entry.total };
+}
+
+function styleFor(feature) {
     const attr = currentView.paint;
+    const info = attr ? regionShares(feature, attr) : null;
+    if (!info) return { ...CONFIG.regionStyle.default };
 
-    const value = attr ? regionValue(feature, attr) : null;
-    if (!value) return { ...CONFIG.regionStyle.default };
-
-    const hasCustomers = entry && entry.total > 0;
-    const assignedOnly = !hasCustomers; // nur über Gebietszuordnung eingefärbt
     const territory = !currentView.markers; // Flächenansicht: kräftiger füllen
+    const maxOpacity = territory ? (info.assignedOnly ? 0.45 : 0.8) : 0.4;
+    const { fillColor, fillOpacity } = compositeFill(info.shares, maxOpacity);
     return {
-        fillColor: attrColor(attr, value),
+        fillColor,
         color: territory ? '#ffffff' : '#334155',
         weight: territory ? 1.2 : 1,
-        dashArray: assignedOnly ? '4 3' : '',
+        dashArray: info.assignedOnly ? '4 3' : '',
         opacity: 1,
-        fillOpacity: territory ? (assignedOnly ? 0.4 : 0.55) : (assignedOnly ? 0.3 : 0.18 + 0.3 * Math.min(entry.total / 12, 1))
+        fillOpacity
     };
 }
 
@@ -299,12 +342,22 @@ function regionTooltip(feature) {
     const key = regionKey(state.level, feature);
     const entry = regionStats.get(key);
     const attr = currentView.paint && currentView.paint !== 'vb' ? currentView.paint : 'vb';
-    const value = regionValue(feature, attr);
-    if (!value) return name;
-    const total = entry?.total ?? 0;
     const terr = getTerritory(state.level, key);
-    const suffix = total === 0 && terr ? 'zugeordnet, 0 Kunden' : `${total} Kd.`;
-    return `${name} · ${value} (${suffix})`;
+    const total = entry?.total ?? 0;
+
+    if (terr && terr[attr] && total === 0) return `${name} · ${terr[attr]} (zugeordnet, 0 Kunden)`;
+    if (!entry || total === 0) return terr ? `${name} · zugeordnet` : name;
+
+    // Zusammensetzung (Top-Anteile) anzeigen
+    const counts = new Map();
+    for (const c of entry.customers) {
+        const v = attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
+        counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    const parts = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)
+        .map(([v, n]) => `${v} ${Math.round((n / total) * 100)}%`);
+    const more = counts.size > 3 ? ' …' : '';
+    return `${name} · ${total} Kd. · ${parts.join(', ')}${more}`;
 }
 
 function restyleRegions() {
