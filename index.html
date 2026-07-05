@@ -150,6 +150,18 @@
             <!-- Tab: Tour -->
             <section id="tab-tour" class="tab-panel">
                 <h2>Besuchsplaner</h2>
+
+                <button id="btn-nearby" class="primary btn-nearby">📍 Was ist in meiner Nähe?</button>
+                <div class="aussen-view-block">
+                    <span class="field-label">Kartenansicht</span>
+                    <div class="seg-toggle" id="aussen-view" role="group" aria-label="Kartenansicht">
+                        <button type="button" class="seg" data-view="rep">Kunden</button>
+                        <button type="button" class="seg" data-view="status">Status</button>
+                        <button type="button" class="seg" data-view="chancen">🎯 Chancen</button>
+                    </div>
+                    <p id="chancen-count" class="muted small"></p>
+                </div>
+
                 <h3>1. Startpunkt</h3>
                 <div id="tour-start"></div>
                 <div class="button-row">
@@ -168,7 +180,7 @@
                 </div>
 
                 <h3>3. Vorschläge</h3>
-                <div class="seg-toggle" role="group" aria-label="Vorschlagsmodus">
+                <div class="seg-toggle" id="suggest-mode" role="group" aria-label="Vorschlagsmodus">
                     <button type="button" id="mode-radius" class="seg active" data-mode="radius">Umkreis um Start</button>
                     <button type="button" id="mode-route" class="seg" data-mode="route">Entlang der Tour</button>
                 </div>

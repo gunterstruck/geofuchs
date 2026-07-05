@@ -54,6 +54,8 @@ export const state = {
         //              'gebietsplanung' (Experten: Gebiete schneiden, Cockpit, Simulation)
         mode: 'aussendienst',
         activeTab: 'tour',
+        // Chancen-Fokus: nur fällige/überfällige Kunden auf der Karte zeigen
+        opportunityOnly: false,
         sidebarOpen: window.innerWidth > 900
     }
 };

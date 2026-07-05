@@ -52,6 +52,12 @@ export function statusRank(customer) {
     return status === 'ueberfaellig' ? 0 : status === 'faellig' ? 1 : 2;
 }
 
+/** Besuchschance? (fällig oder überfällig) – für die „Chancen"-Ansicht im Außendienst */
+export function isOpportunity(customer, now = new Date()) {
+    const s = visitStatus(customer, now);
+    return s === 'ueberfaellig' || s === 'faellig';
+}
+
 /** Besuch (heute) eintragen; gleicher Tag wird nicht doppelt gespeichert */
 export function markVisitedToday(customer) {
     const today = new Date().toISOString().slice(0, 10);
