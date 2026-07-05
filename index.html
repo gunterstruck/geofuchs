@@ -47,42 +47,42 @@
                     <div class="ob-hero">
                         <div class="ob-fox">🦊</div>
                         <h2>Willkommen bei GeoFuchs</h2>
-                        <p class="muted">In drei Schritten startklar: deine Kundenliste auf der Deutschlandkarte – für Tourenplanung und Gebietsarbeit.</p>
+                        <p class="muted">Deine Kundenliste auf der Deutschlandkarte – Touren planen und Vertriebsgebiete sehen.</p>
                     </div>
 
-                    <ol class="ob-steps">
-                        <li class="ob-step">
-                            <span class="ob-num">1</span>
-                            <div class="ob-body">
-                                <b>Vorlage herunterladen</b>
-                                <p class="muted small">Die Beispiel-Excelliste – schon mit Beispielzeilen und allen Spalten.</p>
-                                <button id="btn-template">📋 Excel-Vorlage herunterladen</button>
-                            </div>
-                        </li>
-                        <li class="ob-step">
-                            <span class="ob-num">2</span>
-                            <div class="ob-body">
-                                <b>Mit deinen Kunden füllen</b>
-                                <p class="muted small">Name, Adresse und Vertriebsbeauftragte(n) eintragen – Gebiet/Gruppe optional. Der Name allein genügt schon zum Start.</p>
-                            </div>
-                        </li>
-                        <li class="ob-step">
-                            <span class="ob-num">3</span>
-                            <div class="ob-body">
-                                <b>Liste hochladen</b>
-                                <p class="muted small">Deine ausgefüllte Datei hochladen – oder einfach auf die Karte ziehen.</p>
-                                <button id="btn-upload" class="primary">📤 Excel-Liste hochladen</button>
-                            </div>
-                        </li>
-                    </ol>
+                    <!-- Primär: sofort erleben -->
+                    <button id="btn-demo" class="primary ob-demo-btn">✨ App in 60 Sekunden erleben</button>
+                    <p class="muted small ob-demo-sub">Lädt Beispieldaten – 100 % lokal, unverbindlich, jederzeit wieder löschbar.</p>
 
-                    <p class="ob-then">Danach wählst du oben deinen Fokus: <b>🚗 Außendienst</b> (Tour planen) oder <b>🗺️ Gebietsplanung</b>.</p>
+                    <!-- Mobile: Brücke zum PC -->
+                    <p class="ob-bridge only-mobile">📱→💻 Eigene Kundendaten? Bereite deine Excel-Liste bequem <b>am PC</b> vor und zieh sie dort auf die Karte. Deine Daten bleiben lokal auf dem Gerät.</p>
 
-                    <div class="ob-alt">
-                        <b>💡 Nur mal reinschauen?</b>
-                        <p class="muted small">Lade unverbindlich Beispieldaten und lerne alle Funktionen kennen – du kannst sie jederzeit wieder löschen.</p>
-                        <button id="btn-demo">✨ Demo-Daten laden &amp; ausprobieren</button>
+                    <!-- Desktop: eigene Liste hochladen -->
+                    <div class="only-desktop">
+                        <div class="ob-or"><span>oder eigene Kundenliste</span></div>
+                        <button id="btn-upload" class="ob-upload-btn">📤 Excel-Liste hochladen</button>
+                        <p class="muted small ob-upload-sub">Datei auswählen oder einfach auf die Karte ziehen.</p>
+                        <details class="ob-details">
+                            <summary>Noch keine passende Liste? So bereitest du sie vor</summary>
+                            <ol class="ob-steps">
+                                <li class="ob-step"><span class="ob-num">1</span><div class="ob-body">
+                                    <b>Vorlage herunterladen</b>
+                                    <p class="muted small">Beispiel-Excelliste mit allen Spalten.</p>
+                                    <button id="btn-template" class="linklike">📋 Excel-Vorlage herunterladen</button>
+                                </div></li>
+                                <li class="ob-step"><span class="ob-num">2</span><div class="ob-body">
+                                    <b>Mit deinen Kunden füllen</b>
+                                    <p class="muted small">Pro Kunde genügen <b>Name, PLZ und Betriebsbezirk</b>. Vertriebsbeauftragte(r), Channel und Gruppe sind optional.</p>
+                                </div></li>
+                                <li class="ob-step"><span class="ob-num">3</span><div class="ob-body">
+                                    <b>Liste hochladen</b>
+                                    <p class="muted small">Ausgefüllte Datei hochladen – oder auf die Karte ziehen.</p>
+                                </div></li>
+                            </ol>
+                        </details>
                     </div>
+
+                    <p class="ob-then muted small">Danach oben den Fokus wählen: <b>🚗 Außendienst</b> (Tour planen) oder <b>🗺️ Gebietsplanung</b>.</p>
                 </div>
 
                 <!-- Datenübersicht + Verwaltung (nur mit geladenen Daten) -->
