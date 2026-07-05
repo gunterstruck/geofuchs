@@ -12,6 +12,7 @@ import { state, on, emit, repColor, attrColor, visibleCustomers, getCustomer, ma
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
 import { visitStatus, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
+import { openRegionEditor } from '../ui/regionEditor.js';
 
 let map = null;
 let regionLayer = null;
@@ -65,7 +66,7 @@ export function initMap(containerId) {
     map.on('popupopen', (e) => {
         const el = e.popup.getElement();
         if (!el) return;
-        el.querySelectorAll('[data-action]').forEach((btn) => {
+        el.querySelectorAll('[data-action]:not([data-action="edit-region"])').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const keepOpen = handlePopupAction(btn.dataset.action, btn.dataset.id);
                 if (!keepOpen) map.closePopup();
@@ -85,6 +86,13 @@ export function initMap(containerId) {
                 setTerritory(sel.dataset.level, sel.dataset.key, sel.dataset.terr, sel.value, sel.dataset.name);
                 markDirty();
             });
+        });
+        // „Ändern" -> Gebiets-Editor (Kunden umordnen)
+        el.querySelector('[data-action="edit-region"]')?.addEventListener('click', (ev) => {
+            const btn = ev.currentTarget;
+            const feature = featureByKey.get(btn.dataset.key);
+            map.closePopup();
+            openRegionEditor({ level: btn.dataset.level, key: btn.dataset.key, name: btn.dataset.name, feature });
         });
     });
 
@@ -386,7 +394,8 @@ function territoryAssignHtml(feature) {
 
     const base = `data-level="${escapeHtml(state.level)}" data-key="${escapeHtml(key)}" data-name="${escapeHtml(name)}"`;
     return `<div class="terr-assign">
-        <p class="terr-assign-title">Dieses Gebiet zuweisen:</p>
+        <button class="popup-edit-btn" data-action="edit-region" ${base}>✏️ Kunden dieses Gebiets umordnen …</button>
+        <p class="terr-assign-title">Ganze Fläche zuweisen:</p>
         <label class="terr-row"><span>Vertriebsbeauftragter</span>
             <select data-terr="vb" ${base}>${opts(reps, terr.vb)}</select></label>
         <label class="terr-row"><span>Betriebsbezirk</span>

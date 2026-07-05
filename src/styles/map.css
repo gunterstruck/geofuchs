@@ -115,6 +115,18 @@
     padding-top: 8px;
     border-top: 1px solid var(--color-border, #e2e8f0);
 }
+.popup-edit-btn {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 7px 10px;
+    font-weight: 600;
+    font-size: 0.84rem;
+    border: 1px solid var(--color-primary, #0d9488);
+    color: var(--color-primary-dark, #0f766e);
+    background: var(--color-primary-light, #ccfbf1);
+    border-radius: var(--radius-s, 6px);
+    cursor: pointer;
+}
 .terr-assign-title { margin: 0 0 4px; font-weight: 700; font-size: 0.82rem; }
 .terr-row { display: flex; align-items: center; gap: 6px; margin: 4px 0; font-size: 0.8rem; }
 .terr-row span { flex: 0 0 auto; color: var(--color-text-muted, #64748b); min-width: 118px; }

@@ -238,6 +238,35 @@
             </footer>
         </dialog>
 
+        <!-- Gebiets-Editor: Kunden eines Gebiets umordnen -->
+        <dialog id="region-edit-dialog">
+            <header>
+                <h2>✏️ <span id="re-title"></span></h2>
+                <button class="dialog-close" aria-label="Schließen">✕</button>
+            </header>
+            <p class="muted small">Kunden dieses Gebiets gezielt umordnen. Wählen Sie die betreffenden Kunden aus (Häkchen), bestimmen Sie das Ziel und weisen Sie zu. Änderungen wirken sofort auf der Karte.</p>
+            <div class="re-toolbar">
+                <label class="sim-field">Zuweisen als
+                    <select id="re-assign-attr"></select>
+                </label>
+                <label class="sim-field">Ziel
+                    <select id="re-target"></select>
+                </label>
+                <button id="re-apply" class="primary">Auswahl zuweisen</button>
+            </div>
+            <label class="check-inline"><input type="checkbox" id="re-also-territory"> Auch die Fläche (Gebietszuordnung) auf dieses Ziel setzen</label>
+            <div class="re-listhead">
+                <label class="check-inline"><input type="checkbox" id="re-select-all"> Alle (sichtbaren) auswählen</label>
+                <input id="re-search" type="search" placeholder="Kunde/Ort/PLZ filtern…" autocomplete="off">
+            </div>
+            <p id="re-count" class="muted small"></p>
+            <div id="re-list" class="scroll-list re-list"></div>
+            <footer>
+                <button id="re-undo">↩ Rückgängig</button>
+                <button id="re-close" class="primary">Schließen</button>
+            </footer>
+        </dialog>
+
         <!-- Import-Ergebnis (Plausibilitätsprüfung) -->
         <dialog id="import-result-dialog">
             <header>

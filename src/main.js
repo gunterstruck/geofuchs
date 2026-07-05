@@ -15,6 +15,7 @@ import { initSidebar } from './ui/sidebar.js';
 import { initImportWizard } from './ui/importWizard.js';
 import { initTourPanel } from './ui/tourPanel.js';
 import { initCockpit } from './ui/cockpit.js';
+import { initRegionEditor } from './ui/regionEditor.js';
 import { initSearch } from './ui/search.js';
 import { initToasts } from './ui/toast.js';
 import { fitToCustomers } from './features/map.js';
@@ -83,6 +84,7 @@ async function init() {
     initImportWizard();
     initTourPanel();
     initCockpit();
+    initRegionEditor();
     initSearch();
 
     on('dataset:dirty', scheduleSave);
