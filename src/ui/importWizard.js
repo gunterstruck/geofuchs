@@ -6,13 +6,17 @@
  */
 
 import { geocodeByPlz } from '../services/geocode.js';
-import { setCustomers, emit } from '../core/state.js';
+import { setCustomers, emit, datasetSnapshot, setTerritory } from '../core/state.js';
+import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { saveDataset } from '../services/storage.js';
 import { showToast } from './toast.js';
 import { fitToCustomers } from '../features/map.js';
 
 let dialog = null;
+let resultDialog = null;
 let parsed = null; // { headers, rows, fileName }
+let lastErrors = [];
+let lastFileBase = 'geofuchs';
 
 // SheetJS (xlsx) ist groß – erst laden, wenn wirklich importiert/exportiert wird
 const excel = () => import('../services/excel.js');
@@ -33,6 +37,13 @@ export function initImportWizard() {
 
     document.getElementById('btn-template').addEventListener('click', async () => (await excel()).downloadTemplate());
     document.getElementById('btn-demo').addEventListener('click', loadDemo);
+
+    resultDialog = document.getElementById('import-result-dialog');
+    resultDialog.querySelector('.dialog-close').addEventListener('click', () => resultDialog.close());
+    document.getElementById('import-result-ok').addEventListener('click', () => resultDialog.close());
+    document.getElementById('import-error-download').addEventListener('click', async () => {
+        if (lastErrors.length) (await excel()).exportErrors(lastErrors, lastFileBase);
+    });
 
     // Drag & Drop auf die gesamte App
     const appEl = document.body;
@@ -122,25 +133,131 @@ async function confirmImport() {
         mapping[sel.dataset.field] = sel.value || null;
     });
 
-    if (!mapping.name) {
-        showToast('Bitte die Spalte mit dem Kundennamen zuordnen.', 'error');
+    if (!mapping.name && !mapping.gebiet) {
+        showToast('Bitte die Spalte „Kundenname" (oder für reine Flächenzeilen „Gebiet") zuordnen.', 'error');
         return;
     }
-    if (!mapping.plz && !(mapping.lat && mapping.lng)) {
+    if (mapping.name && !mapping.plz && !(mapping.lat && mapping.lng)) {
         showToast('Ohne PLZ (oder Koordinaten) können Kunden nicht auf der Karte verortet werden.', 'error');
         return;
     }
+    if (mapping.name && !mapping.bezirk) {
+        showToast('Bitte die Spalte „Betriebsbezirk" zuordnen – sie ist Pflicht.', 'error');
+        return;
+    }
 
-    const { rowsToCustomers } = await excel();
-    const { customers, skipped } = rowsToCustomers(parsed.rows, mapping);
-    if (customers.length === 0) {
-        showToast('Keine gültigen Kundenzeilen gefunden.', 'error');
+    const { parseRows } = await excel();
+    const { customers, areaRows, errors, skipped } = parseRows(parsed.rows, mapping);
+
+    // Flächenzeilen (Gebietszuordnungen) auflösen – lädt Gebietsdaten bei Bedarf
+    const areaCount = await resolveAreas(areaRows, errors);
+
+    lastFileBase = (parsed.fileName || 'geofuchs').replace(/\.[^.]+$/, '');
+
+    if (customers.length === 0 && areaCount === 0) {
+        dialog.close();
+        lastErrors = errors;
+        if (errors.length) {
+            showImportResult({ customerCount: 0, areaCount: 0, skipped, errors });
+        } else {
+            showToast('Keine gültigen Zeilen im Import gefunden.', 'error');
+        }
         return;
     }
 
     dialog.close();
-    await applyCustomers(customers, parsed.fileName);
-    if (skipped > 0) showToast(`${skipped} Zeilen ohne Kundennamen übersprungen.`, 'info');
+
+    if (customers.length > 0) {
+        await geocodeByPlz(customers);
+        // PLZ nicht gefunden -> als Hinweis in die Fehlerliste (Kunde wird trotzdem importiert)
+        for (const c of customers) {
+            if (c.plz && c.geo === 'none') {
+                errors.push({ Zeile: c._sheetRow, Typ: 'Hinweis', Grund: `PLZ ${c.plz} nicht gefunden – Kunde nicht auf der Karte`, ...(c._raw || {}) });
+            }
+            delete c._sheetRow; delete c._raw;
+        }
+        setCustomers(customers, { fileName: parsed.fileName });
+        fitToCustomers();
+    } else {
+        // Reiner Flächen-Import: Kunden unverändert lassen, nur neu einfärben
+        emit('customers:changed');
+    }
+    await saveDataset(datasetSnapshot());
+
+    lastErrors = errors;
+    showImportResult({ customerCount: customers.length, areaCount, skipped, errors });
+}
+
+/**
+ * Flächenzeilen zu Gebietszuordnungen auflösen. „Gebiet" ist entweder ein
+ * Landkreis-Name (→ Ebene Landkreise) oder eine PLZ / PLZ-Präfix (Ziffern →
+ * Ebene nach Länge: 1/2/3/5). Widersprüche und unbekannte Gebiete landen in
+ * der Fehlerliste. @returns Anzahl erfolgreich zugeordneter Gebiete
+ */
+async function resolveAreas(areaRows, errors) {
+    if (!areaRows.length) return 0;
+    const cache = {};
+    const getGeo = async (lvl) => (cache[lvl] ||= await loadLevel(lvl));
+    const assigned = new Map(); // 'level:key' -> { bezirk, vb, sheetRow, name }
+    const plzLevel = { 1: 'plz1', 2: 'plz2', 3: 'plz3', 5: 'plz5' };
+    const errRow = (sheetRow, grund, raw) => errors.push({ Zeile: sheetRow, Typ: 'Fehler', Grund: grund, ...raw });
+    let count = 0;
+
+    for (const ar of areaRows) {
+        const g = String(ar.gebiet).trim();
+        let level, key, name;
+        try {
+            if (/^\d+$/.test(g)) {
+                const lvl = plzLevel[g.length];
+                if (!lvl) { errRow(ar.sheetRow, `PLZ „${g}" hat ${g.length} Stellen – unterstützt sind 1, 2, 3 oder 5`, ar.raw); continue; }
+                const geo = await getGeo(lvl);
+                const feat = geo.features.find((f) => String(f.properties.plz) === g);
+                if (!feat) { errRow(ar.sheetRow, `PLZ-Gebiet „${g}" nicht gefunden`, ar.raw); continue; }
+                level = lvl; key = regionKey(lvl, feat); name = regionName(lvl, feat);
+            } else {
+                const geo = await getGeo('kreise');
+                const gl = g.toLowerCase();
+                const feat = geo.features.find((f) => (f.properties.gen || '').toLowerCase() === gl)
+                    || geo.features.find((f) => regionName('kreise', f).toLowerCase().includes(gl));
+                if (!feat) { errRow(ar.sheetRow, `Landkreis „${g}" nicht gefunden`, ar.raw); continue; }
+                level = 'kreise'; key = regionKey('kreise', feat); name = regionName('kreise', feat);
+            }
+        } catch (e) {
+            errRow(ar.sheetRow, `Gebietsdaten konnten nicht geladen werden: ${e.message}`, ar.raw); continue;
+        }
+
+        const rk = `${level}:${key}`;
+        const prev = assigned.get(rk);
+        if (prev && ((ar.bezirk && prev.bezirk && ar.bezirk !== prev.bezirk) || (ar.vb && prev.vb && ar.vb !== prev.vb))) {
+            errRow(ar.sheetRow, `Gebiet „${name}" widersprüchlich zugeordnet (bereits Zeile ${prev.sheetRow}: ${prev.bezirk || prev.vb})`, ar.raw);
+            continue;
+        }
+        assigned.set(rk, { bezirk: ar.bezirk, vb: ar.vb, sheetRow: ar.sheetRow, name });
+        if (ar.bezirk) setTerritory(level, key, 'bezirk', ar.bezirk, name);
+        if (ar.vb) setTerritory(level, key, 'vb', ar.vb, name);
+        count++;
+    }
+    return count;
+}
+
+function showImportResult({ customerCount, areaCount, skipped, errors }) {
+    const fehler = errors.filter((e) => e.Typ === 'Fehler').length;
+    const hinweise = errors.filter((e) => e.Typ === 'Hinweis').length;
+
+    if (errors.length === 0) {
+        showToast(`${customerCount} Kunden${areaCount ? `, ${areaCount} Gebiete` : ''} importiert.`, 'success', 6000);
+        return;
+    }
+    document.getElementById('import-result-body').innerHTML = `
+        <div class="stat-grid">
+            <div class="stat"><b>${customerCount}</b><span>Kunden</span></div>
+            <div class="stat"><b>${areaCount}</b><span>Gebiete</span></div>
+            <div class="stat"><b>${fehler}</b><span>Fehler</span></div>
+            <div class="stat"><b>${hinweise}</b><span>Hinweise</span></div>
+        </div>
+        <p class="muted small">Gültige Zeilen wurden importiert. ${fehler ? `${fehler} Zeile(n) mit Fehlern wurden nicht übernommen. ` : ''}${hinweise ? `${hinweise} Hinweis(e) (z. B. unbekannte PLZ). ` : ''}Laden Sie die Liste herunter, um die Zeilen zu prüfen und zu korrigieren.</p>
+    `;
+    resultDialog.showModal();
 }
 
 async function loadDemo() {
@@ -152,11 +269,7 @@ async function loadDemo() {
 async function applyCustomers(customers, fileName) {
     const { located, missing } = await geocodeByPlz(customers);
     setCustomers(customers, { fileName });
-    await saveDataset({
-        customers,
-        fileName,
-        importedAt: new Date().toISOString()
-    });
+    await saveDataset(datasetSnapshot());
     fitToCustomers();
     emit('toast', {
         type: 'success',

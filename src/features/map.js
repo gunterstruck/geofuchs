@@ -8,10 +8,11 @@ import L from 'leaflet';
 import 'leaflet.markercluster';
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, repColor, attrColor, visibleCustomers, getCustomer, markDirty, UNASSIGNED } from '../core/state.js';
+import { state, on, emit, repColor, attrColor, visibleCustomers, getCustomer, markDirty, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
 import { visitStatus, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
+import { openRegionEditor } from '../ui/regionEditor.js';
 
 let map = null;
 let regionLayer = null;
@@ -65,7 +66,7 @@ export function initMap(containerId) {
     map.on('popupopen', (e) => {
         const el = e.popup.getElement();
         if (!el) return;
-        el.querySelectorAll('[data-action]').forEach((btn) => {
+        el.querySelectorAll('[data-action]:not([data-action="edit-region"])').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const keepOpen = handlePopupAction(btn.dataset.action, btn.dataset.id);
                 if (!keepOpen) map.closePopup();
@@ -78,6 +79,20 @@ export function initMap(containerId) {
             const val = parseInt(ev.target.value, 10);
             customer.rhythmusWochen = Number.isFinite(val) && val > 0 ? val : null;
             markDirty();
+        });
+        // Gebietszuordnung direkt im Gebiets-Popup (VB / Betriebsbezirk)
+        el.querySelectorAll('select[data-terr]').forEach((sel) => {
+            sel.addEventListener('change', () => {
+                setTerritory(sel.dataset.level, sel.dataset.key, sel.dataset.terr, sel.value, sel.dataset.name);
+                markDirty();
+            });
+        });
+        // „Ändern" -> Gebiets-Editor (Kunden umordnen)
+        el.querySelector('[data-action="edit-region"]')?.addEventListener('click', (ev) => {
+            const btn = ev.currentTarget;
+            const feature = featureByKey.get(btn.dataset.key);
+            map.closePopup();
+            openRegionEditor({ level: btn.dataset.level, key: btn.dataset.key, name: btn.dataset.name, feature });
         });
     });
 
@@ -244,31 +259,52 @@ function dominantValue(entry, attr) {
     return best;
 }
 
+/**
+ * Wert eines Gebiets für ein Attribut: explizite Gebietszuordnung (auch ohne
+ * Kunden) hat Vorrang, sonst der dominante Wert der Kunden im Gebiet.
+ */
+function regionValue(feature, attr) {
+    const key = regionKey(state.level, feature);
+    const terr = getTerritory(state.level, key);
+    if (terr && terr[attr]) return terr[attr];
+    const entry = regionStats.get(key);
+    if (entry && entry.total > 0) return dominantValue(entry, attr);
+    return null;
+}
+
 function styleFor(feature) {
-    const entry = regionStats.get(regionKey(state.level, feature));
-    if (!entry || entry.total === 0) return { ...CONFIG.regionStyle.default };
-
+    const key = regionKey(state.level, feature);
+    const entry = regionStats.get(key);
+    const terr = getTerritory(state.level, key);
     const attr = currentView.paint;
-    if (!attr) return { ...CONFIG.regionStyle.default };
 
-    const value = dominantValue(entry, attr);
+    const value = attr ? regionValue(feature, attr) : null;
+    if (!value) return { ...CONFIG.regionStyle.default };
+
+    const hasCustomers = entry && entry.total > 0;
+    const assignedOnly = !hasCustomers; // nur über Gebietszuordnung eingefärbt
     const territory = !currentView.markers; // Flächenansicht: kräftiger füllen
     return {
         fillColor: attrColor(attr, value),
         color: territory ? '#ffffff' : '#334155',
         weight: territory ? 1.2 : 1,
+        dashArray: assignedOnly ? '4 3' : '',
         opacity: 1,
-        fillOpacity: territory ? 0.55 : 0.18 + 0.3 * Math.min(entry.total / 12, 1)
+        fillOpacity: territory ? (assignedOnly ? 0.4 : 0.55) : (assignedOnly ? 0.3 : 0.18 + 0.3 * Math.min(entry.total / 12, 1))
     };
 }
 
 function regionTooltip(feature) {
     const name = regionName(state.level, feature);
-    const entry = regionStats.get(regionKey(state.level, feature));
-    if (!entry || entry.total === 0) return name;
+    const key = regionKey(state.level, feature);
+    const entry = regionStats.get(key);
     const attr = currentView.paint && currentView.paint !== 'vb' ? currentView.paint : 'vb';
-    const value = dominantValue(entry, attr);
-    return `${name} · ${value} (${entry.total} Kd.)`;
+    const value = regionValue(feature, attr);
+    if (!value) return name;
+    const total = entry?.total ?? 0;
+    const terr = getTerritory(state.level, key);
+    const suffix = total === 0 && terr ? 'zugeordnet, 0 Kunden' : `${total} Kd.`;
+    return `${name} · ${value} (${suffix})`;
 }
 
 function restyleRegions() {
@@ -315,6 +351,14 @@ function renderLabels() {
             if (!anchor.has(v) || n > anchor.get(v).count) anchor.set(v, { feature, count: n });
         }
     }
+    // Gebietszuordnungen ohne Kunden ebenfalls beschriften (Anker: das zugeordnete Gebiet)
+    for (const [id, terr] of Object.entries(state.territories)) {
+        if (!id.startsWith(`${state.level}:`)) continue;
+        const v = terr[attr];
+        if (!v || anchor.has(v)) continue;
+        const feature = featureByKey.get(id.slice(state.level.length + 1));
+        if (feature) anchor.set(v, { feature, count: 0 });
+    }
 
     for (const [val, a] of anchor) {
         if (val === UNASSIGNED) continue;
@@ -337,11 +381,39 @@ function renderLabels() {
     }
 }
 
+/** Zuweisungs-Selects (VB & Betriebsbezirk) für ein Gebiet */
+function territoryAssignHtml(feature) {
+    const name = regionName(state.level, feature);
+    const key = regionKey(state.level, feature);
+    const terr = getTerritory(state.level, key) || {};
+    const opts = (values, current) => ['<option value="">— nicht zugeordnet —</option>']
+        .concat(values.map((v) => `<option value="${escapeHtml(v)}"${v === current ? ' selected' : ''}>${escapeHtml(v)}</option>`)).join('');
+
+    const reps = [...state.reps.keys()].filter((v) => v !== UNASSIGNED);
+    const bezirke = state.dims.bezirk?.active ? [...state.dims.bezirk.values.keys()].filter((v) => v !== UNASSIGNED) : [];
+
+    const base = `data-level="${escapeHtml(state.level)}" data-key="${escapeHtml(key)}" data-name="${escapeHtml(name)}"`;
+    return `<div class="terr-assign">
+        <button class="popup-edit-btn" data-action="edit-region" ${base}>✏️ Kunden dieses Gebiets umordnen …</button>
+        <p class="terr-assign-title">Ganze Fläche zuweisen:</p>
+        <label class="terr-row"><span>Vertriebsbeauftragter</span>
+            <select data-terr="vb" ${base}>${opts(reps, terr.vb)}</select></label>
+        <label class="terr-row"><span>Betriebsbezirk</span>
+            <select data-terr="bezirk" ${base}>${opts(bezirke, terr.bezirk)}</select></label>
+    </div>`;
+}
+
 function regionPopupHtml(feature) {
     const name = regionName(state.level, feature);
     const entry = regionStats.get(regionKey(state.level, feature));
+    const assign = territoryAssignHtml(feature);
+
     if (!entry || entry.total === 0) {
-        return `<div class="popup"><h3>${escapeHtml(name)}</h3><p class="muted">Keine (sichtbaren) Kunden in diesem Gebiet.</p></div>`;
+        return `<div class="popup">
+            <h3>${escapeHtml(name)}</h3>
+            <p class="muted">Keine (sichtbaren) Kunden in diesem Gebiet.</p>
+            ${assign}
+        </div>`;
     }
     const reps = [...entry.byRep.entries()].sort((a, b) => b[1] - a[1]);
     const repRows = reps.map(([vb, count]) => `
@@ -354,6 +426,7 @@ function regionPopupHtml(feature) {
         <p><b>${entry.total}</b> Kunde${entry.total === 1 ? '' : 'n'}</p>
         <ul class="rep-list">${repRows}</ul>
         <ul class="cust-list">${list}${more}</ul>
+        ${assign}
     </div>`;
 }
 

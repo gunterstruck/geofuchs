@@ -24,6 +24,7 @@ GeoFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 | 📄 **Daten** | Excel-/CSV-Import per Klick oder Drag & Drop, automatische Spaltenerkennung mit Prüf-Dialog, Excel-Vorlage, Demo-Daten, Excel-Export |
 | 📍 **Verortung** | Sofort über PLZ-Koordinaten (offline, ohne API-Schlüssel); optional adressgenau über OpenStreetMap/Nominatim |
 | 🗺️ **Gebiete** | Landkreise (400 Kreise & Städte) **und** PLZ-Ebenen (1-, 2-, 3- und 5-stellig); Flächen einfärbbar nach Vertriebsbeauftragtem, **Betriebsbezirk** oder **Vertriebsgruppe** (mit Namens-Label und Umsatzsumme); Klick zeigt Kunden & Team-Verteilung je Gebiet |
+| ✏️ **Gebiets-Editor** | Im Gebiets-Popup „Kunden dieses Gebiets umordnen": Kundenliste des Gebiets mit Checkboxen & Filter, ausgewählte Kunden (oder das ganze Gebiet) einem anderen Vertriebsbeauftragten/Betriebsbezirk zuweisen – auch gemischte Gebiete gezielt aufteilen; wirkt sofort auf der Karte, mit **Rückgängig** |
 | 🔍 **Zoom-Automatik** | „Automatisch (nach Zoom)": weit herausgezoomt zeigt die Karte Vertriebsgruppen als Flächen (mit Umsatz), mittlerer Zoom die Betriebsbezirke, hineingezoomt die einzelnen Kunden – der Detailgrad wächst mit dem Zoom |
 | 👥 **Team** | Vertriebsbeauftragte (feste Farben) und die dreistufige Vertriebshierarchie **Vertriebschannel › Vertriebsgruppe › Betriebsbezirk** einzeln ein-/ausblenden; jede Ebene optional, nur vorhandene Ebenen werden angezeigt; Kundenzähler |
 | 🚗 **Tour** | Startpunkt = eigener GPS-Standort oder ein Kunde; Vorschläge „Wen könnte ich in der Nähe noch besuchen?“ (Umkreis einstellbar); Tourenoptimierung (kürzeste Strecke, Nearest-Neighbor + 2-Opt); Übergabe an Google Maps zur Navigation |
@@ -41,17 +42,25 @@ und können beim Import manuell zugeordnet werden. Empfohlene Spalten:
 | PLZ | ✅ (für die Karte) | 50667 |
 | Straße & Hausnummer | – | Hauptstraße 12 |
 | Ort | – | Köln |
+| Betriebsbezirk | ✅ | Bezirk Rheinland |
 | Vertriebsbeauftragter | – | Max Mustermann |
 | Vertriebschannel | – | Fachhandel |
 | Vertriebsgruppe | – | Handel |
-| Betriebsbezirk | – | Bezirk West |
 | Ansprechpartner, Telefon, E-Mail | – | Herr Schmidt · 0221 123456 |
 | Besuchsrhythmus (Wochen), Letzter Besuch | – | 6 · 12.05.2026 |
 | Kundennummer, Umsatz, Lat/Lng | – | optional |
 
-Die drei Ebenen **Vertriebschannel › Vertriebsgruppe › Betriebsbezirk** bilden eine Hierarchie (oben → unten) und sind jeweils optional – fehlt eine Spalte (z. B. der oberste Channel), ist das unproblematisch, die Ebene wird einfach nicht angezeigt.
+Die drei Ebenen **Vertriebschannel › Vertriebsgruppe › Betriebsbezirk** bilden eine Hierarchie (oben → unten). Der **Betriebsbezirk** (unterste, operative Ebene) ist Pflicht; Vertriebschannel, Vertriebsgruppe und der Vertriebsbeauftragte sind optional – fehlt eine dieser optionalen Spalten, wird die Ebene einfach nicht angezeigt. Im Gebiets-Cockpit lässt sich wahlweise nach **Vertriebsbeauftragtem oder Betriebsbezirk** (bzw. Gruppe/Channel) auswerten und zuweisen.
 
 Eine fertige Vorlage gibt es in der App unter **Daten → Excel-Vorlage herunterladen**.
+
+#### Flächenzeilen (Gebiete ohne Kunden zuordnen)
+
+Neben Kundenzeilen kann die Liste **Flächenzeilen** enthalten: eine Zeile **ohne Kundenname**, aber mit der Spalte **Gebiet (LK/PLZ)** und einem **Betriebsbezirk** (oder Vertriebsbeauftragten). So lässt sich ein ganzer Landkreis oder ein PLZ-Bereich einem Bezirk/VB zuordnen, auch wenn dort (noch) keine Kunden sind – z. B. um Gebiete für Neukunden zu reservieren. „Gebiet" ist entweder ein **Landkreis-Name** (z. B. `Oberhausen`) oder eine **PLZ / PLZ-Präfix** (`46` = alle 46xxx, `46045` = genau dieses PLZ-Gebiet). Dasselbe geht interaktiv über das **Gebiets-Popup** auf der Karte oder im **Cockpit** (Häkchen „Auch Gebiete ohne Kunden einbeziehen").
+
+#### Plausibilitätsprüfung beim Import
+
+Beim Import werden die Zeilen geprüft. **Gültige Zeilen werden importiert**, problematische landen in einer **herunterladbaren Fehlerliste (Excel)** statt in einer unübersichtlichen Fehleranzeige. Erkannt werden u. a.: Dubletten (gleiche Kundennummer bzw. Name + PLZ), fehlender Betriebsbezirk, widersprüchliche Gebietszuordnungen (ein Gebiet zwei verschiedenen Bezirken zugewiesen), unbekannte Landkreise/PLZ-Gebiete sowie nicht auffindbare Kunden-PLZ (Hinweis).
 
 ### Datenschutz
 

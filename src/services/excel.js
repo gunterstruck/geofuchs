@@ -16,7 +16,8 @@ export const FIELDS = [
     { key: 'vb',      label: 'Vertriebsbeauftragter',  required: false, synonyms: ['vertriebsbeauftragter', 'vertriebsbeauftragte', 'vb', 'betreuer', 'außendienst', 'aussendienst', 'ad', 'vertriebler', 'verkäufer', 'verkaeufer', 'sales rep', 'mitarbeiter', 'ansprechpartner vertrieb', 'gebietsleiter', 'kam'] },
     { key: 'channel', label: 'Vertriebschannel',       required: false, synonyms: ['vertriebschannel', 'vertriebskanal', 'channel', 'kanal', 'absatzkanal', 'vertriebsweg', 'saleschannel', 'sales channel', 'vertriebslinie'] },
     { key: 'gruppe',  label: 'Vertriebsgruppe',        required: false, synonyms: ['vertriebsgruppe', 'gruppe', 'kundengruppe', 'kundenkreis', 'segment', 'kategorie', 'sparte', 'branche', 'klasse', 'team'] },
-    { key: 'bezirk',  label: 'Betriebsbezirk',         required: false, synonyms: ['betriebsbezirk', 'bezirk', 'vertriebsbezirk', 'verkaufsbezirk', 'gebietsbezirk', 'außendienstbezirk', 'aussendienstbezirk', 'district', 'gebiet'] },
+    { key: 'bezirk',  label: 'Betriebsbezirk',         required: true,  synonyms: ['betriebsbezirk', 'bezirk', 'vertriebsbezirk', 'verkaufsbezirk', 'gebietsbezirk', 'außendienstbezirk', 'aussendienstbezirk', 'district'] },
+    { key: 'gebiet',  label: 'Gebiet (nur Flächenzeile: LK oder PLZ)', required: false, synonyms: ['gebiet', 'landkreis', 'lk', 'kreis', 'plz-gebiet', 'plz gebiet', 'fläche', 'flaeche', 'gebietszuweisung', 'nur gebiet'] },
     { key: 'ansprechpartner', label: 'Ansprechpartner', required: false, synonyms: ['ansprechpartner', 'kontaktperson', 'kontakt', 'contact', 'ap', 'ansprechpartner in'] },
     { key: 'telefon', label: 'Telefon',                required: false, synonyms: ['telefon', 'tel', 'telefonnummer', 'phone', 'mobil', 'handy', 'rufnummer', 'festnetz'] },
     { key: 'email',   label: 'E-Mail',                 required: false, synonyms: ['email', 'e-mail', 'mail', 'e mail', 'emailadresse', 'e-mail-adresse'] },
@@ -134,35 +135,71 @@ function parseDateIso(value) {
 }
 
 /**
- * Zeilen anhand Mapping in Kunden-Objekte umwandeln.
- * Liefert { customers, skipped } – skipped = Zeilen ohne Namen.
+ * Zeilen anhand Mapping einlesen und dabei auf Plausibilität prüfen.
+ *
+ * Unterscheidet:
+ *  - Kundenzeilen (Kundenname vorhanden)
+ *  - Flächenzeilen (kein Kundenname, aber „Gebiet" gefüllt) → Gebietszuordnung
+ *
+ * @returns {{ customers, areaRows, errors, skipped }}
+ *   errors: [{ Zeile, Typ: 'Fehler'|'Hinweis', Grund, ...Originalspalten }]
  */
-export function rowsToCustomers(rows, mapping) {
+export function parseRows(rows, mapping) {
     const customers = [];
+    const areaRows = [];
+    const errors = [];
+    const seen = new Map(); // Dublettenschlüssel -> erste Zeilennummer
     let skipped = 0;
 
+    const err = (sheetRow, grund, raw, typ = 'Fehler') => errors.push({ Zeile: sheetRow, Typ: typ, Grund: grund, ...raw });
+
     rows.forEach((row, index) => {
+        const sheetRow = index + 2; // Kopfzeile = Zeile 1
         const get = (key) => (mapping[key] ? String(row[mapping[key]] ?? '').trim() : '');
         const name = get('name');
-        if (!name) { skipped++; return; }
+        const gebiet = get('gebiet');
 
+        // Leere Zeile
+        if (!name && !gebiet) { skipped++; return; }
+
+        // Flächenzeile (Gebietszuordnung ohne Kunde)
+        if (!name && gebiet) {
+            const bezirk = get('bezirk');
+            const vb = get('vb');
+            if (!bezirk && !vb) { err(sheetRow, 'Flächenzeile ohne Betriebsbezirk oder Vertriebsbeauftragten', row); return; }
+            areaRows.push({ gebiet, bezirk, vb, sheetRow, raw: row });
+            return;
+        }
+
+        // Kundenzeile
+        const bezirk = get('bezirk');
+        if (!bezirk) { err(sheetRow, 'Betriebsbezirk fehlt (Pflichtfeld)', row); return; }
+
+        const plz = cleanPlz(get('plz'));
         const lat = parseCoord(mapping.lat ? row[mapping.lat] : null);
         const lng = parseCoord(mapping.lng ? row[mapping.lng] : null);
         const hasCoords = lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+        if (!plz && !hasCoords) { err(sheetRow, 'Weder PLZ noch Koordinaten – nicht verortbar', row); return; }
+
+        const nummer = get('nummer');
+        const dupKey = nummer ? `nr:${nummer}` : `np:${name.toLowerCase()}|${plz}`;
+        if (seen.has(dupKey)) {
+            err(sheetRow, `Dublette – ${nummer ? `gleiche Kundennummer` : `gleicher Name + PLZ`} wie Zeile ${seen.get(dupKey)}`, row);
+            return;
+        }
+        seen.set(dupKey, sheetRow);
 
         const letzterBesuch = mapping.letzterBesuch ? parseDateIso(row[mapping.letzterBesuch]) : null;
-
         customers.push({
             id: `k${index}-${name.slice(0, 12)}`,
-            nummer: get('nummer'),
-            name,
+            nummer, name,
             strasse: get('strasse'),
-            plz: cleanPlz(get('plz')),
+            plz,
             ort: get('ort'),
             vb: get('vb'),
             channel: get('channel'),
             gruppe: get('gruppe'),
-            bezirk: get('bezirk'),
+            bezirk,
             ansprechpartner: get('ansprechpartner'),
             telefon: get('telefon'),
             email: get('email'),
@@ -171,11 +208,22 @@ export function rowsToCustomers(rows, mapping) {
             besuche: letzterBesuch ? [letzterBesuch] : [],
             lat: hasCoords ? lat : null,
             lng: hasCoords ? lng : null,
-            geo: hasCoords ? 'exakt' : 'none'
+            geo: hasCoords ? 'exakt' : 'none',
+            _sheetRow: sheetRow,
+            _raw: row
         });
     });
 
-    return { customers, skipped };
+    return { customers, areaRows, errors, skipped };
+}
+
+/** Fehler-/Hinweisliste als Excel herunterladen */
+export function exportErrors(errors, fileBase = 'geofuchs') {
+    const ws = XLSX.utils.json_to_sheet(errors);
+    ws['!cols'] = [{ wch: 8 }, { wch: 10 }, { wch: 40 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Fehler & Hinweise');
+    XLSX.writeFile(wb, `${fileBase}-importfehler-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 /** Excel-Vorlage mit Beispielzeilen erzeugen und herunterladen */
@@ -186,6 +234,7 @@ export function downloadTemplate() {
             'Straße': 'Hauptstraße 12', 'PLZ': '50667', 'Ort': 'Köln',
             'Vertriebsbeauftragter': 'Max Mustermann',
             'Vertriebschannel': 'Fachhandel', 'Vertriebsgruppe': 'Handel', 'Betriebsbezirk': 'Bezirk West',
+            'Gebiet (LK/PLZ)': '',
             'Ansprechpartner': 'Herr Schmidt', 'Telefon': '0221 1234567', 'E-Mail': 'info@autohaus-schmidt.de',
             'Umsatz': 125000, 'Besuchsrhythmus (Wochen)': 6, 'Letzter Besuch': '12.05.2026'
         },
@@ -202,12 +251,24 @@ export function downloadTemplate() {
             'Straße': 'Industrieweg 8', 'PLZ': '04109', 'Ort': 'Leipzig',
             'Vertriebsbeauftragter': 'Max Mustermann',
             'Vertriebschannel': 'Direktvertrieb', 'Vertriebsgruppe': 'Handwerk', 'Betriebsbezirk': 'Bezirk Ost',
+            'Gebiet (LK/PLZ)': '',
             'Ansprechpartner': '', 'Telefon': '0341 9998877', 'E-Mail': '',
             'Umsatz': 87500, 'Besuchsrhythmus (Wochen)': 8, 'Letzter Besuch': ''
+        },
+        {
+            // Flächenzeile: nur ein Gebiet einem Bezirk/VB zuordnen (ohne Kunde).
+            // „Gebiet" = Landkreis-Name oder PLZ/PLZ-Präfix (z. B. 46 oder 46045).
+            'Kundennummer': '', 'Kundenname': '',
+            'Straße': '', 'PLZ': '', 'Ort': '',
+            'Vertriebsbeauftragter': '',
+            'Vertriebschannel': '', 'Vertriebsgruppe': '', 'Betriebsbezirk': 'Bezirk West',
+            'Gebiet (LK/PLZ)': 'Oberhausen',
+            'Ansprechpartner': '', 'Telefon': '', 'E-Mail': '',
+            'Umsatz': '', 'Besuchsrhythmus (Wochen)': '', 'Letzter Besuch': ''
         }
     ];
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 22 }, { wch: 8 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 12 }, { wch: 20 }, { wch: 16 }];
+    ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 22 }, { wch: 8 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 12 }, { wch: 20 }, { wch: 16 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Kunden');
     XLSX.writeFile(wb, 'geofuchs-kundenliste-vorlage.xlsx');

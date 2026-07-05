@@ -7,7 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 
 import { CONFIG } from './core/config.js';
-import { state, on, emit, setCustomers } from './core/state.js';
+import { state, on, emit, setCustomers, datasetSnapshot } from './core/state.js';
 import { loadDataset, saveDataset, loadSettings } from './services/storage.js';
 import { geocodeByPlz } from './services/geocode.js';
 import { initMap } from './features/map.js';
@@ -15,6 +15,7 @@ import { initSidebar } from './ui/sidebar.js';
 import { initImportWizard } from './ui/importWizard.js';
 import { initTourPanel } from './ui/tourPanel.js';
 import { initCockpit } from './ui/cockpit.js';
+import { initRegionEditor } from './ui/regionEditor.js';
 import { initSearch } from './ui/search.js';
 import { initToasts } from './ui/toast.js';
 import { fitToCustomers } from './features/map.js';
@@ -37,6 +38,7 @@ async function restorePersistedState() {
     }
 
     const dataset = await loadDataset();
+    if (dataset?.territories) state.territories = dataset.territories;
     if (dataset?.customers?.length) {
         // Sicherheitsnetz: falls ältere Datensätze ohne Koordinaten gespeichert wurden
         await geocodeByPlz(dataset.customers);
@@ -62,20 +64,17 @@ async function restorePersistedState() {
         }
         emit('customers:changed');
         fitToCustomers();
+    } else if (dataset?.territories && Object.keys(dataset.territories).length) {
+        // Nur Gebietszuordnungen ohne Kunden -> Karte neu einfärben
+        emit('customers:changed');
     }
 }
 
-// Kundendaten nach inhaltlichen Änderungen (Besuch, Rhythmus) speichern – gedrosselt
+// Kundendaten nach inhaltlichen Änderungen (Besuch, Rhythmus, Gebiete) speichern – gedrosselt
 let saveTimer = null;
 function scheduleSave() {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-        saveDataset({
-            customers: state.customers,
-            fileName: state.fileName,
-            importedAt: state.importedAt
-        });
-    }, 400);
+    saveTimer = setTimeout(() => saveDataset(datasetSnapshot()), 400);
 }
 
 async function init() {
@@ -85,6 +84,7 @@ async function init() {
     initImportWizard();
     initTourPanel();
     initCockpit();
+    initRegionEditor();
     initSearch();
 
     on('dataset:dirty', scheduleSave);

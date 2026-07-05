@@ -37,6 +37,9 @@ export const state = {
     // 'auto' = nach Zoom | 'rep' = VB | 'bezirk' | 'gruppe' | 'status'
     colorMode: 'auto',
 
+    // Gebietszuordnungen (unabhängig von Kunden): 'level:regionKey' -> { vb, bezirk, name }
+    territories: {},
+
     tour: {
         start: null,        // { lat, lng, label, customerId? }
         stops: [],          // Array von Kunden-IDs (in Besuchsreihenfolge)
@@ -63,6 +66,34 @@ export function emit(event, payload) {
 }
 
 export const UNASSIGNED = 'Ohne Zuordnung';
+
+// ---- Gebietszuordnungen (Territorien) ----
+
+export function territoryId(level, regionKey) {
+    return `${level}:${regionKey}`;
+}
+export function getTerritory(level, regionKey) {
+    return state.territories[territoryId(level, regionKey)] ?? null;
+}
+/** Setzt eine Zuordnung (attr: 'vb' | 'bezirk' | …). Leerer Wert entfernt sie. */
+export function setTerritory(level, regionKey, attr, value, name) {
+    const id = territoryId(level, regionKey);
+    const t = { ...(state.territories[id] || {}) };
+    if (value) t[attr] = value; else delete t[attr];
+    if (name) t.name = name;
+    if (Object.keys(t).filter((k) => k !== 'name').length === 0) delete state.territories[id];
+    else state.territories[id] = t;
+}
+
+/** Kompletter Datensatz-Schnappschuss für die Persistenz */
+export function datasetSnapshot() {
+    return {
+        customers: state.customers,
+        fileName: state.fileName,
+        importedAt: state.importedAt,
+        territories: state.territories
+    };
+}
 
 /**
  * Kundenliste setzen und Vertriebsbeauftragte/Gruppen ableiten.
