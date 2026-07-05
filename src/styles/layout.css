@@ -15,7 +15,8 @@
     padding: 0 12px;
     background: var(--color-surface);
     border-bottom: 1px solid var(--color-border);
-    z-index: 1100;
+    /* über der Mobile-Vorschau (z-index 3000), damit der Zurück-Toggle immer klickbar bleibt */
+    z-index: 3600;
     box-shadow: var(--shadow-1);
 }
 
