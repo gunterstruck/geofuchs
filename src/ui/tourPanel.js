@@ -61,6 +61,7 @@ export function initTourPanel() {
         state.tour.radiusKm = parseInt(radius.value, 10);
         document.getElementById('radius-value').textContent = `${state.tour.radiusKm} km`;
         renderSuggestions();
+        if (state.tour.mapFocus) emit('tour:changed');
     });
 
     // Vorschlagsmodus: Umkreis um Start vs. Korridor entlang der Tour
@@ -69,6 +70,7 @@ export function initTourPanel() {
             state.tour.suggestMode = btn.dataset.mode;
             updateSuggestModeUi();
             renderSuggestions();
+            if (state.tour.mapFocus) emit('tour:changed');
         });
     });
 
@@ -115,6 +117,7 @@ export function initTourPanel() {
         state.tour.stops = [];
         state.tour.start = null;
         state.tour.destination = null;
+        state.tour.mapFocus = false;
         emit('tour:changed');
     });
     document.getElementById('btn-tour-save').addEventListener('click', saveCurrentTour);
@@ -264,6 +267,7 @@ function pruneTourToScope() {
         state.tour.start = null;
         state.tour.destination = null;
         state.tour.stops = [];
+        state.tour.mapFocus = false;
         return;
     }
     state.tour.stops = state.tour.stops.filter((id) => !!scopedCustomerById(id));
@@ -504,7 +508,9 @@ function renderStops() {
     }
     const hasRoute = state.tour.start && eff.length >= 1;
     document.getElementById('btn-optimize').disabled = !(state.tour.start && tourStops().length >= 2);
-    document.getElementById('btn-route-focus').disabled = !hasRoute;
+    const routeFocus = document.getElementById('btn-route-focus');
+    routeFocus.disabled = !hasRoute;
+    routeFocus.textContent = state.tour.mapFocus ? '🗺️ Alle Kunden auf Karte zeigen' : '🗺️ Route auf Karte anzeigen';
     document.getElementById('btn-gmaps').disabled = !hasRoute;
     document.getElementById('btn-tour-print').disabled = !hasRoute;
     document.getElementById('btn-tour-ics').disabled = !hasRoute;
@@ -608,10 +614,21 @@ function showRouteOnMap() {
         showToast('Bitte Startpunkt und mindestens einen Stopp wählen.', 'info');
         return;
     }
+    if (state.tour.mapFocus) {
+        state.tour.mapFocus = false;
+        emit('tour:changed');
+        showToast('Alle sichtbaren Kunden werden wieder auf der Karte angezeigt.', 'info', 2400);
+        return;
+    }
+    state.tour.mapFocus = true;
     showMapView();
     window.setTimeout(() => {
         const ok = fitTourRoute();
-        showToast(ok ? 'Route auf der Karte angezeigt.' : 'Route konnte noch nicht angezeigt werden.', ok ? 'success' : 'info', 2400);
+        showToast(ok
+            ? 'Route und passende Vorschlagskunden werden auf der Karte angezeigt.'
+            : 'Route konnte noch nicht angezeigt werden.',
+            ok ? 'success' : 'info', 3000);
+        emit('tour:changed');
     }, window.innerWidth <= 768 ? 140 : 0);
 }
 

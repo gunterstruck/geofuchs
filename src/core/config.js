@@ -30,8 +30,8 @@ export const CONFIG = {
         minZoom: 5,
         maxZoom: 19,
         bounds: [
-            [46.0, 3.5],
-            [56.5, 17.5]
+            [40.0, -10.0],
+            [62.0, 30.0]
         ],
         zoomSnap: 0.5,
         // Zoom-Automatik (Level of Detail): >= custom -> Kunden sichtbar,
@@ -90,6 +90,13 @@ export const CONFIG = {
         maxWaypoints: 9,
         // Faktor Luftlinie -> geschätzte Straßenkilometer
         roadFactor: 1.3
+    },
+
+    routing: {
+        provider: 'OSRM',
+        url: 'https://router.project-osrm.org/route/v1/driving',
+        timeoutMs: 8000,
+        maxPoints: 25
     },
 
     storage: {

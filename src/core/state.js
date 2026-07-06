@@ -50,7 +50,8 @@ export const state = {
         stops: [],          // Array von Kunden-IDs (Zwischenstopps in Besuchsreihenfolge)
         radiusKm: CONFIG.tour.defaultRadiusKm,
         roundTrip: false,   // Rundreise: am Ende zurück zum Start
-        suggestMode: 'radius' // 'radius' = Umkreis um Start | 'route' = Korridor entlang der Tour
+        suggestMode: 'radius', // 'radius' = Umkreis um Start | 'route' = Korridor entlang der Tour
+        mapFocus: false     // Karte zeigt nur Tour + passende Vorschlagskunden
     },
 
     ui: {
