@@ -592,7 +592,10 @@ function visitBlockHtml(customer) {
 
 function contactBlockHtml(customer) {
     const parts = [];
-    if (customer.ansprechpartner) parts.push(`<p class="muted small">👤 ${escapeHtml(customer.ansprechpartner)}</p>`);
+    const contactName = String(customer.ansprechpartner ?? '').trim();
+    if (contactName) {
+        parts.push(`<p class="muted small">👤 Hauptansprechpartner: <b>${escapeHtml(contactName)}</b></p>`);
+    }
     const links = [];
     if (customer.telefon) {
         const tel = String(customer.telefon).replace(/[^\d+]/g, '');
@@ -614,9 +617,6 @@ export function customerPopupHtml(customer) {
         <h3>${escapeHtml(customer.name)}</h3>
         ${customer.nummer ? `<p class="muted">Kd.-Nr. ${escapeHtml(customer.nummer)}</p>` : ''}
         ${addr ? `<p>${addr}</p>` : ''}
-        <p>
-            <span class="dot" style="background:${repColor(customer.vb)}"></span>${escapeHtml(customer.vb || UNASSIGNED)}
-        </p>
         ${[customer.channel, customer.gruppe, customer.bezirk].some(Boolean)
             ? `<p class="muted small">${[customer.channel, customer.gruppe, customer.bezirk].filter(Boolean).map(escapeHtml).join(' › ')}</p>`
             : ''}
