@@ -22,6 +22,9 @@ export const DIMENSIONS = [
     { id: 'channel', field: 'channel', label: 'Vertriebschannel' }
 ];
 
+const EXTRA_DIM_PREFIX = 'extra:';
+const EXTRA_DIM_MAX_VALUES = 80;
+
 export const state = {
     customers: [],
     fileName: null,
@@ -31,6 +34,7 @@ export const state = {
     reps: new Map(),
     // Vertriebshierarchie: id -> { label, field, active, values: Map<name,{visible}> }
     dims: {},
+    extraDimensions: [],
 
     level: 'kreise',
     // 'auto' = nach Zoom | 'rep' = Außendienst/Kundenpunkte | 'bezirk' | 'gruppe' | 'status'
@@ -59,6 +63,52 @@ export const state = {
         sidebarOpen: window.innerWidth > 900
     }
 };
+
+function slugId(value) {
+    return String(value ?? '')
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'feld';
+}
+
+function dimensionValue(customer, def) {
+    const raw = def.custom ? customer.extra?.[def.field] : customer[def.field];
+    return String(raw ?? '').trim();
+}
+
+function inferExtraDimensions(customers) {
+    const valuesByHeader = new Map();
+    for (const customer of customers) {
+        for (const [header, raw] of Object.entries(customer.extra || {})) {
+            const value = String(raw ?? '').trim();
+            if (!value) continue;
+            if (!valuesByHeader.has(header)) valuesByHeader.set(header, new Set());
+            valuesByHeader.get(header).add(value);
+        }
+    }
+
+    const usedIds = new Set(DIMENSIONS.map((d) => d.id));
+    const defs = [];
+    for (const [header, values] of valuesByHeader.entries()) {
+        const list = [...values];
+        const hasText = list.some((value) => /[A-Za-zÄÖÜäöüß]/.test(value));
+        if (!hasText || list.length < 2 || list.length > EXTRA_DIM_MAX_VALUES) continue;
+
+        const baseId = `${EXTRA_DIM_PREFIX}${slugId(header)}`;
+        let id = baseId;
+        let i = 2;
+        while (usedIds.has(id)) id = `${baseId}-${i++}`;
+        usedIds.add(id);
+        defs.push({ id, field: header, label: header, custom: true });
+    }
+    return defs.sort((a, b) => a.label.localeCompare(b.label, 'de'));
+}
+
+export function filterDimensionDefs() {
+    return [...DIMENSIONS, ...(state.extraDimensions || [])];
+}
 
 const listeners = new Map();
 
@@ -116,6 +166,7 @@ export function setCustomers(customers, meta = {}) {
     const oldDims = state.dims || {};
     state.reps = new Map();
     state.dims = {};
+    state.extraDimensions = inferExtraDimensions(customers);
 
     const repNames = [...new Set(customers.map((c) => c.vb || UNASSIGNED))]
         .sort((a, b) => a.localeCompare(b, 'de'));
@@ -129,9 +180,9 @@ export function setCustomers(customers, meta = {}) {
     });
 
     // Vertriebshierarchie-Ebenen ableiten (inkl. stabiler Farbe je Wert)
-    for (const def of DIMENSIONS) {
-        const active = customers.some((c) => String(c[def.field] ?? '').trim() !== '');
-        const names = [...new Set(customers.map((c) => String(c[def.field] ?? '').trim() || UNASSIGNED))]
+    for (const def of filterDimensionDefs()) {
+        const active = customers.some((c) => dimensionValue(c, def) !== '');
+        const names = [...new Set(customers.map((c) => dimensionValue(c, def) || UNASSIGNED))]
             .sort((a, b) => a.localeCompare(b, 'de'));
         const oldValues = oldDims[def.id]?.values;
         const values = new Map();
@@ -185,15 +236,15 @@ export function attrColor(attr, value) {
 
 /** Aktive Hierarchie-Ebenen (haben tatsächlich Werte in den Daten) */
 export function activeDims() {
-    return DIMENSIONS.map((def) => state.dims[def.id]).filter((d) => d?.active);
+    return filterDimensionDefs().map((def) => state.dims[def.id]).filter((d) => d?.active);
 }
 
 /** Ist der Kunde nach aktuellen Filtern sichtbar? */
 export function isVisible(customer) {
-    for (const def of DIMENSIONS) {
+    for (const def of filterDimensionDefs()) {
         const dim = state.dims[def.id];
         if (!dim?.active) continue;
-        const value = dim.values.get(String(customer[def.field] ?? '').trim() || UNASSIGNED);
+        const value = dim.values.get(dimensionValue(customer, def) || UNASSIGNED);
         if (!(value?.visible ?? true)) return false;
     }
     return true;

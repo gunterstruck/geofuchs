@@ -4,7 +4,7 @@
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, DIMENSIONS, datasetSnapshot } from '../core/state.js';
+import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, filterDimensionDefs, datasetSnapshot } from '../core/state.js';
 import { geocodeExact } from '../services/geocode.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
 import { STATUS_COLORS, STATUS_LABELS, isOpportunity } from '../features/visits.js';
@@ -427,7 +427,7 @@ function updateChancenCount() {
 function persistSettings() {
     const dimVisibility = {};
     const dimColors = {};
-    for (const def of DIMENSIONS) {
+    for (const def of filterDimensionDefs()) {
         const dim = state.dims[def.id];
         if (dim) {
             dimVisibility[def.id] = Object.fromEntries([...dim.values].map(([k, v]) => [k, v.visible]));
@@ -541,21 +541,19 @@ const ROW_CAP = 60;            // max. gerenderte Zeilen je Ebene
 const filterUI = { expanded: {}, search: {}, enabled: {}, wired: false };
 
 const DEFAULT_FILTER_SECTIONS = ['bezirk', 'gruppe'];
-const OPTIONAL_FILTER_SECTIONS = ['channel'];
-const FILTER_SECTION_ORDER = [...DEFAULT_FILTER_SECTIONS, ...OPTIONAL_FILTER_SECTIONS];
 
 function dimFilterSection(id, optional = false) {
     const dim = state.dims[id];
-    const def = DIMENSIONS.find((d) => d.id === id);
+    const def = filterDimensionDefs().find((d) => d.id === id);
     if (!dim?.active || !def) return null;
     return { id: def.id, label: dim.label, field: dim.field, entries: [...dim.values.entries()], optional };
 }
 
 /** Filter-Ebenen: standardmäßig Bezirk + Gruppe, weitere Gebietsebenen optional */
 function filterSections() {
-    return FILTER_SECTION_ORDER
+    return filterDimensionDefs().map((def) => def.id)
         .filter((id) => DEFAULT_FILTER_SECTIONS.includes(id) || filterUI.enabled[id])
-        .map((id) => dimFilterSection(id, OPTIONAL_FILTER_SECTIONS.includes(id)))
+        .map((id) => dimFilterSection(id, !DEFAULT_FILTER_SECTIONS.includes(id)))
         .filter(Boolean);
 }
 
@@ -613,11 +611,19 @@ function renderSection(section) {
 
 function renderAddFilterControl(sections) {
     const shown = new Set(sections.map((s) => s.id));
-    const candidates = OPTIONAL_FILTER_SECTIONS
-        .filter((id) => !shown.has(id))
+    const candidates = filterDimensionDefs()
+        .map((def) => def.id)
+        .filter((id) => !DEFAULT_FILTER_SECTIONS.includes(id) && !shown.has(id))
         .map((id) => dimFilterSection(id, true))
         .filter(Boolean);
-    if (candidates.length === 0) return '';
+    if (candidates.length === 0) {
+        return `<div class="filter-add">
+            <select id="filter-add-select" aria-label="Weitere Ebene hinzufügen" disabled title="Keine weitere Ebene im Datensatz vorhanden">
+                <option value="">+ Ebene hinzufügen</option>
+            </select>
+            <p class="muted small">Keine weitere Ebene im Datensatz vorhanden.</p>
+        </div>`;
+    }
     return `<div class="filter-add">
         <select id="filter-add-select" aria-label="Weitere Ebene hinzufügen">
             <option value="">+ Ebene hinzufügen</option>
