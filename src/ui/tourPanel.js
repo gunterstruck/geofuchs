@@ -9,7 +9,7 @@
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, getCustomer, repColor, visibleCustomers, UNASSIGNED } from '../core/state.js';
+import { state, on, emit, getCustomer, repColor, tourScopedCustomers, customerInTourScope, UNASSIGNED } from '../core/state.js';
 import { suggestNearby, suggestAlongRoute, optimizeOrder, routeDistance, googleMapsLink } from '../features/tour.js';
 import { printDayPlan, downloadIcs } from '../features/tourExport.js';
 import { copyText, tourText } from '../features/handoff.js';
@@ -25,7 +25,6 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
 
 let overdueFirst = false;
 let savedTours = [];
-let tourBezirk = null;   // '__all__' | Bezirksname | null (noch nicht gewählt)
 let scopeExpanded = false; // Bezirk-Auswahl aufgeklappt?
 let tourExpert = false;    // Experten-Modus (mehr Optionen)
 
@@ -37,10 +36,12 @@ export function initTourPanel() {
     const scopeEl = document.getElementById('tour-scope');
     scopeEl.addEventListener('change', (e) => {
         if (e.target.id !== 'tour-bezirk') return;
-        tourBezirk = e.target.value;
+        state.tour.bezirk = e.target.value;
+        pruneTourToScope();
         scopeExpanded = false;
         renderTourScope();
         updatePlannerVisibility();
+        emit('tour:scope-changed');
         renderPanel();
     });
     scopeEl.addEventListener('click', (e) => {
@@ -169,7 +170,7 @@ export function initTourPanel() {
     });
 
     on('tour:changed', renderPanel);
-    on('customers:changed', () => { renderTourScope(); renderPanel(); });
+    on('customers:changed', () => { pruneTourToScope(); renderTourScope(); renderPanel(); });
     on('filters:changed', renderSuggestions);
     applyTourMode(tourExpert ? 'expert' : 'basic', false);
     renderTourScope();
@@ -183,19 +184,19 @@ function renderTourScope() {
     const dim = state.dims.bezirk;
     if (!dim?.active || state.customers.length === 0) {
         scope.hidden = true;
-        tourBezirk = state.customers.length ? '__all__' : null;
+        state.tour.bezirk = state.customers.length ? '__all__' : null;
         updatePlannerVisibility();
         return;
     }
     scope.hidden = false;
 
     const bezirke = [...dim.values.keys()].sort((a, b) => a.localeCompare(b, 'de'));
-    if (tourBezirk && tourBezirk !== '__all__' && !bezirke.includes(tourBezirk)) tourBezirk = null;
-    const chosen = tourBezirk && tourBezirk !== '__none__';
+    if (state.tour.bezirk && state.tour.bezirk !== '__all__' && !bezirke.includes(state.tour.bezirk)) state.tour.bezirk = null;
+    const chosen = state.tour.bezirk && state.tour.bezirk !== '__none__';
 
     if (chosen && !scopeExpanded) {
         // Eingeklappt: schmale Zeile
-        const label = tourBezirk === '__all__' ? 'Alle Bezirke' : tourBezirk;
+        const label = state.tour.bezirk === '__all__' ? 'Alle Bezirke' : state.tour.bezirk;
         scope.innerHTML = `<button type="button" id="scope-toggle" class="scope-collapsed">🗺️ Bezirk: <b>${escapeHtml(label)}</b><span class="muted"> · ändern ▸</span></button>`;
         updatePlannerVisibility();
         return;
@@ -213,13 +214,13 @@ function renderTourScope() {
     scope.innerHTML = `<label class="field-label" for="tour-bezirk">Für welchen Bezirk planst du?</label>
         <select id="tour-bezirk">${opts}</select>
         <p class="muted small">Wähle deinen Vertriebsbezirk – GeoFuchs schlägt dann nur Kunden aus <b>diesem</b> Gebiet für deine Tour vor. Start, Ziel und Route legst du danach fest. („Alle Bezirke" zeigt sämtliche Kunden.)</p>`;
-    document.getElementById('tour-bezirk').value = chosen ? tourBezirk : '__none__';
+    document.getElementById('tour-bezirk').value = chosen ? state.tour.bezirk : '__none__';
     updatePlannerVisibility();
 }
 
 function updatePlannerVisibility() {
     const planner = document.getElementById('tour-planner');
-    if (planner) planner.hidden = !(tourBezirk && tourBezirk !== '__none__');
+    if (planner) planner.hidden = !(state.tour.bezirk && state.tour.bezirk !== '__none__');
 }
 
 /**
@@ -250,10 +251,28 @@ function applyTourMode(mode, doEmit = true) {
 
 /** Kundenauswahl der Tour: sichtbare Kunden, ggf. auf den gewählten Bezirk beschränkt */
 function tourPool() {
-    if (!tourBezirk || tourBezirk === '__none__') return [];
-    const base = visibleCustomers();
-    if (tourBezirk === '__all__') return base;
-    return base.filter((c) => (String(c.bezirk ?? '').trim() || UNASSIGNED) === tourBezirk);
+    return tourScopedCustomers();
+}
+
+function scopedCustomerById(id) {
+    const customer = getCustomer(id);
+    return customer && customerInTourScope(customer) ? customer : null;
+}
+
+function pruneTourToScope() {
+    if (!state.tour.bezirk || state.tour.bezirk === '__none__') {
+        state.tour.start = null;
+        state.tour.destination = null;
+        state.tour.stops = [];
+        return;
+    }
+    state.tour.stops = state.tour.stops.filter((id) => !!scopedCustomerById(id));
+    if (state.tour.start?.customerId && !scopedCustomerById(state.tour.start.customerId)) {
+        state.tour.start = null;
+    }
+    if (state.tour.destination?.customerId && !scopedCustomerById(state.tour.destination.customerId)) {
+        state.tour.destination = null;
+    }
 }
 
 /** Kundensuche an ein Eingabefeld hängen (Treffer -> onPick(customer)) */

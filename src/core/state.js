@@ -40,6 +40,7 @@ export const state = {
     territories: {},
 
     tour: {
+        bezirk: null,       // '__all__' | Bezirksname | null/'__none__' = noch nicht gewaehlt
         start: null,        // { lat, lng, label, customerId? }
         destination: null,  // optionaler Zielpunkt { lat, lng, label, customerId? } – bleibt am Streckenende
         stops: [],          // Array von Kunden-IDs (Zwischenstopps in Besuchsreihenfolge)
@@ -200,4 +201,18 @@ export function isVisible(customer) {
 
 export function visibleCustomers() {
     return state.customers.filter(isVisible);
+}
+
+export function customerInTourScope(customer) {
+    const bezirk = state.tour.bezirk;
+    if (!bezirk || bezirk === '__none__') return false;
+    if (bezirk === '__all__') return true;
+    return (String(customer?.bezirk ?? '').trim() || UNASSIGNED) === bezirk;
+}
+
+export function tourScopedCustomers() {
+    const bezirk = state.tour.bezirk;
+    if (!bezirk || bezirk === '__none__') return [];
+    if (bezirk === '__all__') return visibleCustomers();
+    return visibleCustomers().filter(customerInTourScope);
 }

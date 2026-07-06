@@ -8,7 +8,7 @@ import L from 'leaflet';
 import 'leaflet.markercluster';
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, repColor, attrColor, visibleCustomers, getCustomer, markDirty, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
+import { state, on, emit, repColor, attrColor, visibleCustomers, tourScopedCustomers, getCustomer, markDirty, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
@@ -30,12 +30,29 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
 ));
 
+function isMobileMap() {
+    return window.innerWidth <= 768;
+}
+
+function popupOptions(extra = {}) {
+    const mobile = isMobileMap();
+    return {
+        maxWidth: mobile ? Math.min(330, window.innerWidth - 28) : 320,
+        maxHeight: mobile ? Math.max(260, Math.floor(window.innerHeight * 0.56)) : 380,
+        autoPan: true,
+        keepInView: true,
+        autoPanPaddingTopLeft: L.point(18, mobile ? 76 : 82),
+        autoPanPaddingBottomRight: L.point(18, mobile ? 190 : 44),
+        ...extra
+    };
+}
+
 export function initMap(containerId) {
     map = L.map(containerId, {
         attributionControl: true,
         zoomControl: false,
         zoomSnap: CONFIG.map.zoomSnap,
-        maxBoundsViscosity: 1.0
+        maxBoundsViscosity: 0.45
     }).setView(CONFIG.map.defaultCenter, CONFIG.map.defaultZoom);
 
     map.attributionControl.setPrefix(false);
@@ -102,6 +119,7 @@ export function initMap(containerId) {
     on('filters:changed', refreshAll);
     on('colormode:changed', applyView);
     on('level:changed', () => { setLevel(state.level); });
+    on('tour:scope-changed', refreshAll);
     on('tour:changed', renderTour);
 
     setLevel(state.level);
@@ -251,11 +269,7 @@ export async function setLevel(level) {
             layer.on('mouseout', function () {
                 this.setStyle(styleFor(feature));
             });
-            layer.bindPopup(() => regionPopupHtml(feature), {
-                maxWidth: 320, maxHeight: 360,
-                autoPanPaddingTopLeft: L.point(12, 64),
-                autoPanPaddingBottomRight: L.point(12, 16)
-            });
+            layer.bindPopup(() => regionPopupHtml(feature), popupOptions({ maxWidth: 320 }));
             layer.bindTooltip(() => regionTooltip(feature), { sticky: true, direction: 'top' });
         }
     }).addTo(map);
@@ -265,7 +279,7 @@ export async function setLevel(level) {
 
 function computeStats() {
     regionStats = currentLevelData
-        ? aggregateByRegion(state.level, currentLevelData, visibleCustomers())
+        ? aggregateByRegion(state.level, currentLevelData, markerCustomers())
         : new Map();
     maxRegionTotal = Math.max(1, ...[...regionStats.values()].map((e) => e.total || 0));
     emit('regions:stats', regionStats);
@@ -372,6 +386,15 @@ function styleLuecken(feature) {
 
 function styleFor(feature) {
     if (currentView.paint === 'luecken') return styleLuecken(feature);
+    if (state.ui.mode === 'aussendienst' && currentView.markers) {
+        return {
+            ...CONFIG.regionStyle.default,
+            color: '#94a3b8',
+            weight: 0.8,
+            opacity: 0.45,
+            fillOpacity: 0.025
+        };
+    }
     const attr = currentView.paint;
     const info = attr ? regionShares(feature, attr) : null;
     if (!info) return { ...CONFIG.regionStyle.default };
@@ -447,7 +470,7 @@ function renderLabels() {
 
     const attr = currentView.paint;
     const revByVal = new Map();
-    for (const c of visibleCustomers()) {
+    for (const c of markerCustomers()) {
         const v = attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
         revByVal.set(v, (revByVal.get(v) ?? 0) + (c.umsatz || 0));
     }
@@ -633,12 +656,19 @@ export function customerPopupHtml(customer) {
     </div>`;
 }
 
+function markerCustomers() {
+    const tourScoped = state.ui.mode === 'aussendienst'
+        && state.tour.bezirk
+        && state.tour.bezirk !== '__none__';
+    return tourScoped ? tourScopedCustomers() : visibleCustomers();
+}
+
 function renderMarkers() {
     clusterGroup.clearLayers();
     // In der Flächenansicht (Bezirke/Gruppen) werden Kunden ausgeblendet.
     if (!currentView.markers) return;
     const markers = [];
-    for (const customer of visibleCustomers()) {
+    for (const customer of markerCustomers()) {
         if (customer.lat === null || customer.lng === null) continue;
         // Chancen-Fokus: nur fällige/überfällige Kunden zeigen
         if (state.ui.opportunityOnly && !isOpportunity(customer)) continue;
@@ -646,11 +676,7 @@ function renderMarkers() {
             icon: customerIcon(customer),
             title: customer.name
         });
-        marker.bindPopup(() => customerPopupHtml(customer), {
-            maxWidth: 300, maxHeight: 360,
-            autoPanPaddingTopLeft: L.point(12, 64),
-            autoPanPaddingBottomRight: L.point(12, 16)
-        });
+        marker.bindPopup(() => customerPopupHtml(customer), popupOptions({ maxWidth: 300 }));
         markers.push(marker);
     }
     clusterGroup.addLayers(markers);
@@ -681,20 +707,10 @@ function attachTourCustomerPopup(marker, point, tooltipText) {
     if (point?.customerId) {
         const customer = getCustomer(point.customerId);
         if (customer) {
-            marker.bindPopup(() => customerPopupHtml(customer), {
-                maxWidth: 300,
-                maxHeight: 360,
-                autoPanPaddingTopLeft: L.point(12, 64),
-                autoPanPaddingBottomRight: L.point(12, 16)
-            });
+            marker.bindPopup(() => customerPopupHtml(customer), popupOptions({ maxWidth: 300 }));
         }
     } else if (point?.id) {
-        marker.bindPopup(() => customerPopupHtml(point), {
-            maxWidth: 300,
-            maxHeight: 360,
-            autoPanPaddingTopLeft: L.point(12, 64),
-            autoPanPaddingBottomRight: L.point(12, 16)
-        });
+        marker.bindPopup(() => customerPopupHtml(point), popupOptions({ maxWidth: 300 }));
     }
     return marker;
 }
@@ -776,7 +792,7 @@ export function flyToCustomer(customer, openPopup = true) {
     map.flyTo([customer.lat, customer.lng], Math.max(map.getZoom(), 12), { duration: 0.8 });
     if (openPopup) {
         setTimeout(() => {
-            L.popup({ maxWidth: 300 })
+            L.popup(popupOptions({ maxWidth: 300 }))
                 .setLatLng([customer.lat, customer.lng])
                 .setContent(customerPopupHtml(customer))
                 .openOn(map);
@@ -785,10 +801,13 @@ export function flyToCustomer(customer, openPopup = true) {
 }
 
 export function fitToCustomers() {
-    const located = visibleCustomers().filter((c) => c.lat !== null);
+    const located = markerCustomers().filter((c) => c.lat !== null);
     if (!map || located.length === 0) return;
     const bounds = L.latLngBounds(located.map((c) => [c.lat, c.lng]));
-    map.fitBounds(bounds.pad(0.15));
+    map.fitBounds(bounds.pad(0.15), {
+        paddingTopLeft: isMobileMap() ? [18, 72] : [24, 80],
+        paddingBottomRight: isMobileMap() ? [18, 174] : [24, 72]
+    });
 }
 
 export function getMap() {
@@ -802,12 +821,13 @@ export function fitTourRoute() {
     map.closePopup();
     map.invalidateSize();
     const bounds = L.latLngBounds(routePts);
+    const mobile = isMobileMap();
     map.fitBounds(bounds.pad(0.18), {
         animate: true,
         duration: 0.7,
         maxZoom: 12,
-        paddingTopLeft: [24, 80],
-        paddingBottomRight: [24, 72]
+        paddingTopLeft: mobile ? [18, 76] : [24, 80],
+        paddingBottomRight: mobile ? [18, 190] : [24, 72]
     });
     return true;
 }
