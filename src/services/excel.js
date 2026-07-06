@@ -151,6 +151,7 @@ export function parseRows(rows, mapping) {
     const areaRows = [];
     const errors = [];
     const seen = new Map(); // Dublettenschlüssel -> erste Zeilennummer
+    const mappedHeaders = new Set(Object.values(mapping).filter(Boolean));
     let skipped = 0;
 
     const err = (sheetRow, grund, raw, typ = 'Fehler') => errors.push({ Zeile: sheetRow, Typ: typ, Grund: grund, ...raw });
@@ -192,6 +193,9 @@ export function parseRows(rows, mapping) {
         seen.set(dupKey, sheetRow);
 
         const letzterBesuch = mapping.letzterBesuch ? parseDateIso(row[mapping.letzterBesuch]) : null;
+        const extra = Object.fromEntries(Object.entries(row)
+            .filter(([header, value]) => !mappedHeaders.has(header) && String(value ?? '').trim() !== '')
+            .map(([header, value]) => [header, String(value ?? '').trim()]));
         customers.push({
             id: `k${index}-${name.slice(0, 12)}`,
             nummer, name,
@@ -211,6 +215,7 @@ export function parseRows(rows, mapping) {
             lat: hasCoords ? lat : null,
             lng: hasCoords ? lng : null,
             geo: hasCoords ? 'exakt' : 'none',
+            extra,
             _sheetRow: sheetRow,
             _raw: row
         });
