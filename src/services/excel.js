@@ -19,7 +19,7 @@ export const FIELDS = [
     { key: 'gruppe',  label: 'Vertriebsgruppe',        required: false, synonyms: ['vertriebsgruppe', 'gruppe', 'kundengruppe', 'kundenkreis', 'segment', 'kategorie', 'sparte', 'branche', 'klasse', 'team'] },
     { key: 'bezirk',  label: 'Betriebsbezirk',         required: true,  synonyms: ['betriebsbezirk', 'bezirk', 'vertriebsbezirk', 'verkaufsbezirk', 'gebietsbezirk', 'außendienstbezirk', 'aussendienstbezirk', 'district'] },
     { key: 'gebiet',  label: 'Gebiet (nur Flächenzeile: LK oder PLZ)', required: false, synonyms: ['gebiet', 'landkreis', 'lk', 'kreis', 'plz-gebiet', 'plz gebiet', 'fläche', 'flaeche', 'gebietszuweisung', 'nur gebiet'] },
-    { key: 'ansprechpartner', label: 'Ansprechpartner', required: false, synonyms: ['ansprechpartner', 'kontaktperson', 'kontakt', 'contact', 'ap', 'ansprechpartner in'] },
+    { key: 'ansprechpartner', label: 'Hauptansprechpartner', required: false, synonyms: ['hauptansprechpartner', 'haupt ansprechpartner', 'ansprechpartner', 'kontaktperson', 'kontakt', 'hauptkontakt', 'primary contact', 'main contact', 'contact', 'ap', 'ansprechpartner in'] },
     { key: 'telefon', label: 'Telefon',                required: false, synonyms: ['telefon', 'tel', 'telefonnummer', 'phone', 'mobil', 'handy', 'rufnummer', 'festnetz'] },
     { key: 'email',   label: 'E-Mail',                 required: false, synonyms: ['email', 'e-mail', 'mail', 'e mail', 'emailadresse', 'e-mail-adresse'] },
     { key: 'umsatz',  label: 'Umsatz (optional)',      required: false, synonyms: ['umsatz', 'jahresumsatz', 'umsatz €', 'revenue', 'potenzial', 'potential'] },
@@ -236,7 +236,7 @@ export function downloadTemplate() {
             'Vertriebsbeauftragter': 'Max Mustermann',
             'Vertriebschannel': 'Fachhandel', 'Vertriebsgruppe': 'Handel', 'Betriebsbezirk': 'Bezirk West',
             'Gebiet (LK/PLZ)': '',
-            'Ansprechpartner': 'Herr Schmidt', 'Telefon': '0221 1234567', 'E-Mail': 'info@autohaus-schmidt.de',
+            'Hauptansprechpartner': 'Herr Schmidt', 'Telefon': '0221 1234567', 'E-Mail': 'info@autohaus-schmidt.de',
             'Umsatz': 125000, 'Besuchsrhythmus (Wochen)': 6, 'Letzter Besuch': '12.05.2026'
         },
         {
@@ -244,7 +244,7 @@ export function downloadTemplate() {
             'Straße': 'Marktplatz 3', 'PLZ': '80331', 'Ort': 'München',
             'Vertriebsbeauftragter': 'Anna Beispiel',
             'Vertriebschannel': 'Direktvertrieb', 'Vertriebsgruppe': 'Lebensmittel', 'Betriebsbezirk': 'Bezirk Süd',
-            'Ansprechpartner': 'Frau Müller', 'Telefon': '089 7654321', 'E-Mail': 'kontakt@baeckerei-mueller.de',
+            'Hauptansprechpartner': 'Frau Müller', 'Telefon': '089 7654321', 'E-Mail': 'kontakt@baeckerei-mueller.de',
             'Umsatz': 48000, 'Besuchsrhythmus (Wochen)': 4, 'Letzter Besuch': '28.06.2026'
         },
         {
@@ -253,7 +253,7 @@ export function downloadTemplate() {
             'Vertriebsbeauftragter': 'Max Mustermann',
             'Vertriebschannel': 'Direktvertrieb', 'Vertriebsgruppe': 'Handwerk', 'Betriebsbezirk': 'Bezirk Ost',
             'Gebiet (LK/PLZ)': '',
-            'Ansprechpartner': '', 'Telefon': '0341 9998877', 'E-Mail': '',
+            'Hauptansprechpartner': '', 'Telefon': '0341 9998877', 'E-Mail': '',
             'Umsatz': 87500, 'Besuchsrhythmus (Wochen)': 8, 'Letzter Besuch': ''
         },
         {
@@ -264,7 +264,7 @@ export function downloadTemplate() {
             'Vertriebsbeauftragter': '',
             'Vertriebschannel': '', 'Vertriebsgruppe': '', 'Betriebsbezirk': 'Bezirk West',
             'Gebiet (LK/PLZ)': 'Oberhausen',
-            'Ansprechpartner': '', 'Telefon': '', 'E-Mail': '',
+            'Hauptansprechpartner': '', 'Telefon': '', 'E-Mail': '',
             'Umsatz': '', 'Besuchsrhythmus (Wochen)': '', 'Letzter Besuch': ''
         }
     ];
@@ -287,7 +287,7 @@ export function exportCustomers(customers) {
         'Vertriebschannel': c.channel ?? '',
         'Vertriebsgruppe': c.gruppe,
         'Betriebsbezirk': c.bezirk ?? '',
-        'Ansprechpartner': c.ansprechpartner ?? '',
+        'Hauptansprechpartner': c.ansprechpartner ?? '',
         'Telefon': c.telefon ?? '',
         'E-Mail': c.email ?? '',
         'Umsatz': c.umsatz ?? '',

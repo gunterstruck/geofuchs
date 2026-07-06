@@ -115,7 +115,7 @@ export function downloadIcs(start, stops, { startTime = defaultStart(), tourName
         const end = new Date(r.arrival.getTime() + VISIT_MINUTES * 60000);
         const addr = [c.strasse, `${c.plz} ${c.ort}`.trim()].filter(Boolean).join(', ');
         const desc = [
-            c.ansprechpartner && `Ansprechpartner: ${c.ansprechpartner}`,
+            c.ansprechpartner && `Hauptansprechpartner: ${c.ansprechpartner}`,
             c.telefon && `Telefon: ${c.telefon}`,
             c.email && `E-Mail: ${c.email}`,
             c.nummer && `Kd.-Nr.: ${c.nummer}`

@@ -43,7 +43,7 @@ export function customerText(c) {
     const hier = [c.channel, c.gruppe, c.bezirk].filter(Boolean).join(' › ');
     if (hier) lines.push(hier);
     const contact = [
-        c.ansprechpartner && `Ansprechpartner: ${c.ansprechpartner}`,
+        c.ansprechpartner && `Hauptansprechpartner: ${c.ansprechpartner}`,
         c.telefon && `Tel: ${c.telefon}`,
         c.email && `E-Mail: ${c.email}`
     ].filter(Boolean);
