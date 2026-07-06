@@ -10,7 +10,9 @@ import 'leaflet.markercluster';
 import { CONFIG } from '../core/config.js';
 import { state, on, emit, repColor, attrColor, visibleCustomers, tourScopedCustomers, getCustomer, markDirty, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
+import { fetchRoadRoute, routingKey } from '../services/routing.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
+import { suggestNearby, suggestAlongRoute } from './tour.js';
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
 import { copyText, customerText } from './handoff.js';
 import { openRegionEditor } from '../ui/regionEditor.js';
@@ -25,6 +27,8 @@ let maxRegionTotal = 1;   // höchste Kundenzahl je Gebiet (für die Abdeckungs-
 let currentLevelData = null;
 let featureByKey = new Map();
 let currentView = { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
+let roadRouteSeq = 0;
+const roadRouteCache = new Map();
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
@@ -52,7 +56,7 @@ export function initMap(containerId) {
         attributionControl: true,
         zoomControl: false,
         zoomSnap: CONFIG.map.zoomSnap,
-        maxBoundsViscosity: 0.45
+        maxBoundsViscosity: 0.05
     }).setView(CONFIG.map.defaultCenter, CONFIG.map.defaultZoom);
 
     map.attributionControl.setPrefix(false);
@@ -657,10 +661,31 @@ export function customerPopupHtml(customer) {
 }
 
 function markerCustomers() {
+    if (state.ui.mode === 'aussendienst' && state.tour.mapFocus && state.tour.start) {
+        return tourFocusCustomers();
+    }
     const tourScoped = state.ui.mode === 'aussendienst'
         && state.tour.bezirk
         && state.tour.bezirk !== '__none__';
     return tourScoped ? tourScopedCustomers() : visibleCustomers();
+}
+
+function tourFocusCustomers() {
+    const { start, stopCustomers, dest } = currentTourRoutePoints();
+    const ids = new Set();
+    if (start?.customerId) ids.add(start.customerId);
+    for (const c of stopCustomers) ids.add(c.id);
+    if (dest?.id) ids.add(dest.id);
+    if (dest?.customerId) ids.add(dest.customerId);
+
+    const pool = tourScopedCustomers();
+    const exclude = new Set(ids);
+    const suggestions = state.tour.suggestMode === 'route'
+        ? suggestAlongRoute(start, [...stopCustomers, dest].filter(Boolean), pool, state.tour.radiusKm, exclude, state.tour.roundTrip, false)
+        : suggestNearby(start, pool, state.tour.radiusKm, exclude, false);
+
+    for (const { customer } of suggestions) ids.add(customer.id);
+    return [...ids].map(getCustomer).filter((c) => c && c.lat !== null);
 }
 
 function renderMarkers() {
@@ -715,7 +740,58 @@ function attachTourCustomerPopup(marker, point, tooltipText) {
     return marker;
 }
 
+function drawAirRoute(routePts) {
+    L.polyline(routePts, {
+        color: '#ffffff',
+        weight: 9,
+        opacity: 0.72,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false
+    }).addTo(tourLayer);
+    L.polyline(routePts, {
+        color: '#0f766e',
+        weight: 4,
+        dashArray: '10 7',
+        opacity: 0.78,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false
+    }).addTo(tourLayer).bindTooltip('Luftlinie als Fallback');
+}
+
+async function drawRoadRoute(routePts) {
+    const seq = roadRouteSeq;
+    const key = routingKey(routePts);
+    let road = roadRouteCache.get(key);
+    if (road === undefined) {
+        road = await fetchRoadRoute(routePts.map(([lat, lng]) => ({ lat, lng })));
+        roadRouteCache.set(key, road);
+    }
+    if (seq !== roadRouteSeq || !road?.latLngs?.length) return;
+
+    L.polyline(road.latLngs, {
+        color: '#ffffff',
+        weight: 10,
+        opacity: 0.95,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false
+    }).addTo(tourLayer);
+    L.polyline(road.latLngs, {
+        color: '#0891b2',
+        weight: 5,
+        opacity: 0.98,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false
+    }).addTo(tourLayer).bindTooltip(
+        `Straßenroute (${road.provider}): ${Math.round(road.distanceKm)} km, ca. ${Math.round(road.durationMin)} min`
+    );
+}
+
 function renderTour() {
+    roadRouteSeq += 1;
     tourLayer.clearLayers();
     renderMarkers(); // "in-tour"-Status der Marker aktualisieren
 
@@ -723,23 +799,8 @@ function renderTour() {
     const hasRoute = start && routePts.length > 1;
 
     if (hasRoute) {
-        L.polyline(routePts, {
-            color: '#ffffff',
-            weight: 9,
-            opacity: 0.9,
-            lineCap: 'round',
-            lineJoin: 'round',
-            interactive: false
-        }).addTo(tourLayer);
-        L.polyline(routePts, {
-            color: '#0f766e',
-            weight: 5,
-            dashArray: '10 7',
-            opacity: 0.95,
-            lineCap: 'round',
-            lineJoin: 'round',
-            interactive: false
-        }).addTo(tourLayer).bindTooltip('Geschätzte Tourlinie (Luftlinie)');
+        drawAirRoute(routePts);
+        drawRoadRoute(routePts);
     }
 
     if (start) {
