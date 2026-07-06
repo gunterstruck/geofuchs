@@ -13,14 +13,13 @@
 import { CONFIG } from './config.js';
 
 /**
- * Vertriebshierarchie in Reihenfolge von oben (grob) nach unten (fein).
- * Jede Ebene ist optional – fehlt eine Spalte in der Excel-Liste, wird die
- * Ebene ausgeblendet und nicht gefiltert.
+ * Planungsrelevante Gebietsebenen. Der Vertriebsbezirk ist die führende Ebene,
+ * Gruppe ist die Standard-Ergänzung, Channel bleibt eine optionale Zusatzebene.
  */
 export const DIMENSIONS = [
-    { id: 'channel', field: 'channel', label: 'Vertriebschannel' },
+    { id: 'bezirk',  field: 'bezirk',  label: 'Vertriebsbezirk' },
     { id: 'gruppe',  field: 'gruppe',  label: 'Vertriebsgruppe' },
-    { id: 'bezirk',  field: 'bezirk',  label: 'Betriebsbezirk' }
+    { id: 'channel', field: 'channel', label: 'Vertriebschannel' }
 ];
 
 export const state = {
@@ -34,10 +33,10 @@ export const state = {
     dims: {},
 
     level: 'kreise',
-    // 'auto' = nach Zoom | 'rep' = VB | 'bezirk' | 'gruppe' | 'status'
+    // 'auto' = nach Zoom | 'rep' = Außendienst/Kundenpunkte | 'bezirk' | 'gruppe' | 'status'
     colorMode: 'auto',
 
-    // Gebietszuordnungen (unabhängig von Kunden): 'level:regionKey' -> { vb, bezirk, name }
+    // Gebietszuordnungen (unabhängig von Kunden): 'level:regionKey' -> { bezirk, gruppe, channel, name }
     territories: {},
 
     tour: {
@@ -190,8 +189,6 @@ export function activeDims() {
 
 /** Ist der Kunde nach aktuellen Filtern sichtbar? */
 export function isVisible(customer) {
-    const rep = state.reps.get(customer.vb || UNASSIGNED);
-    if (!(rep?.visible ?? true)) return false;
     for (const def of DIMENSIONS) {
         const dim = state.dims[def.id];
         if (!dim?.active) continue;

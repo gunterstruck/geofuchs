@@ -4,7 +4,7 @@
  * die Kunden dieses Gebiets gezielt umzuordnen:
  *  - einzelne Kunden per Checkbox aus-/abwählen (z. B. nur die „blauen")
  *  - Suche/Filter innerhalb des Gebiets
- *  - Auswahl einem Vertriebsbeauftragten oder Betriebsbezirk zuweisen
+ *  - Auswahl einem Vertriebsbezirk oder einer Gruppe zuweisen
  *  - optional die ganze Fläche (Gebietszuordnung) mit umschlüsseln
  *  - Rückgängig (Undo) der letzten Änderungen
  *
@@ -12,7 +12,7 @@
  * direkt auf der Karte sieht.
  */
 
-import { state, emit, getCustomer, setCustomers, setTerritory, getTerritory, repColor, attrColor, datasetSnapshot, activeDims, DIMENSIONS, UNASSIGNED } from '../core/state.js';
+import { state, emit, getCustomer, setCustomers, setTerritory, getTerritory, attrColor, datasetSnapshot, UNASSIGNED } from '../core/state.js';
 import { pointInFeature } from '../services/geodata.js';
 import { saveDataset } from '../services/storage.js';
 import { showToast } from './toast.js';
@@ -25,7 +25,7 @@ let dialog = null;
 let ctx = null;              // { level, key, name, feature }
 let selected = new Set();    // ausgewählte Kunden-IDs
 let search = '';
-let assignAttr = 'bezirk';   // 'vb' | 'bezirk' | 'gruppe' | 'channel'
+let assignAttr = 'bezirk';   // 'bezirk' | 'gruppe' | 'channel'
 let territorySelected = false; // „Ganze Fläche" (Gebietszuordnung) mit zuweisen
 const undoStack = [];        // [{ label, changes:[{id,attr,old}], territory }]
 
@@ -58,8 +58,8 @@ export function openRegionEditor(context) {
     search = '';
     // Ohne Kunden ist die Flächenzuordnung das Naheliegende -> vorausgewählt
     territorySelected = customers.length === 0;
-    // Standard-Ziel: Betriebsbezirk (sofern vorhanden), sonst VB
-    assignAttr = state.dims.bezirk?.active ? 'bezirk' : 'vb';
+    // Standard-Ziel: Vertriebsbezirk (sofern vorhanden), sonst nächste Gebietsebene
+    assignAttr = state.dims.bezirk?.active ? 'bezirk' : (assignableDims()[0]?.id ?? 'bezirk');
     document.getElementById('re-search').value = '';
     renderAttrSelect();
     render();
@@ -67,20 +67,24 @@ export function openRegionEditor(context) {
 }
 
 function attrLabel(attr) {
-    return attr === 'vb' ? 'Vertriebsbeauftragter' : (state.dims[attr]?.label ?? attr);
+    return state.dims[attr]?.label ?? attr;
 }
 function valueOf(c) {
     return String(c[assignAttr] ?? '').trim() || UNASSIGNED;
 }
 function targetValues() {
-    if (assignAttr === 'vb') return [...state.reps.keys()].filter((v) => v !== UNASSIGNED);
     return state.dims[assignAttr]?.active ? [...state.dims[assignAttr].values.keys()].filter((v) => v !== UNASSIGNED) : [];
+}
+
+function assignableDims() {
+    return ['bezirk', 'gruppe', 'channel']
+        .map((id) => state.dims[id]?.active ? { id, label: state.dims[id].label } : null)
+        .filter(Boolean);
 }
 
 function renderAttrSelect() {
     const sel = document.getElementById('re-assign-attr');
-    const options = [{ id: 'vb', label: 'Vertriebsbeauftragter' }]
-        .concat(activeDims().map((d) => ({ id: DIMENSIONS.find((x) => x.field === d.field).id, label: d.label })));
+    const options = assignableDims();
     sel.innerHTML = options.map((o) => `<option value="${o.id}"${o.id === assignAttr ? ' selected' : ''}>${escapeHtml(o.label)}</option>`).join('');
 }
 

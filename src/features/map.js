@@ -1,7 +1,7 @@
 /**
  * Karten-Feature
  * Leaflet-Karte mit Gebietsebenen (Landkreise/PLZ), Kundenmarkern
- * (geclustert, nach Vertriebsbeauftragtem eingefärbt) und Tour-Anzeige.
+ * und Tour-Anzeige.
  */
 
 import L from 'leaflet';
@@ -82,7 +82,7 @@ export function initMap(containerId) {
             customer.rhythmusWochen = Number.isFinite(val) && val > 0 ? val : null;
             markDirty();
         });
-        // Gebietszuordnung direkt im Gebiets-Popup (VB / Betriebsbezirk)
+        // Gebietszuordnung direkt im Gebiets-Popup (Vertriebsbezirk)
         el.querySelectorAll('select[data-terr]').forEach((sel) => {
             sel.addEventListener('change', () => {
                 setTerritory(sel.dataset.level, sel.dataset.key, sel.dataset.terr, sel.value, sel.dataset.name);
@@ -158,13 +158,12 @@ function aggregatable() {
     return state.level !== 'none' && !!CONFIG.levels[state.level]?.file && !!currentLevelData;
 }
 
-/** Erstes verfügbares Attribut aus der Wunschliste (Ebene aktiv bzw. 'vb') */
+/** Erstes verfügbares Gebiet-Attribut aus der Wunschliste */
 function firstActiveAttr(list) {
     for (const a of list) {
-        if (a === 'vb') return 'vb';
         if (state.dims[a]?.active) return a;
     }
-    return 'vb';
+    return null;
 }
 
 /**
@@ -180,29 +179,29 @@ function resolveView() {
     if (mode === 'rep') return { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
     if (mode === 'luecken') {
         // Abdeckung braucht Flächen; ohne Gebietsebene auf Kundenpunkte zurückfallen
-        if (!aggregatable()) return { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
-        return { paint: 'luecken', markers: false, labels: false, markerBy: 'vb' };
+        if (!aggregatable()) return { paint: null, markers: true, labels: false, markerBy: 'bezirk' };
+        return { paint: 'luecken', markers: false, labels: false, markerBy: 'bezirk' };
     }
     if (mode === 'bezirk') {
-        const p = firstActiveAttr(['bezirk', 'gruppe', 'vb']);
-        return { paint: p, markers: false, labels: true, markerBy: 'vb' };
+        const p = firstActiveAttr(['bezirk', 'gruppe']);
+        return { paint: p, markers: false, labels: true, markerBy: 'bezirk' };
     }
     if (mode === 'gruppe') {
-        const p = firstActiveAttr(['gruppe', 'bezirk', 'vb']);
-        return { paint: p, markers: false, labels: true, markerBy: 'vb' };
+        const p = firstActiveAttr(['gruppe', 'bezirk']);
+        return { paint: p, markers: false, labels: true, markerBy: 'bezirk' };
     }
     // auto: Detailgrad nach Zoomstufe
-    if (!aggregatable()) return { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
+    if (!aggregatable()) return { paint: null, markers: true, labels: false, markerBy: 'bezirk' };
     if (z >= CONFIG.map.lodCustomerZoom) {
-        const p = firstActiveAttr(['bezirk', 'gruppe', 'vb']);
+        const p = firstActiveAttr(['bezirk', 'gruppe']);
         return { paint: p, markers: true, labels: false, markerBy: p };
     }
     if (z >= CONFIG.map.lodBezirkZoom) {
-        const p = firstActiveAttr(['bezirk', 'gruppe', 'vb']);
-        return { paint: p, markers: false, labels: true, markerBy: 'vb' };
+        const p = firstActiveAttr(['bezirk', 'gruppe']);
+        return { paint: p, markers: false, labels: true, markerBy: 'bezirk' };
     }
-    const p = firstActiveAttr(['gruppe', 'bezirk', 'vb']);
-    return { paint: p, markers: false, labels: true, markerBy: 'vb' };
+    const p = firstActiveAttr(['gruppe', 'bezirk']);
+    return { paint: p, markers: false, labels: true, markerBy: 'bezirk' };
 }
 
 function applyView() {
@@ -405,7 +404,7 @@ function regionTooltip(feature) {
         return `${name} · ${total} Kd. abgedeckt`;
     }
 
-    const attr = currentView.paint && currentView.paint !== 'vb' ? currentView.paint : 'vb';
+    const attr = currentView.paint || 'bezirk';
     const terr = getTerritory(state.level, key);
 
     if (terr && terr[attr] && total === 0) return `${name} · ${terr[attr]} (zugeordnet, 0 Kunden)`;
@@ -497,7 +496,7 @@ function renderLabels() {
     }
 }
 
-/** Zuweisungs-Selects (VB & Betriebsbezirk) für ein Gebiet */
+/** Zuweisung für die ganze Fläche eines Gebiets */
 function territoryAssignHtml(feature) {
     const name = regionName(state.level, feature);
     const key = regionKey(state.level, feature);
@@ -505,16 +504,13 @@ function territoryAssignHtml(feature) {
     const opts = (values, current) => ['<option value="">— nicht zugeordnet —</option>']
         .concat(values.map((v) => `<option value="${escapeHtml(v)}"${v === current ? ' selected' : ''}>${escapeHtml(v)}</option>`)).join('');
 
-    const reps = [...state.reps.keys()].filter((v) => v !== UNASSIGNED);
     const bezirke = state.dims.bezirk?.active ? [...state.dims.bezirk.values.keys()].filter((v) => v !== UNASSIGNED) : [];
 
     const base = `data-level="${escapeHtml(state.level)}" data-key="${escapeHtml(key)}" data-name="${escapeHtml(name)}"`;
     return `<div class="terr-assign">
         <button class="popup-edit-btn" data-action="edit-region" ${base}>✏️ Kunden dieses Gebiets umordnen …</button>
         <p class="terr-assign-title">Ganze Fläche zuweisen:</p>
-        <label class="terr-row"><span>Vertriebsbeauftragter</span>
-            <select data-terr="vb" ${base}>${opts(reps, terr.vb)}</select></label>
-        <label class="terr-row"><span>Betriebsbezirk</span>
+        <label class="terr-row"><span>Vertriebsbezirk</span>
             <select data-terr="bezirk" ${base}>${opts(bezirke, terr.bezirk)}</select></label>
     </div>`;
 }
@@ -531,16 +527,20 @@ function regionPopupHtml(feature) {
             ${assign}
         </div>`;
     }
-    const reps = [...entry.byRep.entries()].sort((a, b) => b[1] - a[1]);
-    const repRows = reps.map(([vb, count]) => `
-        <li><span class="dot" style="background:${repColor(vb)}"></span>${escapeHtml(vb)}<b>${count}</b></li>
+    const bezirke = new Map();
+    for (const c of entry.customers) {
+        const value = String(c.bezirk ?? '').trim() || UNASSIGNED;
+        bezirke.set(value, (bezirke.get(value) ?? 0) + 1);
+    }
+    const districtRows = [...bezirke.entries()].sort((a, b) => b[1] - a[1]).map(([bezirk, count]) => `
+        <li><span class="dot" style="background:${attrColor('bezirk', bezirk)}"></span>${escapeHtml(bezirk)}<b>${count}</b></li>
     `).join('');
     const list = entry.customers.slice(0, 8).map((c) => `<li class="mini">${escapeHtml(c.name)}${c.ort ? ` <span class="muted">(${escapeHtml(c.ort)})</span>` : ''}</li>`).join('');
     const more = entry.customers.length > 8 ? `<li class="mini muted">… und ${entry.customers.length - 8} weitere</li>` : '';
     return `<div class="popup">
         <h3>${escapeHtml(name)}</h3>
         <p><b>${entry.total}</b> Kunde${entry.total === 1 ? '' : 'n'}</p>
-        <ul class="rep-list">${repRows}</ul>
+        <ul class="rep-list">${districtRows}</ul>
         <ul class="cust-list">${list}${more}</ul>
         ${assign}
     </div>`;

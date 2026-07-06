@@ -17,7 +17,7 @@ export const FIELDS = [
     { key: 'vb',      label: 'Vertriebsbeauftragter',  required: false, synonyms: ['vertriebsbeauftragter', 'vertriebsbeauftragte', 'vb', 'betreuer', 'außendienst', 'aussendienst', 'ad', 'vertriebler', 'verkäufer', 'verkaeufer', 'sales rep', 'mitarbeiter', 'ansprechpartner vertrieb', 'gebietsleiter', 'kam'] },
     { key: 'channel', label: 'Vertriebschannel',       required: false, synonyms: ['vertriebschannel', 'vertriebskanal', 'channel', 'kanal', 'absatzkanal', 'vertriebsweg', 'saleschannel', 'sales channel', 'vertriebslinie'] },
     { key: 'gruppe',  label: 'Vertriebsgruppe',        required: false, synonyms: ['vertriebsgruppe', 'gruppe', 'kundengruppe', 'kundenkreis', 'segment', 'kategorie', 'sparte', 'branche', 'klasse', 'team'] },
-    { key: 'bezirk',  label: 'Betriebsbezirk',         required: true,  synonyms: ['betriebsbezirk', 'bezirk', 'vertriebsbezirk', 'verkaufsbezirk', 'gebietsbezirk', 'außendienstbezirk', 'aussendienstbezirk', 'district'] },
+    { key: 'bezirk',  label: 'Vertriebsbezirk',        required: true,  synonyms: ['vertriebsbezirk', 'betriebsbezirk', 'bezirk', 'verkaufsbezirk', 'gebietsbezirk', 'außendienstbezirk', 'aussendienstbezirk', 'district'] },
     { key: 'gebiet',  label: 'Gebiet (nur Flächenzeile: LK oder PLZ)', required: false, synonyms: ['gebiet', 'landkreis', 'lk', 'kreis', 'plz-gebiet', 'plz gebiet', 'fläche', 'flaeche', 'gebietszuweisung', 'nur gebiet'] },
     { key: 'ansprechpartner', label: 'Hauptansprechpartner', required: false, synonyms: ['hauptansprechpartner', 'haupt ansprechpartner', 'ansprechpartner', 'kontaktperson', 'kontakt', 'hauptkontakt', 'primary contact', 'main contact', 'contact', 'ap', 'ansprechpartner in'] },
     { key: 'telefon', label: 'Telefon',                required: false, synonyms: ['telefon', 'tel', 'telefonnummer', 'phone', 'mobil', 'handy', 'rufnummer', 'festnetz'] },
@@ -167,14 +167,14 @@ export function parseRows(rows, mapping) {
         if (!name && gebiet) {
             const bezirk = get('bezirk');
             const vb = get('vb');
-            if (!bezirk && !vb) { err(sheetRow, 'Flächenzeile ohne Betriebsbezirk oder Vertriebsbeauftragten', row); return; }
+            if (!bezirk) { err(sheetRow, 'Flächenzeile ohne Vertriebsbezirk', row); return; }
             areaRows.push({ gebiet, bezirk, vb, sheetRow, raw: row });
             return;
         }
 
         // Kundenzeile
         const bezirk = get('bezirk');
-        if (!bezirk) { err(sheetRow, 'Betriebsbezirk fehlt (Pflichtfeld)', row); return; }
+        if (!bezirk) { err(sheetRow, 'Vertriebsbezirk fehlt (Pflichtfeld)', row); return; }
 
         const plz = cleanPlz(get('plz'));
         const lat = parseCoord(mapping.lat ? row[mapping.lat] : null);
@@ -234,7 +234,7 @@ export function downloadTemplate() {
             'Kundennummer': '10001', 'Kundenname': 'Autohaus Schmidt GmbH',
             'Straße': 'Hauptstraße 12', 'PLZ': '50667', 'Ort': 'Köln',
             'Vertriebsbeauftragter': 'Max Mustermann',
-            'Vertriebschannel': 'Fachhandel', 'Vertriebsgruppe': 'Handel', 'Betriebsbezirk': 'Bezirk West',
+            'Vertriebschannel': 'Fachhandel', 'Vertriebsgruppe': 'Handel', 'Vertriebsbezirk': 'Bezirk West',
             'Gebiet (LK/PLZ)': '',
             'Hauptansprechpartner': 'Herr Schmidt', 'Telefon': '0221 1234567', 'E-Mail': 'info@autohaus-schmidt.de',
             'Umsatz': 125000, 'Besuchsrhythmus (Wochen)': 6, 'Letzter Besuch': '12.05.2026'
@@ -243,7 +243,7 @@ export function downloadTemplate() {
             'Kundennummer': '10002', 'Kundenname': 'Bäckerei Müller KG',
             'Straße': 'Marktplatz 3', 'PLZ': '80331', 'Ort': 'München',
             'Vertriebsbeauftragter': 'Anna Beispiel',
-            'Vertriebschannel': 'Direktvertrieb', 'Vertriebsgruppe': 'Lebensmittel', 'Betriebsbezirk': 'Bezirk Süd',
+            'Vertriebschannel': 'Direktvertrieb', 'Vertriebsgruppe': 'Lebensmittel', 'Vertriebsbezirk': 'Bezirk Süd',
             'Hauptansprechpartner': 'Frau Müller', 'Telefon': '089 7654321', 'E-Mail': 'kontakt@baeckerei-mueller.de',
             'Umsatz': 48000, 'Besuchsrhythmus (Wochen)': 4, 'Letzter Besuch': '28.06.2026'
         },
@@ -251,7 +251,7 @@ export function downloadTemplate() {
             'Kundennummer': '10003', 'Kundenname': 'Elektro Weber e.K.',
             'Straße': 'Industrieweg 8', 'PLZ': '04109', 'Ort': 'Leipzig',
             'Vertriebsbeauftragter': 'Max Mustermann',
-            'Vertriebschannel': 'Direktvertrieb', 'Vertriebsgruppe': 'Handwerk', 'Betriebsbezirk': 'Bezirk Ost',
+            'Vertriebschannel': 'Direktvertrieb', 'Vertriebsgruppe': 'Handwerk', 'Vertriebsbezirk': 'Bezirk Ost',
             'Gebiet (LK/PLZ)': '',
             'Hauptansprechpartner': '', 'Telefon': '0341 9998877', 'E-Mail': '',
             'Umsatz': 87500, 'Besuchsrhythmus (Wochen)': 8, 'Letzter Besuch': ''
@@ -262,7 +262,7 @@ export function downloadTemplate() {
             'Kundennummer': '', 'Kundenname': '',
             'Straße': '', 'PLZ': '', 'Ort': '',
             'Vertriebsbeauftragter': '',
-            'Vertriebschannel': '', 'Vertriebsgruppe': '', 'Betriebsbezirk': 'Bezirk West',
+            'Vertriebschannel': '', 'Vertriebsgruppe': '', 'Vertriebsbezirk': 'Bezirk West',
             'Gebiet (LK/PLZ)': 'Oberhausen',
             'Hauptansprechpartner': '', 'Telefon': '', 'E-Mail': '',
             'Umsatz': '', 'Besuchsrhythmus (Wochen)': '', 'Letzter Besuch': ''
@@ -286,7 +286,7 @@ export function exportCustomers(customers) {
         'Vertriebsbeauftragter': c.vb,
         'Vertriebschannel': c.channel ?? '',
         'Vertriebsgruppe': c.gruppe,
-        'Betriebsbezirk': c.bezirk ?? '',
+        'Vertriebsbezirk': c.bezirk ?? '',
         'Hauptansprechpartner': c.ansprechpartner ?? '',
         'Telefon': c.telefon ?? '',
         'E-Mail': c.email ?? '',
@@ -304,7 +304,7 @@ export function exportCustomers(customers) {
 
 /**
  * Demo-Datensatz: 3 Vertriebsbeauftragte, je 2 geografisch zusammenhängende
- * Betriebsbezirke (benachbarte Städte/Kreise), quer durch Deutschland.
+ * Vertriebsbezirke (benachbarte Städte/Kreise), quer durch Deutschland.
  * Spalten: [name, straße, plz, ort, vb, gruppe, umsatz, bezirk]
  */
 /**

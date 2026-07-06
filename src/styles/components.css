@@ -361,8 +361,27 @@
     padding: 2px 9px;
 }
 .fh-badge.partial { color: #fff; background: var(--color-primary); }
+.filter-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    line-height: 1;
+}
+.filter-remove:hover { background: var(--color-surface-2); color: var(--color-text); }
 .filter-body { padding: 0 2px 8px; }
 .filter-search { width: 100%; margin-bottom: 8px; }
+.filter-add { padding: 12px 0 4px; }
+.filter-add select {
+    width: 100%;
+    border-style: dashed;
+    color: var(--color-primary);
+    font-weight: 700;
+}
 .filter-rows { max-height: 320px; overflow-y: auto; }
 
 .dim-block { margin-bottom: 6px; }
