@@ -74,7 +74,12 @@
     border-radius: var(--radius-l);
 }
 
-.leaflet-popup-content { margin: 12px 14px; font-family: var(--font); }
+.leaflet-popup-content {
+    margin: 12px 14px;
+    font-family: var(--font);
+    max-height: min(58dvh, 430px);
+    overflow-y: auto;
+}
 .popup h3 { margin: 0 0 4px; font-size: 1rem; color: var(--color-text); text-transform: none; letter-spacing: 0; }
 .popup p { margin: 3px 0; font-size: 0.86rem; }
 .popup .rep-list { list-style: none; padding: 0; margin: 6px 0; }
@@ -145,4 +150,13 @@
 .leaflet-bar a:first-child,
 .leaflet-bar a:last-child {
     border-radius: var(--radius-m) !important;
+}
+
+@media (max-width: 768px) {
+    .leaflet-popup-content {
+        max-height: min(48dvh, 360px);
+    }
+    .leaflet-popup-content-wrapper {
+        max-width: calc(100vw - 28px);
+    }
 }
