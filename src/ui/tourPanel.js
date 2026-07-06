@@ -15,7 +15,8 @@ import { printDayPlan, downloadIcs } from '../features/tourExport.js';
 import { copyText, tourText } from '../features/handoff.js';
 import { visitStatus, STATUS_COLORS, STATUS_LABELS } from '../features/visits.js';
 import { loadTours, saveTours } from '../services/storage.js';
-import { flyToCustomer, focusPoint } from '../features/map.js';
+import { flyToCustomer, focusPoint, fitTourRoute } from '../features/map.js';
+import { showMapView } from './sidebar.js';
 import { showToast } from './toast.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
@@ -84,6 +85,7 @@ export function initTourPanel() {
     updateSuggestModeUi();
 
     document.getElementById('btn-optimize').addEventListener('click', optimizeTour);
+    document.getElementById('btn-route-focus').addEventListener('click', showRouteOnMap);
     document.getElementById('btn-gmaps').addEventListener('click', openInGoogleMaps);
     document.getElementById('btn-tour-print').addEventListener('click', () => {
         const eff = effStops();
@@ -367,6 +369,8 @@ function currentTourName() {
 }
 
 function renderPanel() {
+    const roundTrip = document.getElementById('round-trip');
+    if (roundTrip) roundTrip.checked = state.tour.roundTrip;
     renderStart();
     renderDest();
     updateSuggestModeUi(); // Modus kann auch von der Karte („Als Ziel") gesetzt werden
@@ -378,7 +382,9 @@ function renderDest() {
     const el = document.getElementById('tour-dest');
     const d = state.tour.destination;
     if (!d) {
-        el.innerHTML = '<p class="muted small">Kein Ziel gewählt. Mit Ziel liegen die Vorschläge entlang der Strecke Start → Ziel – ideal, um unterwegs passende Kunden mitzunehmen.</p>';
+        el.innerHTML = state.tour.roundTrip && state.tour.start
+            ? '<p class="muted small">Rundreise aktiv: Das Ziel ist automatisch wieder der Startpunkt.</p>'
+            : '<p class="muted small">Kein Ziel gewählt. Ohne Rundreise ist der letzte Stopp automatisch das Ziel.</p>';
         return;
     }
     el.innerHTML = `<div class="start-chip">🏁 <b>${escapeHtml(d.label)}</b>
@@ -401,15 +407,19 @@ function renderStart() {
 function renderStops() {
     const el = document.getElementById('tour-stops');
     const stops = state.tour.stops.map(getCustomer).filter(Boolean);
+    const explicitDest = destPoint();
+    const autoLastStopIsDestination = !state.tour.roundTrip && !explicitDest && stops.length > 0;
 
     if (stops.length === 0) {
         el.innerHTML = '<p class="muted">Noch keine Stopps. Fügen Sie Kunden über die Vorschläge oder das Karten-Popup hinzu.</p>';
     } else {
         el.innerHTML = stops.map((c, i) => `
-            <div class="stop-row">
+            <div class="stop-row${autoLastStopIsDestination && i === stops.length - 1 ? ' final-row' : ''}">
                 <span class="stop-num">${i + 1}</span>
                 <span class="stop-name" title="${escapeHtml(c.name)}">
-                    ${escapeHtml(c.name)}<br><span class="muted small">${escapeHtml(c.plz)} ${escapeHtml(c.ort)}</span>
+                    ${escapeHtml(c.name)}
+                    ${autoLastStopIsDestination && i === stops.length - 1 ? '<span class="route-role">Ziel</span>' : ''}
+                    <br><span class="muted small">${escapeHtml(c.plz)} ${escapeHtml(c.ort)}</span>
                 </span>
                 <span class="stop-actions">
                     <button type="button" data-up="${i}" title="Nach oben" ${i === 0 ? 'disabled' : ''}>↑</button>
@@ -436,16 +446,27 @@ function renderStops() {
     }
 
     // Ziel als fester Streckenabschluss anzeigen
-    if (destPoint() || state.tour.destination) {
+    if (explicitDest || state.tour.destination) {
         const d = state.tour.destination;
+        const label = d?.label || explicitDest?.name || 'Ziel';
         el.insertAdjacentHTML('beforeend', `
             <div class="stop-row dest-row">
                 <span class="stop-num">🏁</span>
-                <span class="stop-name" title="${escapeHtml(d.label)}">Ziel: ${escapeHtml(d.label)}</span>
+                <span class="stop-name" title="${escapeHtml(label)}">Ziel: ${escapeHtml(label)}</span>
                 <span class="stop-actions"><button type="button" id="dest-row-x" title="Ziel entfernen">✕</button></span>
             </div>`);
         const x = document.getElementById('dest-row-x');
         if (x) x.addEventListener('click', () => { state.tour.destination = null; emit('tour:changed'); });
+    }
+
+    if (state.tour.roundTrip && state.tour.start && effStops().length > 0) {
+        el.insertAdjacentHTML('beforeend', `
+            <div class="stop-row return-row">
+                <span class="stop-num">↩</span>
+                <span class="stop-name" title="${escapeHtml(state.tour.start.label)}">
+                    Ziel: zurück zum Start<br><span class="muted small">${escapeHtml(state.tour.start.label)}</span>
+                </span>
+            </div>`);
     }
 
     // Distanz & Aktions-Buttons – Ziel zählt als letzter Streckenpunkt mit
@@ -453,13 +474,18 @@ function renderStops() {
     const eff = effStops();
     if (state.tour.start && eff.length > 0) {
         const { airKm, roadKmEstimate } = routeDistance(state.tour.start, eff, state.tour.roundTrip);
-        const rt = state.tour.roundTrip ? ' inkl. Rückweg' : '';
-        summary.innerHTML = `Strecke${rt}: <b>~${Math.round(roadKmEstimate)} km</b> <span class="muted small">(${Math.round(airKm)} km Luftlinie${eff.length > CONFIG.tour.maxWaypoints + 1 ? `, Google-Maps-Export: max. ${CONFIG.tour.maxWaypoints + 1} Stopps` : ''})</span>`;
+        const rt = state.tour.roundTrip ? ' als Rundreise' : '';
+        const endHint = state.tour.roundTrip
+            ? 'Ziel ist wieder der Start.'
+            : (explicitDest ? 'Ziel festgelegt.' : 'Letzter Stopp ist automatisch Ziel.');
+        const exportHint = eff.length > CONFIG.tour.maxWaypoints + 1 ? `, Google-Maps-Export: max. ${CONFIG.tour.maxWaypoints + 1} Stopps` : "";
+        summary.innerHTML = `Geschätzte Strecke${rt}: <b>~${Math.round(roadKmEstimate)} km</b> <span class="muted small">${endHint} ${Math.round(airKm)} km Luftlinie${exportHint}.</span>`;
     } else {
         summary.innerHTML = '';
     }
     const hasRoute = state.tour.start && eff.length >= 1;
     document.getElementById('btn-optimize').disabled = !(state.tour.start && tourStops().length >= 2);
+    document.getElementById('btn-route-focus').disabled = !hasRoute;
     document.getElementById('btn-gmaps').disabled = !hasRoute;
     document.getElementById('btn-tour-print').disabled = !hasRoute;
     document.getElementById('btn-tour-ics').disabled = !hasRoute;
@@ -557,6 +583,19 @@ function openInGoogleMaps() {
     if (link) window.open(link, '_blank', 'noopener');
 }
 
+function showRouteOnMap() {
+    const eff = effStops();
+    if (!state.tour.start || eff.length === 0) {
+        showToast('Bitte Startpunkt und mindestens einen Stopp wählen.', 'info');
+        return;
+    }
+    showMapView();
+    window.setTimeout(() => {
+        const ok = fitTourRoute();
+        showToast(ok ? 'Route auf der Karte angezeigt.' : 'Route konnte noch nicht angezeigt werden.', ok ? 'success' : 'info', 2400);
+    }, window.innerWidth <= 768 ? 140 : 0);
+}
+
 // ---- Gespeicherte Touren ----
 
 async function saveCurrentTour() {
@@ -569,6 +608,7 @@ async function saveCurrentTour() {
         savedAt: new Date().toISOString(),
         start: { ...state.tour.start },
         destination: state.tour.destination ? { ...state.tour.destination } : null,
+        roundTrip: !!state.tour.roundTrip,
         stopIds: [...state.tour.stops]
     };
     // gleicher Name -> ersetzen
@@ -589,6 +629,7 @@ function loadSavedTour(id) {
     // Ziel übernehmen, sofern der Kunde (falls verknüpft) noch existiert
     state.tour.destination = (tour.destination && (!tour.destination.customerId || getCustomer(tour.destination.customerId)))
         ? { ...tour.destination } : null;
+    state.tour.roundTrip = !!tour.roundTrip;
     state.tour.stops = validIds;
     emit('tour:changed');
     const lost = tour.stopIds.length - validIds.length;

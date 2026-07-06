@@ -44,8 +44,9 @@
     border: 2px solid #fff;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
-.tour-marker.start { background: #1d4ed8; width: 28px; height: 28px; }
+.tour-marker.start { background: #1d4ed8; width: 28px; height: 28px; font-size: 0.7rem; letter-spacing: 0; }
 .tour-marker.dest { background: #b91c1c; width: 28px; height: 28px; font-size: 0.95rem; }
+.tour-marker.auto-dest { font-size: 0.78rem; }
 
 /* Gebiets-Labels (Bezirk / Gruppe + Umsatz) */
 .territory-label-wrapper { background: transparent; pointer-events: none; }
@@ -68,6 +69,11 @@
 .territory-label .tl-rev { font-weight: 600; color: #0f766e; font-size: 0.74rem; }
 
 /* Popup-Inhalte */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+    border-radius: var(--radius-l);
+}
+
 .leaflet-popup-content { margin: 12px 14px; font-family: var(--font); }
 .popup h3 { margin: 0 0 4px; font-size: 1rem; color: var(--color-text); text-transform: none; letter-spacing: 0; }
 .popup p { margin: 3px 0; font-size: 0.86rem; }
@@ -95,7 +101,7 @@
     margin: 8px 0 4px;
     padding: 8px;
     background: var(--color-surface-2, #f1f5f9);
-    border-radius: 8px;
+    border-radius: var(--radius-l);
 }
 .visit-line { margin: 0 0 6px; font-size: 0.82rem; }
 .visit-controls { display: flex; gap: 6px; align-items: center; }
@@ -125,7 +131,7 @@
     border: 1px solid var(--color-primary, #0d9488);
     color: var(--color-primary-dark, #0f766e);
     background: var(--color-primary-light, #ccfbf1);
-    border-radius: var(--radius-s, 6px);
+    border-radius: var(--radius-pill);
     cursor: pointer;
 }
 .terr-assign-title { margin: 0 0 4px; font-weight: 700; font-size: 0.82rem; }
@@ -134,3 +140,9 @@
 .terr-row select { flex: 1; min-width: 0; font-size: 0.8rem; padding: 3px 6px; }
 
 .leaflet-container { font-family: var(--font); }
+.leaflet-control-zoom a,
+.leaflet-bar,
+.leaflet-bar a:first-child,
+.leaflet-bar a:last-child {
+    border-radius: var(--radius-m) !important;
+}

@@ -26,17 +26,22 @@
         </header>
 
         <aside id="sidebar" class="sidebar">
+            <button id="sheet-grip" class="sheet-grip" type="button" aria-label="Tour-Panel vergrößern" title="Panelgröße ändern">
+                <span></span>
+            </button>
             <div class="mode-switch" role="group" aria-label="Fokus wählen">
                 <button type="button" class="mode-btn active" data-mode="aussendienst">🚗 Außendienst</button>
                 <button type="button" class="mode-btn" data-mode="gebietsplanung">🗺️ Gebietsplanung</button>
             </div>
             <p id="mode-hint" class="mode-hint"></p>
+            <div id="mobile-desktop-note" class="mobile-desktop-note" role="note">Komplexe Gebietsplanung ist für Desktop optimiert. Auf dem Smartphone stehen Karte und Tour zur Verfügung.</div>
 
             <nav class="tabs" role="tablist">
+                <button class="tab-button mobile-map-tab" data-tab="karte" data-modes="aussendienst" data-mobile-only="true" role="tab">Karte</button>
                 <button class="tab-button active" data-tab="daten" data-modes="aussendienst gebietsplanung" role="tab">📄 Daten</button>
                 <button class="tab-button" data-tab="team" data-modes="aussendienst gebietsplanung" role="tab">👥 Team</button>
                 <button class="tab-button" data-tab="gebiete" data-modes="gebietsplanung" role="tab">🗺️ Gebiete</button>
-                <button class="tab-button" data-tab="tour" data-modes="aussendienst" role="tab">🚗 Tour</button>
+                <button class="tab-button" data-tab="tour" data-modes="aussendienst" role="tab">Tour</button>
             </nav>
 
             <!-- Tab: Daten -->
@@ -201,6 +206,7 @@
                 <p id="tour-summary"></p>
                 <div class="button-column">
                     <button id="btn-optimize" class="primary" disabled>⚡ Reihenfolge optimieren</button>
+                    <button id="btn-route-focus" disabled>🗺️ Route auf Karte anzeigen</button>
                     <button id="btn-gmaps" disabled>🧭 In Google Maps navigieren</button>
                     <button id="btn-tour-print" class="expert-only" disabled>🖨️ Tagesplan drucken</button>
                     <button id="btn-tour-ics" class="expert-only" disabled>📅 Kalender-Export (.ics)</button>
@@ -319,13 +325,13 @@
                 </table>
             </div>
 
-            <h3>Was-wäre-wenn: Gebiete zuweisen</h3>
+            <h3>Was-wäre-wenn: Gebiete zuweisen <span class="help-dot" tabindex="0" title="Simulation bedeutet: Die Karte und Kennzahlen zeigen eine testweise Zuordnung. Erst &quot;Zuweisung übernehmen&quot; schreibt die Änderung in Ihre Daten.">?</span></h3>
             <p class="muted small">Filtern Sie die Gebiete, wählen Sie eine oder mehrere aus (z. B. mehrere Landkreise oder alle PLZ 52xxx) und weisen Sie die gefilterten Kunden testweise einem anderen Vertriebsbeauftragten oder Betriebsbezirk zu.</p>
             <div class="sim-filters">
-                <label class="sim-field">Ebene
+                <label class="sim-field">Ebene <span class="help-dot" tabindex="0" title="Bestimmt, welche Gebietsgrenzen in der Simulation ausgewählt werden: Landkreis oder PLZ-Ebene.">?</span>
                     <select id="sim-level"></select>
                 </label>
-                <label class="sim-field">Suche / PLZ-Präfix
+                <label class="sim-field">Suche / PLZ-Präfix <span class="help-dot" tabindex="0" title="Grenzt die Gebietsliste ein. PLZ-Präfix 52 findet z. B. alle passenden PLZ-Gebiete.">?</span>
                     <input id="sim-search" type="search" placeholder="z. B. 52 oder Kreisname" autocomplete="off">
                 </label>
                 <label class="sim-field">Aktueller VB
@@ -333,7 +339,7 @@
                 </label>
                 <span id="sim-dim-filters"></span>
             </div>
-            <label class="check-inline"><input type="checkbox" id="sim-include-empty"> Auch Gebiete ohne Kunden einbeziehen (z. B. um leere Landkreise zuzuordnen)</label>
+            <label class="check-inline"><input type="checkbox" id="sim-include-empty"> Auch Gebiete ohne Kunden einbeziehen <span class="help-dot" tabindex="0" title="Aktivieren, wenn Sie weiße Flecken oder leere Gebiete bewusst einem Bezirk oder Vertriebsbeauftragten zuordnen wollen.">?</span></label>
             <div class="sim-region-head">
                 <label class="check-inline"><input type="checkbox" id="sim-select-all"> Alle sichtbaren auswählen</label>
                 <span id="sim-region-info" class="muted small"></span>
