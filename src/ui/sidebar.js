@@ -27,13 +27,34 @@ function toHexColor(value) {
 
 let geocodeHandle = null;
 let autoRevealTimer = null;
+let mobileSheetExpanded = false;
+
+const mobileQuery = window.matchMedia('(max-width: 768px)');
+const MOBILE_DATA_TABS = new Set(['karte', 'tour']);
+const MOBILE_EMPTY_TABS = new Set(['karte', 'daten']);
+
+function hasDataset() {
+    return state.customers.length > 0 || Object.keys(state.territories).length > 0;
+}
+
+function isMobileUi() {
+    return mobileQuery.matches;
+}
 
 /** Sidebar auf-/zuklappen (mobil) gemäß state.ui.sidebarOpen */
 function applySidebar() {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
     sidebar.classList.toggle('open', state.ui.sidebarOpen);
+    sidebar.classList.toggle('sheet-full', isMobileUi() && mobileSheetExpanded && state.ui.activeTab === 'tour');
+    sidebar.classList.toggle('sheet-peek', isMobileUi() && state.ui.activeTab === 'karte');
     document.getElementById('sidebar-toggle').setAttribute('aria-expanded', String(state.ui.sidebarOpen));
+    const grip = document.getElementById('sheet-grip');
+    if (grip) {
+        const full = sidebar.classList.contains('sheet-full');
+        grip.setAttribute('aria-label', full ? 'Tour-Panel verkleinern' : 'Tour-Panel vergrößern');
+        grip.title = full ? 'Tour-Panel verkleinern' : 'Tour-Panel vergrößern';
+    }
 }
 
 /**
@@ -78,11 +99,33 @@ function activateTab(tab) {
     document.querySelectorAll('.tab-button').forEach((b) =>
         b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.tab-panel').forEach((p) =>
-        p.classList.toggle('active', p.id === `tab-${tab}`));
+        p.classList.toggle('active', tab !== 'karte' && p.id === `tab-${tab}`));
+
+    if (isMobileUi()) {
+        if (tab === 'karte') {
+            state.ui.sidebarOpen = false;
+            mobileSheetExpanded = false;
+        } else if (tab === 'tour') {
+            state.ui.sidebarOpen = true;
+        }
+        applySidebar();
+    }
+}
+
+/** Mobil direkt zur Kartenansicht wechseln, z. B. nach "Route anzeigen". */
+export function showMapView() {
+    if (!isMobileUi()) return;
+    activateTab('karte');
+    persistSettings();
 }
 
 /** Prüfen, ob ein Tab im gegebenen Modus sichtbar ist */
 function tabInMode(tabBtn, mode) {
+    if (isMobileUi()) {
+        const mobileTabs = hasDataset() ? MOBILE_DATA_TABS : MOBILE_EMPTY_TABS;
+        return mobileTabs.has(tabBtn.dataset.tab);
+    }
+    if (tabBtn.dataset.mobileOnly === 'true') return false;
     return (tabBtn.dataset.modes || '').split(/\s+/).includes(mode);
 }
 
@@ -96,6 +139,7 @@ function tabInMode(tabBtn, mode) {
  *                           damit der noch nicht geladene gespeicherte Tab nicht überschrieben wird)
  */
 export function applyMode(mode, userInitiated = true, persist = true) {
+    if (isMobileUi()) mode = 'aussendienst';
     if (!MODE_CONFIG[mode]) mode = 'aussendienst';
     const cfg = MODE_CONFIG[mode];
     state.ui.mode = mode;
@@ -114,7 +158,11 @@ export function applyMode(mode, userInitiated = true, persist = true) {
     // - aktiver Wechsel -> Einstieg des Modus (man will die neue „Welt" sehen)
     // - Wiederherstellen -> gespeicherten Tab behalten, falls im Modus sichtbar
     const empty = state.customers.length === 0 && Object.keys(state.territories).length === 0;
-    if (empty) {
+    if (isMobileUi()) {
+        const fallback = empty ? 'daten' : 'karte';
+        const current = tabs.find((b) => b.dataset.tab === state.ui.activeTab);
+        activateTab(!current || current.hidden ? fallback : state.ui.activeTab);
+    } else if (empty) {
         activateTab('daten');
     } else if (userInitiated) {
         activateTab(cfg.primaryTab);
@@ -148,7 +196,10 @@ export function initSidebar() {
 
     // Tabs
     document.querySelectorAll('.tab-button').forEach((btn) => {
-        btn.addEventListener('click', () => { activateTab(btn.dataset.tab); persistSettings(); });
+        btn.addEventListener('click', () => {
+            activateTab(btn.dataset.tab);
+            persistSettings();
+        });
     });
 
     // Standard-Modus anwenden – ohne zu persistieren, damit der gespeicherte
@@ -158,10 +209,29 @@ export function initSidebar() {
     // Sidebar-Toggle (mobil)
     document.getElementById('sidebar-toggle').addEventListener('click', () => {
         clearTimeout(autoRevealTimer); // Nutzer übernimmt -> kein automatisches Einblenden mehr
+        if (isMobileUi() && hasDataset()) {
+            activateTab(state.ui.sidebarOpen ? 'karte' : 'tour');
+            return;
+        }
         state.ui.sidebarOpen = !state.ui.sidebarOpen;
         applySidebar();
     });
     applySidebar();
+
+    document.getElementById('sheet-grip')?.addEventListener('click', () => {
+        if (!isMobileUi()) return;
+        if (state.ui.activeTab !== 'tour') activateTab('tour');
+        else {
+            mobileSheetExpanded = !mobileSheetExpanded;
+            state.ui.sidebarOpen = true;
+            applySidebar();
+        }
+    });
+
+    mobileQuery.addEventListener('change', () => {
+        applyMode(state.ui.mode, false, false);
+        applySidebar();
+    });
 
     // Gebietsebene
     const levelSelect = document.getElementById('level-select');
@@ -240,7 +310,12 @@ export function initSidebar() {
         }
     });
 
-    on('customers:changed', () => { renderDataStatus(); renderTeamFilters(); renderLegend(); });
+    on('customers:changed', () => {
+        renderDataStatus();
+        renderTeamFilters();
+        renderLegend();
+        applyMode(state.ui.mode, false, false);
+    });
     on('filters:changed', renderDataStatus);
     renderDataStatus();
     renderTeamFilters();

@@ -30,6 +30,12 @@
     font-size: 1.2rem;
     padding: 6px 10px;
     line-height: 1;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .search-wrap { position: relative; flex: 1; max-width: 420px; margin-left: auto; }
@@ -41,7 +47,7 @@
     right: 0;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-l);
     box-shadow: var(--shadow-2);
     overflow: hidden;
     z-index: 1200;
@@ -51,7 +57,7 @@
     width: 100%;
     text-align: left;
     border: none;
-    border-radius: 0;
+    border-radius: var(--radius-m);
     border-bottom: 1px solid var(--color-surface-2);
     padding: 8px 12px;
     background: var(--color-surface);
@@ -69,6 +75,7 @@
     width: var(--sidebar-width);
     background: var(--color-surface);
     border-right: 1px solid var(--color-border);
+    border-radius: 0 var(--radius-l) var(--radius-l) 0;
     z-index: 1050;
     display: flex;
     flex-direction: column;
@@ -87,7 +94,7 @@
 }
 .mode-btn {
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-s);
+    border-radius: var(--radius-pill);
     background: var(--color-surface-2);
     padding: 10px 6px;
     font-size: 0.9rem;
@@ -112,16 +119,17 @@
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: 1fr;
+    gap: 6px;
+    padding: 8px 10px;
     border-bottom: 1px solid var(--color-border);
-    background: var(--color-surface-2);
+    background: var(--color-surface);
 }
 .tab-button {
     border: none;
-    border-radius: 0;
+    border-radius: var(--radius-pill);
     background: transparent;
-    padding: 10px 4px;
+    padding: 10px 8px;
     font-size: 0.82rem;
-    border-bottom: 2px solid transparent;
     white-space: nowrap;
 }
 .tab-button[hidden] { display: none; }
@@ -132,12 +140,12 @@
 .sidebar.onboarding .mode-hint,
 .sidebar.onboarding .tabs { display: none; }
 .tab-button.active {
-    background: var(--color-surface);
-    border-bottom-color: var(--color-primary);
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
     font-weight: 600;
 }
 
-.tab-panel { display: none; padding: 14px; overflow-y: auto; flex: 1; }
+.tab-panel { display: none; padding: 14px; overflow-y: auto; flex: 1; border-radius: var(--radius-l) var(--radius-l) 0 0; }
 .tab-panel.active { display: block; }
 
 #map {

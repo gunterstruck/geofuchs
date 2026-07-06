@@ -19,3 +19,135 @@
     button { padding: 0.7em 1em; }
     .stop-actions button, .filter-bulk button { padding: 6px 10px; }
 }
+
+/* Mobile-Produktmodus: Karte + Tour statt Analyse-Cockpit */
+.mobile-map-tab,
+.mobile-desktop-note,
+.sheet-grip {
+    display: none;
+}
+
+.help-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-left: 4px;
+    border-radius: 50%;
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    border: 1px solid rgba(13, 148, 136, 0.28);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: help;
+    vertical-align: text-top;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --mobile-sheet-peek: 132px;
+        --mobile-sheet-half: min(68dvh, 620px);
+    }
+
+    .sidebar {
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: var(--mobile-sheet-half);
+        border-right: none;
+        border-top: 1px solid var(--color-border);
+        border-radius: var(--radius-l) var(--radius-l) 0 0;
+        box-shadow: 0 -12px 34px rgba(15, 23, 42, 0.18);
+        transform: translateY(calc(100% - var(--mobile-sheet-peek)));
+        transition: transform 0.24s ease, height 0.24s ease;
+    }
+
+    .sidebar.open {
+        transform: translateY(0);
+    }
+
+    .sidebar.sheet-full {
+        height: calc(100dvh - var(--topbar-height));
+    }
+
+    .sidebar.sheet-peek {
+        transform: translateY(calc(100% - var(--mobile-sheet-peek)));
+    }
+
+    .sheet-grip {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 26px;
+        padding: 8px 0 4px;
+        border: none;
+        background: transparent;
+        cursor: ns-resize;
+    }
+
+    .sheet-grip span {
+        width: 42px;
+        height: 5px;
+        border-radius: 999px;
+        background: #cbd5e1;
+    }
+
+    .sidebar:not(.onboarding) .mode-switch,
+    .sidebar:not(.onboarding) .mode-hint {
+        display: none;
+    }
+
+    .sidebar:not(.onboarding) .mobile-desktop-note {
+        display: block;
+        margin: 0 12px 8px;
+        padding: 9px 11px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-s);
+        background: var(--color-surface-2);
+        color: var(--color-text-muted);
+        font-size: 0.82rem;
+        line-height: 1.35;
+    }
+
+    .sidebar:not(.onboarding) .tabs {
+        grid-auto-flow: initial;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        flex-shrink: 0;
+    }
+
+    .sidebar:not(.onboarding) .mobile-map-tab {
+        display: block;
+    }
+
+    .sidebar:not(.onboarding) .tab-button {
+        min-height: 44px;
+        font-size: 0.92rem;
+    }
+
+    .sidebar.sheet-peek .mobile-desktop-note,
+    .sidebar.sheet-peek .tab-panel {
+        display: none !important;
+    }
+
+    .sidebar.sheet-peek .tabs {
+        border-top: 1px solid var(--color-border);
+    }
+
+    .tab-panel.active {
+        min-height: 0;
+    }
+
+    .sidebar:not(.onboarding) #tab-team,
+    .sidebar:not(.onboarding) #tab-gebiete {
+        display: none !important;
+    }
+
+    #cockpit-dialog.panel-sheet,
+    #region-edit-dialog {
+        display: none !important;
+    }
+}

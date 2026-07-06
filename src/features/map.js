@@ -658,45 +658,104 @@ function renderMarkers() {
 
 // ---- Tour-Anzeige ----
 
+function resolvedTourDestination(destination) {
+    if (!destination) return null;
+    const c = destination.customerId ? getCustomer(destination.customerId) : null;
+    return (c && c.lat !== null) ? c : (destination.lat !== null ? destination : null);
+}
+
+function currentTourRoutePoints() {
+    const { start, stops, destination, roundTrip } = state.tour;
+    const stopCustomers = stops.map(getCustomer).filter((c) => c && c.lat !== null);
+    const dest = resolvedTourDestination(destination);
+    const routePts = [];
+    if (start) routePts.push([start.lat, start.lng]);
+    stopCustomers.forEach((c) => routePts.push([c.lat, c.lng]));
+    if (dest) routePts.push([dest.lat, dest.lng]);
+    if (start && roundTrip && routePts.length > 1) routePts.push([start.lat, start.lng]);
+    return { start, stopCustomers, dest, routePts };
+}
+
+function attachTourCustomerPopup(marker, point, tooltipText) {
+    marker.bindTooltip(tooltipText);
+    if (point?.customerId) {
+        const customer = getCustomer(point.customerId);
+        if (customer) {
+            marker.bindPopup(() => customerPopupHtml(customer), {
+                maxWidth: 300,
+                maxHeight: 360,
+                autoPanPaddingTopLeft: L.point(12, 64),
+                autoPanPaddingBottomRight: L.point(12, 16)
+            });
+        }
+    } else if (point?.id) {
+        marker.bindPopup(() => customerPopupHtml(point), {
+            maxWidth: 300,
+            maxHeight: 360,
+            autoPanPaddingTopLeft: L.point(12, 64),
+            autoPanPaddingBottomRight: L.point(12, 16)
+        });
+    }
+    return marker;
+}
+
 function renderTour() {
     tourLayer.clearLayers();
     renderMarkers(); // "in-tour"-Status der Marker aktualisieren
 
-    const { start, stops, destination } = state.tour;
-    const stopCustomers = stops.map(getCustomer).filter((c) => c && c.lat !== null);
-    // Ziel als Punkt (echtes Kundenobjekt bevorzugt, sonst der gespeicherte Punkt)
-    let dest = null;
-    if (destination) {
-        const c = destination.customerId ? getCustomer(destination.customerId) : null;
-        dest = (c && c.lat !== null) ? c : (destination.lat !== null ? destination : null);
+    const { start, stopCustomers, dest, routePts } = currentTourRoutePoints();
+    const hasRoute = start && routePts.length > 1;
+
+    if (hasRoute) {
+        L.polyline(routePts, {
+            color: '#ffffff',
+            weight: 9,
+            opacity: 0.9,
+            lineCap: 'round',
+            lineJoin: 'round',
+            interactive: false
+        }).addTo(tourLayer);
+        L.polyline(routePts, {
+            color: '#0f766e',
+            weight: 5,
+            dashArray: '10 7',
+            opacity: 0.95,
+            lineCap: 'round',
+            lineJoin: 'round',
+            interactive: false
+        }).addTo(tourLayer).bindTooltip('Geschätzte Tourlinie (Luftlinie)');
     }
 
     if (start) {
-        L.marker([start.lat, start.lng], {
+        const startIsEnd = state.tour.roundTrip && hasRoute;
+        const marker = L.marker([start.lat, start.lng], {
             icon: L.divIcon({
                 className: 'tour-marker-wrapper',
-                html: '<div class="tour-marker start">S</div>',
+                html: `<div class="tour-marker start">${startIsEnd ? 'S/Z' : 'S'}</div>`,
                 iconSize: [28, 28],
                 iconAnchor: [14, 14]
             }),
             zIndexOffset: 1000
-        }).bindTooltip(`Start: ${start.label}`).addTo(tourLayer);
+        });
+        attachTourCustomerPopup(marker, start, `${startIsEnd ? 'Start/Ziel' : 'Start'}: ${start.label}`).addTo(tourLayer);
     }
 
     stopCustomers.forEach((c, i) => {
-        L.marker([c.lat, c.lng], {
+        const autoDestination = !dest && !state.tour.roundTrip && i === stopCustomers.length - 1;
+        const marker = L.marker([c.lat, c.lng], {
             icon: L.divIcon({
                 className: 'tour-marker-wrapper',
-                html: `<div class="tour-marker">${i + 1}</div>`,
+                html: `<div class="tour-marker${autoDestination ? ' dest auto-dest' : ''}">${i + 1}</div>`,
                 iconSize: [26, 26],
                 iconAnchor: [13, 13]
             }),
             zIndexOffset: 900
-        }).bindTooltip(`${i + 1}. ${c.name}`).addTo(tourLayer);
+        });
+        attachTourCustomerPopup(marker, c, `${autoDestination ? 'Ziel' : `${i + 1}.`} ${c.name}`).addTo(tourLayer);
     });
 
     if (dest) {
-        L.marker([dest.lat, dest.lng], {
+        const marker = L.marker([dest.lat, dest.lng], {
             icon: L.divIcon({
                 className: 'tour-marker-wrapper',
                 html: '<div class="tour-marker dest">🏁</div>',
@@ -704,18 +763,10 @@ function renderTour() {
                 iconAnchor: [14, 14]
             }),
             zIndexOffset: 1000
-        }).bindTooltip(`Ziel: ${dest.name || destination.label}`).addTo(tourLayer);
+        });
+        attachTourCustomerPopup(marker, dest, `Ziel: ${dest.name || state.tour.destination.label}`).addTo(tourLayer);
     }
 
-    // Streckenlinie: Start -> Zwischenstopps -> Ziel (-> Start bei Rundreise)
-    const routePts = [];
-    if (start) routePts.push([start.lat, start.lng]);
-    stopCustomers.forEach((c) => routePts.push([c.lat, c.lng]));
-    if (dest) routePts.push([dest.lat, dest.lng]);
-    if (start && routePts.length > 1) {
-        if (state.tour.roundTrip) routePts.push([start.lat, start.lng]); // Rundreise: zurück zum Start
-        L.polyline(routePts, { color: '#0d9488', weight: 3, dashArray: '8 6', opacity: 0.85 }).addTo(tourLayer);
-    }
 }
 
 // ---- Hilfen für andere Module ----
@@ -742,6 +793,23 @@ export function fitToCustomers() {
 
 export function getMap() {
     return map;
+}
+
+/** Karte auf die aktuell geplante Tour zoomen. */
+export function fitTourRoute() {
+    const { routePts } = currentTourRoutePoints();
+    if (!map || routePts.length < 2) return false;
+    map.closePopup();
+    map.invalidateSize();
+    const bounds = L.latLngBounds(routePts);
+    map.fitBounds(bounds.pad(0.18), {
+        animate: true,
+        duration: 0.7,
+        maxZoom: 12,
+        paddingTopLeft: [24, 80],
+        paddingBottomRight: [24, 72]
+    });
+    return true;
 }
 
 /** Karte auf einen Punkt (z. B. GPS-Standort) zentrieren */
