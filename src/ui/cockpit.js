@@ -1,20 +1,20 @@
 /**
  * Gebiets-Cockpit
- * - Kennzahlen je Vertriebsbeauftragtem (Kunden, Umsatz, Auslastungsbalken)
+ * - Kennzahlen je Vertriebsbezirk (Kunden, Umsatz, Auslastungsbalken)
  * - Was-wäre-wenn: Gebiete (Landkreise oder PLZ) gefiltert auswählen und die
  *   darin enthaltenen (gefilterten) Kunden testweise einem anderen
- *   Vertriebsbeauftragten zuweisen; Live-Deltas; Übernahme in die echten Daten.
+ *   Vertriebsbezirken oder Gruppen zuweisen; Live-Deltas; Übernahme in die echten Daten.
  *
- * Filter reduzieren die Gebietsliste (Ebene, Such-/PLZ-Präfix, aktueller VB,
+ * Filter reduzieren die Gebietsliste (Ebene, Such-/PLZ-Präfix,
  * Vertriebshierarchie). So lassen sich z. B. gezielt „alle PLZ 52xxx" oder
- * „nur Betriebsbezirk Ost" auf einen anderen VB umbuchen.
+ * „nur Vertriebsbezirk Ost" auf einen anderen Bezirk umbuchen.
  *
- * Die Simulation arbeitet mit einem Overlay (Kunden-ID -> neuer VB) und lässt
+ * Die Simulation arbeitet mit einem Overlay (Kunden-ID -> neuer Zielwert) und lässt
  * die eigentlichen Kundendaten unangetastet, bis „Übernehmen" gedrückt wird.
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, emit, on, repColor, attrColor, setCustomers, setTerritory, getTerritory, getCustomer, activeDims, DIMENSIONS, UNASSIGNED } from '../core/state.js';
+import { state, emit, on, attrColor, setCustomers, setTerritory, getTerritory, getCustomer, DIMENSIONS, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { regionMembership } from '../features/territory.js';
 import { showToast } from './toast.js';
@@ -32,16 +32,22 @@ let opsLog = [];               // [{ desc, count, toRep }]
 let membership = [];           // [{ key, name, customerIds }] mit Kunden
 let allRegions = [];           // ALLE Gebiete der Ebene (auch ohne Kunden)
 let selected = new Set();      // ausgewählte regionKeys
-let assignAttr = 'vb';         // Zuweisungs-Ziel: 'vb' | Hierarchie-Ebene (z. B. 'bezirk')
+let assignAttr = 'bezirk';     // Zuweisungs-Ziel: Gebietsebene (bezirk | gruppe | channel)
 let includeEmpty = false;      // Gebiete ohne Kunden einbeziehen
 let kpiSearch = '';            // Kennzahlen-Filter
 let kpiSort = 'count';         // Kennzahlen-Sortierung
 
-const filters = { search: '', vb: '', dim: {} };
+const filters = { search: '', dim: {} };
 
-// ---- Zuweisungs-Attribut (VB / Betriebsbezirk / …) ----
+// ---- Zuweisungs-Attribut (Vertriebsbezirk / Gruppe / …) ----
+function assignableDims() {
+    return ['bezirk', 'gruppe', 'channel']
+        .map((id) => state.dims[id]?.active ? { id, label: state.dims[id].label } : null)
+        .filter(Boolean);
+}
+
 function attrLabel(attr) {
-    return attr === 'vb' ? 'Vertriebsbeauftragte(r)' : (state.dims[attr]?.label ?? attr);
+    return state.dims[attr]?.label ?? attr;
 }
 function attrValueOf(customer) {
     return String(customer[assignAttr] ?? '').trim() || UNASSIGNED;
@@ -63,7 +69,6 @@ export function initCockpit() {
 
     document.getElementById('sim-level').addEventListener('change', onLevelChange);
     document.getElementById('sim-search').addEventListener('input', (e) => { filters.search = e.target.value; renderRegionList(); });
-    document.getElementById('sim-filter-vb').addEventListener('change', (e) => { filters.vb = e.target.value; renderRegionList(); });
     document.getElementById('sim-select-all').addEventListener('change', toggleSelectAll);
     document.getElementById('sim-include-empty').addEventListener('change', (e) => {
         includeEmpty = e.target.checked;
@@ -92,12 +97,11 @@ async function open() {
     pendingTerr = new Map();
     opsLog = [];
     selected = new Set();
-    assignAttr = 'vb';
+    assignAttr = state.dims.bezirk?.active ? 'bezirk' : (assignableDims()[0]?.id ?? 'bezirk');
     includeEmpty = false;
     kpiSearch = '';
     kpiSort = 'count';
     filters.search = '';
-    filters.vb = '';
     filters.dim = {};
     document.getElementById('sim-search').value = '';
     document.getElementById('cockpit-kpi-search').value = '';
@@ -113,8 +117,7 @@ async function open() {
 
 function renderAssignAttrSelect() {
     const sel = document.getElementById('sim-assign-attr');
-    const options = [{ id: 'vb', label: 'Vertriebsbeauftragter' }]
-        .concat(activeDims().map((d) => ({ id: DIMENSIONS.find((x) => x.field === d.field).id, label: d.label })));
+    const options = assignableDims();
     sel.innerHTML = options.map((o) => `<option value="${o.id}"${o.id === assignAttr ? ' selected' : ''}>${escapeHtml(o.label)}</option>`).join('');
 }
 
@@ -170,7 +173,6 @@ function searchDigits() {
 }
 
 function customerMatches(c) {
-    if (filters.vb && (c.vb || UNASSIGNED) !== filters.vb) return false;
     for (const def of DIMENSIONS) {
         const val = filters.dim[def.id];
         if (val && (String(c[def.field] ?? '').trim() || UNASSIGNED) !== val) return false;
@@ -273,7 +275,7 @@ function renderTable() {
 
     const countEl = document.getElementById('cockpit-kpi-count');
     if (countEl) {
-        const unit = assignAttr === 'vb' ? 'Vertriebsbeauftragte' : `${attrLabel(assignAttr)}e`;
+        const unit = attrLabel(assignAttr);
         countEl.textContent = q ? `${keys.length} von ${allKeys.length} ${unit}` : `${allKeys.length} ${unit}`;
     }
 
@@ -306,7 +308,7 @@ function renderTable() {
 
 /**
  * Fairness-Kennzahl: wie ausgewogen sind Kunden und Umsatz über die Einheiten
- * (VB bzw. Betriebsbezirk) verteilt? Zeigt jeweils größte/kleinste Einheit und
+ * (Vertriebsbezirk bzw. Gruppe) verteilt? Zeigt jeweils größte/kleinste Einheit und
  * den Faktor dazwischen; „ausgewogen" bis Faktor 1,5.
  */
 function renderFairness(sim, allKeys, fmtEur) {
@@ -340,17 +342,14 @@ function renderFairness(sim, allKeys, fmtEur) {
 // ---- Filter-Steuerung ----
 
 function renderFilterControls() {
-    const vbSel = document.getElementById('sim-filter-vb');
-    const reps = [...new Set(state.customers.map((c) => c.vb || UNASSIGNED))].sort((a, b) => a.localeCompare(b, 'de'));
-    vbSel.innerHTML = '<option value="">alle</option>' + reps.map((r) => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
-
-    // Hierarchie-Filter (nur aktive Ebenen)
+    // Hierarchie-Filter (nur aktive Gebietsebenen)
     const dimWrap = document.getElementById('sim-dim-filters');
-    const dims = activeDims();
+    const dims = assignableDims();
     dimWrap.innerHTML = dims.map((dim) => {
-        const def = DIMENSIONS.find((d) => d.field === dim.field);
+        const def = DIMENSIONS.find((d) => d.id === dim.id);
+        const values = state.dims[dim.id]?.values ?? new Map();
         const opts = ['<option value="">alle</option>']
-            .concat([...dim.values.keys()].map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`)).join('');
+            .concat([...values.keys()].map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`)).join('');
         return `<label class="sim-field">${escapeHtml(dim.label)}
             <select data-dimfilter="${def.id}">${opts}</select>
         </label>`;
@@ -448,7 +447,6 @@ function assignSelected() {
 
     // Kurzbeschreibung mit aktiven Filtern
     const parts = [];
-    if (filters.vb) parts.push(`VB ${filters.vb}`);
     for (const def of DIMENSIONS) if (filters.dim[def.id]) parts.push(filters.dim[def.id]);
     if (searchDigits()) parts.push(`PLZ ${searchDigits()}xxx`);
     const scope = parts.length ? ` (${parts.join(', ')})` : '';

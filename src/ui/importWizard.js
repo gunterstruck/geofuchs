@@ -146,7 +146,7 @@ async function confirmImport() {
         return;
     }
     if (mapping.name && !mapping.bezirk) {
-        showToast('Bitte die Spalte „Betriebsbezirk" zuordnen – sie ist Pflicht.', 'error');
+        showToast('Bitte die Spalte „Vertriebsbezirk" zuordnen – sie ist Pflicht.', 'error');
         return;
     }
 

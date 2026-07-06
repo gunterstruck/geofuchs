@@ -1,10 +1,10 @@
 /**
- * Sidebar: Tabs (Daten / Gebiete / Team / Tour), Datenstatus,
- * Gebietsebenen-Auswahl und Team-Filter (Vertriebsbeauftragte & Gruppen).
+ * Sidebar: Tabs (Daten / Gebiete / Filter / Tour), Datenstatus,
+ * Gebietsebenen-Auswahl und Gebietsfilter.
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, activeDims, DIMENSIONS, datasetSnapshot } from '../core/state.js';
+import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, DIMENSIONS, datasetSnapshot } from '../core/state.js';
 import { geocodeExact } from '../services/geocode.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
 import { STATUS_COLORS, STATUS_LABELS, isOpportunity } from '../features/visits.js';
@@ -171,11 +171,12 @@ export function applyMode(mode, userInitiated = true, persist = true) {
         activateTab(!current || current.hidden ? cfg.primaryTab : state.ui.activeTab);
     }
 
-    // Karten-Standard an den Modus anpassen (nur bei aktivem Umschalten)
-    if (userInitiated) {
-        const mismatched = mode === 'aussendienst'
-            ? cfg.areaColorModes.includes(state.colorMode)
-            : cfg.markerColorModes.includes(state.colorMode);
+    // Karten-Standard an den Modus anpassen. Alte Personen-Farbmodi werden in
+    // der Gebietsplanung auch beim Wiederherstellen auf den Bezirksmodus gehoben.
+    const mismatched = mode === 'aussendienst'
+        ? cfg.areaColorModes.includes(state.colorMode)
+        : cfg.markerColorModes.includes(state.colorMode);
+    if (userInitiated || (mode === 'gebietsplanung' && mismatched)) {
         if (mismatched) {
             state.colorMode = cfg.defaultColorMode;
             const sel = document.getElementById('colormode-select');
@@ -334,9 +335,9 @@ function renderLegend() {
     const mode = state.colorMode;
 
     const hints = {
-        auto: 'Zoom bestimmt den Detailgrad: weit → Vertriebsgruppen, mittel → Betriebsbezirke (Flächen mit Umsatz), nah → einzelne Kunden.',
-        rep: 'Kunden als Punkte, eingefärbt nach Vertriebsbeauftragtem.',
-        bezirk: 'Gebiete flächig nach Betriebsbezirk eingefärbt, mit Name und Umsatzsumme.',
+        auto: 'Zoom bestimmt den Detailgrad: weit → Vertriebsgruppen, mittel/nah → Vertriebsbezirke mit Umsatz.',
+        rep: 'Kunden als Punkte eingefärbt; diese Ansicht ist für den Außendienst gedacht.',
+        bezirk: 'Gebiete flächig nach Vertriebsbezirk eingefärbt, mit Name und Umsatzsumme.',
         gruppe: 'Gebiete flächig nach Vertriebsgruppe eingefärbt, mit Name und Umsatzsumme.',
         status: 'Kunden als Punkte, eingefärbt nach Besuchsstatus.',
         luecken: 'Abdeckung je Gebiet: rot = keine Kunden (weißer Fleck), gelb = zugeordnet aber leer, grün = abgedeckt (je kräftiger, desto mehr Kunden).'
@@ -360,12 +361,15 @@ function renderLegend() {
         const dim = state.dims[mode];
         el.innerHTML = dim?.active
             ? legendFromMap([...dim.values.entries()].slice(0, 14))
-            : `<span class="muted small">Keine Spalte „${mode === 'bezirk' ? 'Betriebsbezirk' : 'Vertriebsgruppe'}" in den Daten.</span>`;
+            : `<span class="muted small">Keine Spalte „${mode === 'bezirk' ? 'Vertriebsbezirk' : 'Vertriebsgruppe'}" in den Daten.</span>`;
     } else if (mode === 'rep') {
         el.innerHTML = legendFromMap([...state.reps.entries()].slice(0, 14));
     } else {
-        // auto
-        el.innerHTML = legendFromMap([...state.reps.entries()].slice(0, 14));
+        // auto: Gebietsplanung führt über Vertriebsbezirk, nicht über Personen.
+        const dim = state.dims.bezirk?.active ? state.dims.bezirk : state.dims.gruppe;
+        el.innerHTML = dim?.active
+            ? legendFromMap([...dim.values.entries()].slice(0, 14))
+            : '<span class="muted small">Nach Datenimport sichtbar.</span>';
     }
 }
 
@@ -466,11 +470,12 @@ function renderDataStatus() {
     const exact = state.customers.filter((c) => c.geo === 'exakt').length;
     const visible = visibleCustomers().length;
     const bezirkeCount = state.dims.bezirk?.active ? state.dims.bezirk.values.size : 0;
+    const gruppenCount = state.dims.gruppe?.active ? state.dims.gruppe.values.size : 0;
     el.innerHTML = `
         <div class="stat-grid">
             <div class="stat"><b>${total}</b><span>Kunden</span></div>
             <div class="stat"><b>${bezirkeCount}</b><span>Bezirke</span></div>
-            <div class="stat"><b>${state.reps.size}</b><span>Vertriebler</span></div>
+            <div class="stat"><b>${gruppenCount}</b><span>Gruppen</span></div>
             <div class="stat"><b>${visible}</b><span>sichtbar</span></div>
         </div>
         <p class="muted small">${escapeHtml(state.fileName ?? '')}</p>
@@ -533,21 +538,30 @@ function countBy(field) {
 const COLLAPSE_THRESHOLD = 8;  // ab so vielen Werten standardmäßig eingeklappt
 const SEARCH_THRESHOLD = 8;    // ab so vielen Werten ein Suchfeld zeigen
 const ROW_CAP = 60;            // max. gerenderte Zeilen je Ebene
-const filterUI = { expanded: {}, search: {}, wired: false };
+const filterUI = { expanded: {}, search: {}, enabled: {}, wired: false };
 
-/** Filter-Ebenen: Vertriebsbeauftragte + aktive Hierarchie-Ebenen */
+const DEFAULT_FILTER_SECTIONS = ['bezirk', 'gruppe'];
+const OPTIONAL_FILTER_SECTIONS = ['channel'];
+const FILTER_SECTION_ORDER = [...DEFAULT_FILTER_SECTIONS, ...OPTIONAL_FILTER_SECTIONS];
+
+function dimFilterSection(id, optional = false) {
+    const dim = state.dims[id];
+    const def = DIMENSIONS.find((d) => d.id === id);
+    if (!dim?.active || !def) return null;
+    return { id: def.id, label: dim.label, field: dim.field, entries: [...dim.values.entries()], optional };
+}
+
+/** Filter-Ebenen: standardmäßig Bezirk + Gruppe, weitere Gebietsebenen optional */
 function filterSections() {
-    const sections = [{ id: 'vb', label: 'Vertriebsbeauftragte', field: 'vb', entries: [...state.reps.entries()] }];
-    for (const dim of activeDims()) {
-        const def = DIMENSIONS.find((d) => d.field === dim.field);
-        sections.push({ id: def.id, label: dim.label, field: dim.field, entries: [...dim.values.entries()] });
-    }
-    return sections;
+    return FILTER_SECTION_ORDER
+        .filter((id) => DEFAULT_FILTER_SECTIONS.includes(id) || filterUI.enabled[id])
+        .map((id) => dimFilterSection(id, OPTIONAL_FILTER_SECTIONS.includes(id)))
+        .filter(Boolean);
 }
 
 /** Wert-Eintrag ({visible,color}) einer Ebene holen */
 function sectionEntry(sectionId, value) {
-    return sectionId === 'vb' ? state.reps.get(value) : state.dims[sectionId]?.values.get(value);
+    return state.dims[sectionId]?.values.get(value);
 }
 
 function sectionCounts(section, visN) {
@@ -591,15 +605,31 @@ function renderSection(section) {
             <span class="fh-caret">${expanded ? '▾' : '▸'}</span>
             <span class="fh-label">${escapeHtml(section.label)}</span>
             <span class="fh-badge${visN === total ? '' : ' partial'}">${sectionCounts(section, visN)}</span>
+            ${section.optional ? `<span class="filter-remove" data-remove-filter="${section.id}" title="${escapeHtml(section.label)} ausblenden" aria-label="${escapeHtml(section.label)} ausblenden">×</span>` : ''}
         </button>
         ${body}
+    </div>`;
+}
+
+function renderAddFilterControl(sections) {
+    const shown = new Set(sections.map((s) => s.id));
+    const candidates = OPTIONAL_FILTER_SECTIONS
+        .filter((id) => !shown.has(id))
+        .map((id) => dimFilterSection(id, true))
+        .filter(Boolean);
+    if (candidates.length === 0) return '';
+    return `<div class="filter-add">
+        <select id="filter-add-select" aria-label="Weitere Ebene hinzufügen">
+            <option value="">+ Ebene hinzufügen</option>
+            ${candidates.map((s) => `<option value="${s.id}">${escapeHtml(s.label)}</option>`).join('')}
+        </select>
     </div>`;
 }
 
 function renderTeamFilters() {
     const host = document.getElementById('team-filters');
     if (!host) return;
-    if (state.reps.size === 0) {
+    if (state.customers.length === 0) {
         host.innerHTML = '<p class="muted">Keine Daten geladen.</p>';
         return;
     }
@@ -607,9 +637,9 @@ function renderTeamFilters() {
     for (const s of sections) {
         if (filterUI.expanded[s.id] === undefined) filterUI.expanded[s.id] = s.entries.length <= COLLAPSE_THRESHOLD;
     }
-    let html = sections.map(renderSection).join('');
-    if (sections.length === 1) {
-        html += '<p class="muted small">Keine Hierarchie-Ebenen in den Daten. Ergänzen Sie in der Excel-Liste optional die Spalten Vertriebschannel, Vertriebsgruppe oder Betriebsbezirk.</p>';
+    let html = sections.map(renderSection).join('') + renderAddFilterControl(sections);
+    if (sections.length === 0) {
+        html += '<p class="muted small">Keine Gebietsebenen in den Daten. Ergänzen Sie in der Excel-Liste mindestens den Vertriebsbezirk.</p>';
     }
     host.innerHTML = html;
 }
@@ -651,6 +681,12 @@ function initTeamFilters() {
     filterUI.wired = true;
 
     host.addEventListener('click', (e) => {
+        const remove = e.target.closest('[data-remove-filter]');
+        if (remove) {
+            filterUI.enabled[remove.dataset.removeFilter] = false;
+            renderTeamFilters();
+            return;
+        }
         const head = e.target.closest('[data-toggle]');
         if (head) {
             filterUI.expanded[head.dataset.toggle] = !filterUI.expanded[head.dataset.toggle];
@@ -662,6 +698,13 @@ function initTeamFilters() {
     });
 
     host.addEventListener('change', (e) => {
+        const add = e.target.closest('#filter-add-select');
+        if (add && add.value) {
+            filterUI.enabled[add.value] = true;
+            filterUI.expanded[add.value] = true;
+            renderTeamFilters();
+            return;
+        }
         const cb = e.target.closest('input[data-filter]');
         if (cb) {
             const entry = sectionEntry(cb.dataset.filter, cb.dataset.value);
