@@ -16,8 +16,8 @@ export const FIELDS = [
     { key: 'ort',     label: 'Ort',                    required: false, synonyms: ['ort', 'stadt', 'city', 'gemeinde', 'wohnort'] },
     { key: 'vb',      label: 'Vertriebsbeauftragter',  required: false, synonyms: ['vertriebsbeauftragter', 'vertriebsbeauftragte', 'vb', 'betreuer', 'außendienst', 'aussendienst', 'ad', 'vertriebler', 'verkäufer', 'verkaeufer', 'sales rep', 'mitarbeiter', 'ansprechpartner vertrieb', 'gebietsleiter', 'kam'] },
     { key: 'channel', label: 'Vertriebschannel',       required: false, synonyms: ['vertriebschannel', 'vertriebskanal', 'channel', 'kanal', 'absatzkanal', 'vertriebsweg', 'saleschannel', 'sales channel', 'vertriebslinie'] },
-    { key: 'gruppe',  label: 'Vertriebsgruppe',        required: false, synonyms: ['vertriebsgruppe', 'gruppe', 'kundengruppe', 'kundenkreis', 'segment', 'kategorie', 'sparte', 'branche', 'klasse', 'team'] },
-    { key: 'bezirk',  label: 'Vertriebsbezirk',        required: true,  synonyms: ['vertriebsbezirk', 'betriebsbezirk', 'bezirk', 'verkaufsbezirk', 'gebietsbezirk', 'außendienstbezirk', 'aussendienstbezirk', 'district'] },
+    { key: 'gruppe',  label: 'Vertriebsgruppe',        required: false, synonyms: ['vertriebsgruppe', 'gruppe', 'vg neu', 'vg', 'kundengruppe', 'kundenkreis', 'segment', 'kategorie', 'sparte', 'branche', 'klasse', 'team'] },
+    { key: 'bezirk',  label: 'Vertriebsbezirk',        required: true,  synonyms: ['vertriebsbezirk', 'betriebsbezirk', 'bezirk', 'vbez neu', 'vbez', 'verkaufsbezirk', 'gebietsbezirk', 'außendienstbezirk', 'aussendienstbezirk', 'district'] },
     { key: 'gebiet',  label: 'Gebiet (nur Flächenzeile: LK oder PLZ)', required: false, synonyms: ['gebiet', 'landkreis', 'lk', 'kreis', 'plz-gebiet', 'plz gebiet', 'fläche', 'flaeche', 'gebietszuweisung', 'nur gebiet'] },
     { key: 'ansprechpartner', label: 'Hauptansprechpartner', required: false, synonyms: ['hauptansprechpartner', 'haupt ansprechpartner', 'ansprechpartner', 'kontaktperson', 'kontakt', 'hauptkontakt', 'primary contact', 'main contact', 'contact', 'ap', 'ansprechpartner in'] },
     { key: 'telefon', label: 'Telefon',                required: false, synonyms: ['telefon', 'tel', 'telefonnummer', 'phone', 'mobil', 'handy', 'rufnummer', 'festnetz'] },
@@ -59,20 +59,21 @@ export async function readWorkbook(file) {
 export function autoDetectMapping(headers) {
     const mapping = {};
     const used = new Set();
+    const matchers = [
+        { exact: true, fn: (h, s) => h === s },
+        { exact: false, fn: (h, s) => h.startsWith(s) },
+        { exact: false, fn: (h, s) => h.includes(s) }
+    ];
 
     for (const field of FIELDS) {
         mapping[field.key] = null;
         // exakte Treffer zuerst, dann "beginnt mit"/"enthält"
-        for (const matchFn of [
-            (h, s) => h === s,
-            (h, s) => h.startsWith(s),
-            (h, s) => h.includes(s)
-        ]) {
+        for (const matcher of matchers) {
             if (mapping[field.key]) break;
             for (const header of headers) {
                 if (used.has(header)) continue;
                 const norm = normalizeHeader(header);
-                if (field.synonyms.some((s) => matchFn(norm, s))) {
+                if (field.synonyms.some((s) => (matcher.exact || s.length > 2) && matcher.fn(norm, s))) {
                     mapping[field.key] = header;
                     used.add(header);
                     break;
