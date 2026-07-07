@@ -20,6 +20,7 @@
 .mp-bar { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 0.82rem; padding: 3px 6px 8px; }
 .mp-bar span { flex: 1; font-weight: 600; }
 .mp-btn { background: rgba(255, 255, 255, 0.16); color: #fff; border: none; border-radius: var(--radius-pill); padding: 4px 10px; cursor: pointer; font-size: 0.9rem; }
+.mp-close { min-height: 36px; padding-inline: 14px; font-weight: 700; }
 .mp-btn:hover { background: rgba(255, 255, 255, 0.3); }
 .mp-screen { flex: 1; border-radius: 22px; overflow: hidden; background: #fff; }
 .mp-screen iframe { width: 100%; height: 100%; border: 0; display: block; }
@@ -539,10 +540,61 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.45); }
     overflow-y: auto;
 }
 .panel-sheet header { position: sticky; top: 0; background: var(--color-surface); padding-bottom: 8px; z-index: 2; }
-dialog header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+dialog header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 dialog header h2 { margin: 0; }
 dialog footer { margin-top: 14px; display: flex; justify-content: flex-end; gap: 8px; }
-.dialog-close { border: none; background: transparent; font-size: 1.1rem; padding: 4px 8px; border-radius: var(--radius-pill); }
+.dialog-close {
+    flex-shrink: 0;
+    min-width: 104px;
+    min-height: 44px;
+    border-color: var(--color-border);
+    background: var(--color-surface-2);
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 0.65em 1em;
+    border-radius: var(--radius-pill);
+}
+.dialog-close:hover:not(:disabled) {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+    color: var(--color-primary-dark);
+}
+
+.orientation-lock {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    text-align: center;
+}
+
+.orientation-lock > div {
+    max-width: 360px;
+    padding: 22px;
+    border-radius: var(--radius-xl);
+    background: var(--color-surface-2);
+    box-shadow: var(--shadow-2);
+}
+
+.orientation-lock strong,
+.orientation-lock span {
+    display: block;
+}
+
+.orientation-lock strong {
+    margin-bottom: 8px;
+    font-size: 1.15rem;
+}
+
+.orientation-lock span {
+    color: var(--color-text-muted);
+    line-height: 1.45;
+}
 
 .table-scroll { overflow-x: auto; max-height: 50dvh; overflow-y: auto; }
 .mapping-table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }

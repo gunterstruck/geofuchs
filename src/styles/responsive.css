@@ -151,3 +151,14 @@
         display: none !important;
     }
 }
+
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
+    #orientation-lock {
+        display: flex;
+    }
+
+    #app {
+        pointer-events: none;
+        user-select: none;
+    }
+}
