@@ -6,7 +6,7 @@
  */
 
 import { geocodeByPlz } from '../services/geocode.js';
-import { setCustomers, emit, datasetSnapshot, setTerritory } from '../core/state.js';
+import { state, setCustomers, mergeCustomersDelta, emit, datasetSnapshot, setTerritory } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { saveDataset } from '../services/storage.js';
 import { showToast } from './toast.js';
@@ -156,7 +156,8 @@ async function confirmImport() {
         mapping[sel.dataset.field] = sel.value || null;
     });
 
-    if (!mapping.name && !mapping.gebiet) {
+    const contactOnly = !mapping.name && !mapping.gebiet && mapping.nummer && (mapping.ansprechpartner || mapping.telefon || mapping.email);
+    if (!mapping.name && !mapping.gebiet && !contactOnly) {
         showToast('Bitte die Spalte „Kundenname" (oder für reine Flächenzeilen „Gebiet") zuordnen.', 'error');
         return;
     }
@@ -169,19 +170,19 @@ async function confirmImport() {
         return;
     }
 
-    const { parseRows } = await excel();
-    const { customers, areaRows, errors, skipped } = parseRows(parsed.rows, mapping);
+    const { parseRows, attachContacts } = await excel();
+    const { customers, areaRows, contactRows, errors, skipped } = parseRows(parsed.rows, mapping);
 
     // Flächenzeilen (Gebietszuordnungen) auflösen – lädt Gebietsdaten bei Bedarf
     const areaCount = await resolveAreas(areaRows, errors);
 
     lastFileBase = (parsed.fileName || 'geofuchs').replace(/\.[^.]+$/, '');
 
-    if (customers.length === 0 && areaCount === 0) {
+    if (customers.length === 0 && areaCount === 0 && contactRows.length === 0) {
         dialog.close();
         lastErrors = errors;
         if (errors.length) {
-            showImportResult({ customerCount: 0, areaCount: 0, skipped, errors });
+            showImportResult({ customerCount: 0, contactCount: 0, areaCount: 0, skipped, errors });
         } else {
             showToast('Keine gültigen Zeilen im Import gefunden.', 'error');
         }
@@ -199,8 +200,14 @@ async function confirmImport() {
             }
             delete c._sheetRow; delete c._raw;
         }
-        setCustomers(customers, { fileName: parsed.fileName });
+        if (contactRows.length) attachContacts(customers, contactRows, errors);
+        const merged = state.customers.length ? mergeCustomersDelta(customers) : customers;
+        setCustomers(merged, { fileName: parsed.fileName });
         fitToCustomers();
+    } else if (contactRows.length > 0) {
+        const { matched } = attachContacts(state.customers, contactRows, errors);
+        setCustomers(state.customers, { fileName: state.fileName, importedAt: state.importedAt });
+        showToast(`${matched} Kontakt(e) mit bestehenden Kunden verknuepft.`, matched ? 'success' : 'info', 6000);
     } else {
         // Reiner Flächen-Import: Kunden unverändert lassen, nur neu einfärben
         emit('customers:changed');
@@ -208,7 +215,7 @@ async function confirmImport() {
     await saveDataset(datasetSnapshot());
 
     lastErrors = errors;
-    showImportResult({ customerCount: customers.length, areaCount, skipped, errors });
+    showImportResult({ customerCount: customers.length, contactCount: contactRows.length, areaCount, skipped, errors });
 }
 
 /**
@@ -263,17 +270,22 @@ async function resolveAreas(areaRows, errors) {
     return count;
 }
 
-function showImportResult({ customerCount, areaCount, skipped, errors }) {
+function showImportResult({ customerCount, contactCount = 0, areaCount, skipped, errors }) {
     const fehler = errors.filter((e) => e.Typ === 'Fehler').length;
     const hinweise = errors.filter((e) => e.Typ === 'Hinweis').length;
 
     if (errors.length === 0) {
-        showToast(`${customerCount} Kunden${areaCount ? `, ${areaCount} Gebiete` : ''} importiert.`, 'success', 6000);
+        const parts = [];
+        if (customerCount) parts.push(`${customerCount} Kunden`);
+        if (contactCount) parts.push(`${contactCount} Kontakte`);
+        if (areaCount) parts.push(`${areaCount} Gebiete`);
+        showToast(`${parts.join(', ') || 'Daten'} importiert.`, 'success', 6000);
         return;
     }
     document.getElementById('import-result-body').innerHTML = `
         <div class="stat-grid">
             <div class="stat"><b>${customerCount}</b><span>Kunden</span></div>
+            <div class="stat"><b>${contactCount}</b><span>Kontakte</span></div>
             <div class="stat"><b>${areaCount}</b><span>Gebiete</span></div>
             <div class="stat"><b>${fehler}</b><span>Fehler</span></div>
             <div class="stat"><b>${hinweise}</b><span>Hinweise</span></div>

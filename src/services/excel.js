@@ -23,6 +23,7 @@ export const FIELDS = [
     { key: 'telefon', label: 'Telefon',                required: false, synonyms: ['telefon', 'tel', 'telefonnummer', 'phone', 'mobil', 'handy', 'rufnummer', 'festnetz'] },
     { key: 'email',   label: 'E-Mail',                 required: false, synonyms: ['email', 'e-mail', 'mail', 'e mail', 'emailadresse', 'e-mail-adresse'] },
     { key: 'umsatz',  label: 'Umsatz (optional)',      required: false, synonyms: ['umsatz', 'jahresumsatz', 'umsatz €', 'revenue', 'potenzial', 'potential'] },
+    { key: 'kontaktPrimaer', label: 'Primärkontakt?',  required: false, synonyms: ['primärkontakt', 'primaerkontakt', 'hauptkontakt ja nein', 'hauptkontakt?', 'primary', 'primary contact flag', 'main contact flag', 'ist hauptkontakt', 'standardkontakt'] },
     { key: 'rhythmusWochen', label: 'Besuchsrhythmus (Wochen)', required: false, synonyms: ['besuchsrhythmus', 'rhythmus', 'rhythmus wochen', 'besuchsintervall', 'intervall', 'turnus', 'besuchsturnus', 'frequenz', 'zyklus wochen'] },
     { key: 'letzterBesuch', label: 'Letzter Besuch (Datum)', required: false, synonyms: ['letzter besuch', 'letzterbesuch', 'besuchsdatum', 'last visit', 'zuletzt besucht', 'letzter kontakt', 'letzter termin'] },
     { key: 'lat',     label: 'Breitengrad (optional)', required: false, synonyms: ['lat', 'latitude', 'breitengrad', 'breite'] },
@@ -109,6 +110,42 @@ function parseWeeks(value) {
     return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function parseBool(value) {
+    const str = String(value ?? '').trim().toLowerCase();
+    return ['1', 'ja', 'j', 'yes', 'y', 'true', 'wahr', 'x', 'primär', 'primaer', 'haupt'].includes(str);
+}
+
+function contactFromValues({ nummer, name, telefon, email, primary, sheetRow }) {
+    const cleanName = String(name ?? '').trim();
+    const cleanPhone = String(telefon ?? '').trim();
+    const cleanEmail = String(email ?? '').trim();
+    if (!cleanName && !cleanPhone && !cleanEmail) return null;
+    return {
+        id: `ct-${String(nummer ?? '').trim() || sheetRow}-${sheetRow}`,
+        nummer: String(nummer ?? '').trim(),
+        name: cleanName,
+        telefon: cleanPhone,
+        email: cleanEmail,
+        primary: !!primary,
+        _sheetRow: sheetRow
+    };
+}
+
+function syncPrimaryContact(customer) {
+    const contacts = Array.isArray(customer.contacts) ? customer.contacts.filter(Boolean) : [];
+    if (contacts.length === 0) {
+        delete customer.contacts;
+        return customer;
+    }
+    const primary = contacts.find((c) => c.primary) || contacts.find((c) => c.name) || contacts[0];
+    customer.contacts = contacts.map((c) => ({ ...c, primary: c.id === primary.id }));
+    customer.primaryContactId = primary.id;
+    customer.ansprechpartner = primary.name || '';
+    customer.telefon = primary.telefon || '';
+    customer.email = primary.email || '';
+    return customer;
+}
+
 /** Datum robust nach ISO (YYYY-MM-DD) parsen; unterstützt dd.mm.yyyy, ISO, Excel-Seriennummer */
 function parseDateIso(value) {
     if (value === null || value === undefined || value === '') return null;
@@ -149,6 +186,7 @@ function parseDateIso(value) {
 export function parseRows(rows, mapping) {
     const customers = [];
     const areaRows = [];
+    const contactRows = [];
     const errors = [];
     const seen = new Map(); // Dublettenschlüssel -> erste Zeilennummer
     const mappedHeaders = new Set(Object.values(mapping).filter(Boolean));
@@ -161,9 +199,25 @@ export function parseRows(rows, mapping) {
         const get = (key) => (mapping[key] ? String(row[mapping[key]] ?? '').trim() : '');
         const name = get('name');
         const gebiet = get('gebiet');
+        const nummer = get('nummer');
+        const contact = contactFromValues({
+            nummer,
+            name: get('ansprechpartner'),
+            telefon: get('telefon'),
+            email: get('email'),
+            primary: parseBool(get('kontaktPrimaer')),
+            sheetRow
+        });
 
         // Leere Zeile
-        if (!name && !gebiet) { skipped++; return; }
+        if (!name && !gebiet && !contact) { skipped++; return; }
+
+        // Kontaktdatei: kein Kundenstamm, aber Kontaktinfos mit Kundennummer
+        if (!name && !gebiet && contact) {
+            if (!nummer) { err(sheetRow, 'Kontaktzeile ohne Kundennummer - Zuordnung nicht möglich', row); return; }
+            contactRows.push({ ...contact, raw: row });
+            return;
+        }
 
         // Flächenzeile (Gebietszuordnung ohne Kunde)
         if (!name && gebiet) {
@@ -184,7 +238,6 @@ export function parseRows(rows, mapping) {
         const hasCoords = lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
         if (!plz && !hasCoords) { err(sheetRow, 'Weder PLZ noch Koordinaten – nicht verortbar', row); return; }
 
-        const nummer = get('nummer');
         const dupKey = nummer ? `nr:${nummer}` : `np:${name.toLowerCase()}|${plz}`;
         if (seen.has(dupKey)) {
             err(sheetRow, `Dublette – ${nummer ? `gleiche Kundennummer` : `gleicher Name + PLZ`} wie Zeile ${seen.get(dupKey)}`, row);
@@ -196,7 +249,7 @@ export function parseRows(rows, mapping) {
         const extra = Object.fromEntries(Object.entries(row)
             .filter(([header, value]) => !mappedHeaders.has(header) && String(value ?? '').trim() !== '')
             .map(([header, value]) => [header, String(value ?? '').trim()]));
-        customers.push({
+        const customer = {
             id: `k${index}-${name.slice(0, 12)}`,
             nummer, name,
             strasse: get('strasse'),
@@ -218,10 +271,55 @@ export function parseRows(rows, mapping) {
             extra,
             _sheetRow: sheetRow,
             _raw: row
-        });
+        };
+        if (contact) {
+            customer.contacts = [{ ...contact, primary: true }];
+            customer.primaryContactId = contact.id;
+        }
+        customers.push(syncPrimaryContact(customer));
     });
 
-    return { customers, areaRows, errors, skipped };
+    return { customers, areaRows, contactRows, errors, skipped };
+}
+
+export function attachContacts(customers, contactRows, errors = []) {
+    const byNumber = new Map(customers
+        .filter((c) => String(c.nummer ?? '').trim())
+        .map((c) => [String(c.nummer).trim(), c]));
+    let matched = 0;
+
+    for (const contact of contactRows) {
+        const customer = byNumber.get(String(contact.nummer ?? '').trim());
+        if (!customer) {
+            errors.push({
+                Zeile: contact._sheetRow,
+                Typ: 'Fehler',
+                Grund: `Kontakt konnte keiner Kundennummer zugeordnet werden: ${contact.nummer}`,
+                ...(contact.raw || {})
+            });
+            continue;
+        }
+        const existing = Array.isArray(customer.contacts) ? customer.contacts : [];
+        const next = {
+            id: contact.id,
+            name: contact.name,
+            telefon: contact.telefon,
+            email: contact.email,
+            primary: contact.primary
+        };
+        const duplicate = existing.find((c) =>
+            (c.name || '') === next.name && (c.telefon || '') === next.telefon && (c.email || '') === next.email);
+        if (duplicate) Object.assign(duplicate, next);
+        else existing.push(next);
+        customer.contacts = existing;
+        if (next.primary || !customer.primaryContactId) {
+            customer.contacts.forEach((c) => { c.primary = c.id === next.id; });
+        }
+        syncPrimaryContact(customer);
+        matched++;
+    }
+
+    return { matched, unmatched: contactRows.length - matched };
 }
 
 /** Fehler-/Hinweisliste als Excel herunterladen */

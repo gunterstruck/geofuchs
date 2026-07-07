@@ -32,6 +32,9 @@ let mobileSheetExpanded = false;
 const mobileQuery = window.matchMedia('(max-width: 768px)');
 const MOBILE_DATA_TABS = new Set(['karte', 'tour']);
 const MOBILE_EMPTY_TABS = new Set(['karte', 'daten']);
+const SIDEBAR_WIDTH_KEY = 'gf_sidebar_width';
+const SIDEBAR_MIN = 300;
+const SIDEBAR_MAX = 560;
 
 function hasDataset() {
     return state.customers.length > 0 || Object.keys(state.territories).length > 0;
@@ -39,6 +42,49 @@ function hasDataset() {
 
 function isMobileUi() {
     return mobileQuery.matches;
+}
+
+function clampSidebarWidth(width) {
+    return Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, Math.round(width)));
+}
+
+function setSidebarWidth(width, persist = false) {
+    const next = clampSidebarWidth(width);
+    document.documentElement.style.setProperty('--sidebar-width', `${next}px`);
+    if (persist) {
+        try { localStorage.setItem(SIDEBAR_WIDTH_KEY, String(next)); } catch (e) { /* egal */ }
+    }
+}
+
+function initDesktopSidebarResize() {
+    const handle = document.getElementById('sidebar-resize');
+    const sidebar = document.getElementById('sidebar');
+    if (!handle || !sidebar) return;
+    const saved = parseInt(localStorage.getItem(SIDEBAR_WIDTH_KEY) || '', 10);
+    if (Number.isFinite(saved)) setSidebarWidth(saved);
+
+    let resizing = false;
+    handle.addEventListener('pointerdown', (ev) => {
+        if (isMobileUi()) return;
+        resizing = true;
+        handle.setPointerCapture?.(ev.pointerId);
+        document.body.classList.add('sidebar-resizing');
+    });
+    handle.addEventListener('pointermove', (ev) => {
+        if (!resizing) return;
+        setSidebarWidth(ev.clientX);
+    });
+    const stopResize = (ev) => {
+        if (!resizing) return;
+        resizing = false;
+        document.body.classList.remove('sidebar-resizing');
+        setSidebarWidth(ev.clientX, true);
+    };
+    handle.addEventListener('pointerup', stopResize);
+    handle.addEventListener('pointercancel', () => {
+        resizing = false;
+        document.body.classList.remove('sidebar-resizing');
+    });
 }
 
 /** Sidebar auf-/zuklappen (mobil) gemäß state.ui.sidebarOpen */
@@ -207,6 +253,8 @@ export function applyMode(mode, userInitiated = true, persist = true) {
 }
 
 export function initSidebar() {
+    initDesktopSidebarResize();
+
     // Fokus-Umschalter
     document.querySelectorAll('.mode-btn').forEach((btn) => {
         btn.addEventListener('click', () => applyMode(btn.dataset.mode, true));

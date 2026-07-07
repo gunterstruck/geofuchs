@@ -29,6 +29,7 @@
             <button id="sheet-grip" class="sheet-grip" type="button" aria-label="Tour-Panel vergrößern" title="Panelgröße ändern">
                 <span></span>
             </button>
+            <div id="sidebar-resize" class="sidebar-resize" role="separator" aria-orientation="vertical" aria-label="Bedienpanel-Breite ändern" title="Panelbreite ziehen"></div>
             <div class="mode-switch" role="group" aria-label="Fokus wählen">
                 <button type="button" class="mode-btn active" data-mode="aussendienst">🚗 Außendienst</button>
                 <button type="button" class="mode-btn" data-mode="gebietsplanung">🗺️ Gebietsplanung</button>
@@ -98,6 +99,7 @@
                 <div id="data-loaded" style="display:none">
                     <h2>Kundendaten</h2>
                     <div id="data-status"></div>
+                    <p class="muted small">Stammdaten und Kontaktdaten können getrennt geladen werden, wenn beide Dateien die Kundennummer enthalten. Erneute Uploads werden als Delta übernommen; bestehende Besuchs- und Gebietsarbeit bleibt erhalten.</p>
                     <div id="data-actions">
                         <div class="button-column">
                             <button id="btn-upload-more">📤 Andere Excel-Liste laden</button>

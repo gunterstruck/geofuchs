@@ -75,6 +75,46 @@ function slugId(value) {
         .replace(/^-+|-+$/g, '') || 'feld';
 }
 
+function customerStableKey(customer) {
+    const nummer = String(customer?.nummer ?? '').trim();
+    if (nummer) return `nr:${nummer}`;
+    return `np:${String(customer?.name ?? '').trim().toLowerCase()}|${String(customer?.plz ?? '').trim()}`;
+}
+
+function mergeVisits(oldCustomer, freshCustomer) {
+    return [...new Set([...(oldCustomer?.besuche || []), ...(freshCustomer?.besuche || [])])].filter(Boolean).sort();
+}
+
+function contactKey(contact) {
+    return [
+        String(contact?.name ?? '').trim().toLowerCase(),
+        String(contact?.telefon ?? '').trim(),
+        String(contact?.email ?? '').trim().toLowerCase()
+    ].join('|');
+}
+
+function mergeContacts(oldCustomer, freshCustomer) {
+    const all = [...(oldCustomer?.contacts || []), ...(freshCustomer?.contacts || [])];
+    if (all.length === 0) return null;
+    const byKey = new Map();
+    for (const contact of all) {
+        const key = contactKey(contact);
+        if (!key.replace(/\|/g, '')) continue;
+        byKey.set(key, { ...(byKey.get(key) || {}), ...contact });
+    }
+    const contacts = [...byKey.values()];
+    const preferred = contacts.find((c) => freshCustomer?.primaryContactId && c.id === freshCustomer.primaryContactId)
+        || contacts.find((c) => c.primary)
+        || contacts.find((c) => c.name)
+        || contacts[0];
+    return contacts.map((c) => ({ ...c, primary: c === preferred || c.id === preferred.id }));
+}
+
+function primaryFromContacts(contacts) {
+    if (!contacts?.length) return null;
+    return contacts.find((c) => c.primary) || contacts.find((c) => c.name) || contacts[0];
+}
+
 function dimensionValue(customer, def) {
     const raw = def.custom ? customer.extra?.[def.field] : customer[def.field];
     return String(raw ?? '').trim();
@@ -208,6 +248,34 @@ export function setCustomers(customers, meta = {}) {
     }
 
     emit('customers:changed');
+}
+
+export function mergeCustomersDelta(importedCustomers) {
+    const oldByKey = new Map(state.customers.map((c) => [customerStableKey(c), c]));
+    const seenKeys = new Set();
+    const merged = importedCustomers.map((fresh) => {
+        const key = customerStableKey(fresh);
+        seenKeys.add(key);
+        const old = oldByKey.get(key);
+        if (!old) return fresh;
+        const contacts = mergeContacts(old, fresh);
+        const primary = primaryFromContacts(contacts);
+        return {
+            ...old,
+            ...fresh,
+            id: old.id,
+            besuche: mergeVisits(old, fresh),
+            contacts: contacts || undefined,
+            primaryContactId: primary?.id || fresh.primaryContactId || old.primaryContactId,
+            ansprechpartner: primary?.name || fresh.ansprechpartner || old.ansprechpartner || '',
+            telefon: primary?.telefon || fresh.telefon || old.telefon || '',
+            email: primary?.email || fresh.email || old.email || ''
+        };
+    });
+    for (const old of state.customers) {
+        if (!seenKeys.has(customerStableKey(old))) merged.push(old);
+    }
+    return merged;
 }
 
 export function getCustomer(id) {
