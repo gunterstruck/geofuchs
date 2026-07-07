@@ -161,6 +161,37 @@
     #region-edit-dialog {
         display: none !important;
     }
+
+    #tour-planner:not(.basic) .expert-swipe-section {
+        touch-action: pan-y;
+        transition: transform 0.16s ease, opacity 0.16s ease;
+    }
+
+    #tour-planner:not(.basic) .expert-swipe-section.swiping {
+        transform: translateX(var(--swipe-x, 0));
+        opacity: 0.88;
+        transition: none;
+    }
+
+    #tour-planner:not(.basic) .expert-swipe-section.swipe-hidden {
+        display: none !important;
+    }
+
+    .tour-mode {
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+
+    .tour-mode .seg-toggle {
+        min-width: 180px;
+    }
+
+    .expert-reset:not([hidden]) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+    }
 }
 
 @media (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
