@@ -33,6 +33,7 @@ const mobileQuery = window.matchMedia('(max-width: 768px)');
 const MOBILE_DATA_TABS = new Set(['karte', 'tour']);
 const MOBILE_EMPTY_TABS = new Set(['karte', 'daten']);
 const SIDEBAR_WIDTH_KEY = 'gf_sidebar_width';
+const SIDEBAR_POS_KEY = 'gf_sidebar_position';
 const SIDEBAR_MIN = 300;
 const SIDEBAR_MAX = 560;
 
@@ -88,6 +89,66 @@ function initDesktopSidebarResize() {
 }
 
 /** Sidebar auf-/zuklappen (mobil) gemäß state.ui.sidebarOpen */
+function applySidebarPosition(pos) {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar || !pos) return;
+    const width = sidebar.getBoundingClientRect().width || SIDEBAR_MIN;
+    const left = Math.max(8, Math.min(window.innerWidth - width - 12, Math.round(pos.left)));
+    const top = Math.max(58, Math.min(window.innerHeight - 220, Math.round(pos.top)));
+    sidebar.classList.add('floating-sidebar');
+    sidebar.style.left = `${left}px`;
+    sidebar.style.top = `${top}px`;
+}
+
+function resetSidebarPosition() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    sidebar.classList.remove('floating-sidebar');
+    sidebar.style.left = '';
+    sidebar.style.top = '';
+    try { localStorage.removeItem(SIDEBAR_POS_KEY); } catch (e) { /* egal */ }
+}
+
+function initDesktopSidebarDrag() {
+    const handle = document.getElementById('sidebar-drag');
+    const sidebar = document.getElementById('sidebar');
+    if (!handle || !sidebar) return;
+    try {
+        const saved = JSON.parse(localStorage.getItem(SIDEBAR_POS_KEY) || 'null');
+        if (saved) applySidebarPosition(saved);
+    } catch (e) { /* egal */ }
+
+    let dragging = false;
+    let offsetX = 0;
+    let offsetY = 0;
+    handle.addEventListener('pointerdown', (ev) => {
+        if (isMobileUi()) return;
+        const rect = sidebar.getBoundingClientRect();
+        dragging = true;
+        offsetX = ev.clientX - rect.left;
+        offsetY = ev.clientY - rect.top;
+        handle.setPointerCapture?.(ev.pointerId);
+        document.body.classList.add('sidebar-dragging');
+    });
+    handle.addEventListener('pointermove', (ev) => {
+        if (!dragging) return;
+        applySidebarPosition({ left: ev.clientX - offsetX, top: ev.clientY - offsetY });
+    });
+    const stopDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        document.body.classList.remove('sidebar-dragging');
+        const rect = sidebar.getBoundingClientRect();
+        try { localStorage.setItem(SIDEBAR_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top })); } catch (e) { /* egal */ }
+    };
+    handle.addEventListener('pointerup', stopDrag);
+    handle.addEventListener('pointercancel', () => {
+        dragging = false;
+        document.body.classList.remove('sidebar-dragging');
+    });
+    handle.addEventListener('dblclick', resetSidebarPosition);
+}
+
 function applySidebar() {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
@@ -252,8 +313,24 @@ export function applyMode(mode, userInitiated = true, persist = true) {
     if (persist) persistSettings();
 }
 
+async function clearAllData() {
+    if (state.customers.length === 0 && Object.keys(state.territories).length === 0) return;
+    if (!confirm('Alle Kundendaten und Gebietszuordnungen aus dem Browser löschen?')) return;
+    await clearDataset();
+    state.tour.start = null;
+    state.tour.destination = null;
+    state.tour.stops = [];
+    state.tour.mapFocus = false;
+    state.fileName = null;
+    state.territories = {};
+    setCustomers([]);
+    emit('tour:changed');
+    showToast('Daten gelöscht.', 'success');
+}
+
 export function initSidebar() {
     initDesktopSidebarResize();
+    initDesktopSidebarDrag();
 
     // Fokus-Umschalter
     document.querySelectorAll('.mode-btn').forEach((btn) => {
@@ -360,6 +437,8 @@ export function initSidebar() {
         emit('tour:changed');
         showToast('Daten gelöscht.', 'success');
     });
+
+    document.getElementById('btn-mobile-clear-data')?.addEventListener('click', clearAllData);
 
     // Exakte Geocodierung (Nominatim)
     document.getElementById('btn-geocode').addEventListener('click', toggleExactGeocoding);

@@ -43,6 +43,7 @@ function isMobileMap() {
 function popupOptions(extra = {}) {
     const mobile = isMobileMap();
     return {
+        closeButton: false,
         maxWidth: mobile ? Math.min(330, window.innerWidth - 28) : 320,
         maxHeight: mobile ? Math.max(260, Math.floor(window.innerHeight * 0.56)) : 380,
         autoPan: true,
@@ -51,6 +52,17 @@ function popupOptions(extra = {}) {
         autoPanPaddingBottomRight: L.point(18, mobile ? 190 : 44),
         ...extra
     };
+}
+
+function decoratePopup(popupEl) {
+    const popup = popupEl?.querySelector('.popup');
+    if (!popup || popup.querySelector('.popup-toolbar')) return;
+    popup.insertAdjacentHTML('afterbegin', `
+        <div class="popup-toolbar">
+            <button type="button" class="popup-drag-handle" aria-label="Popup verschieben" title="Popup verschieben">↔</button>
+            <button type="button" class="popup-close-btn" data-popup-close>Schließen</button>
+        </div>
+    `);
 }
 
 function routeColor(index, total) {
@@ -95,30 +107,36 @@ function makePopupDraggable(popupEl) {
     if (!popupEl || !isMobileMap() || popupEl.dataset.draggablePopup === '1') return;
     popupEl.dataset.draggablePopup = '1';
     const wrapper = popupEl.querySelector('.leaflet-popup-content-wrapper');
-    if (!wrapper) return;
+    const handle = popupEl.querySelector('.popup-drag-handle');
+    if (!wrapper || !handle) return;
     wrapper.classList.add('draggable-popup');
 
     let startX = 0, startY = 0, tx = 0, ty = 0, dragging = false;
-    wrapper.addEventListener('pointerdown', (ev) => {
-        if (ev.target.closest('button, a, input, select, textarea')) return;
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    handle.addEventListener('pointerdown', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
         dragging = true;
         startX = ev.clientX - tx;
         startY = ev.clientY - ty;
-        wrapper.setPointerCapture?.(ev.pointerId);
+        handle.setPointerCapture?.(ev.pointerId);
         wrapper.classList.add('dragging');
     });
-    wrapper.addEventListener('pointermove', (ev) => {
+    handle.addEventListener('pointermove', (ev) => {
         if (!dragging) return;
-        tx = ev.clientX - startX;
-        ty = ev.clientY - startY;
-        popupEl.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+        ev.preventDefault();
+        ev.stopPropagation();
+        tx = clamp(ev.clientX - startX, -window.innerWidth * 0.42, window.innerWidth * 0.42);
+        ty = clamp(ev.clientY - startY, -window.innerHeight * 0.28, window.innerHeight * 0.28);
+        wrapper.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
     });
     const endDrag = () => {
         dragging = false;
         wrapper.classList.remove('dragging');
     };
-    wrapper.addEventListener('pointerup', endDrag);
-    wrapper.addEventListener('pointercancel', endDrag);
+    handle.addEventListener('pointerup', endDrag);
+    handle.addEventListener('pointercancel', endDrag);
 }
 
 export function initMap(containerId) {
@@ -161,7 +179,9 @@ export function initMap(containerId) {
     map.on('popupopen', (e) => {
         const el = e.popup.getElement();
         if (!el) return;
+        decoratePopup(el);
         makePopupDraggable(el);
+        el.querySelector('[data-popup-close]')?.addEventListener('click', () => map.closePopup());
         el.querySelectorAll('[data-action]:not([data-action="edit-region"])').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const keepOpen = handlePopupAction(btn.dataset.action, btn.dataset.id);

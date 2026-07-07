@@ -81,6 +81,14 @@
         display: none;
     }
 
+    .sidebar-drag {
+        display: none;
+    }
+
+    .mobile-data-reset {
+        display: block;
+    }
+
     .sidebar.open {
         transform: translateY(0);
     }
