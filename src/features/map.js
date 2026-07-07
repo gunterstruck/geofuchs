@@ -768,7 +768,8 @@ async function drawRoadRoute(routePts) {
         road = await fetchRoadRoute(routePts.map(([lat, lng]) => ({ lat, lng })));
         roadRouteCache.set(key, road);
     }
-    if (seq !== roadRouteSeq || !road?.latLngs?.length) return;
+    if (seq !== roadRouteSeq || state.tour.routeLineMode !== 'road') return null;
+    if (!road?.latLngs?.length) return false;
 
     L.polyline(road.latLngs, {
         color: '#ffffff',
@@ -788,6 +789,7 @@ async function drawRoadRoute(routePts) {
     }).addTo(tourLayer).bindTooltip(
         `Straßenroute (${road.provider}): ${Math.round(road.distanceKm)} km, ca. ${Math.round(road.durationMin)} min`
     );
+    return true;
 }
 
 function renderTour() {
@@ -799,8 +801,13 @@ function renderTour() {
     const hasRoute = start && routePts.length > 1;
 
     if (hasRoute) {
-        drawAirRoute(routePts);
-        drawRoadRoute(routePts);
+        if (state.tour.routeLineMode === 'road') {
+            drawRoadRoute(routePts).then((ok) => {
+                if (ok === false && state.tour.routeLineMode === 'road') drawAirRoute(routePts);
+            });
+        } else {
+            drawAirRoute(routePts);
+        }
     }
 
     if (start) {

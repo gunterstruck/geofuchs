@@ -386,6 +386,12 @@ function effStops() {
     return dest ? [...tourStops(), dest] : tourStops();
 }
 
+function toggleRouteLineMode() {
+    state.tour.routeLineMode = state.tour.routeLineMode === 'road' ? 'air' : 'road';
+    emit('tour:changed');
+    return state.tour.routeLineMode;
+}
+
 function currentTourName() {
     const input = document.getElementById('tour-name');
     return (input.value.trim()) || (state.tour.start ? `Tour ab ${state.tour.start.label}` : 'Tagestour');
@@ -510,7 +516,9 @@ function renderStops() {
     document.getElementById('btn-optimize').disabled = !(state.tour.start && tourStops().length >= 2);
     const routeFocus = document.getElementById('btn-route-focus');
     routeFocus.disabled = !hasRoute;
-    routeFocus.textContent = state.tour.mapFocus ? '🗺️ Alle Kunden auf Karte zeigen' : '🗺️ Route auf Karte anzeigen';
+    routeFocus.textContent = !state.tour.mapFocus
+        ? '🗺️ Route auf Karte anzeigen'
+        : (state.tour.routeLineMode === 'road' ? '🗺️ Luftlinie anzeigen' : '🗺️ Straßenroute anzeigen');
     document.getElementById('btn-gmaps').disabled = !hasRoute;
     document.getElementById('btn-tour-print').disabled = !hasRoute;
     document.getElementById('btn-tour-ics').disabled = !hasRoute;
@@ -615,12 +623,16 @@ function showRouteOnMap() {
         return;
     }
     if (state.tour.mapFocus) {
-        state.tour.mapFocus = false;
-        emit('tour:changed');
-        showToast('Alle sichtbaren Kunden werden wieder auf der Karte angezeigt.', 'info', 2400);
+        const mode = toggleRouteLineMode();
+        showMapView();
+        showToast(mode === 'road'
+            ? 'Straßenroute wird auf der Karte angezeigt.'
+            : 'Luftlinienroute wird auf der Karte angezeigt.',
+            'success', 2400);
         return;
     }
     state.tour.mapFocus = true;
+    state.tour.routeLineMode = 'air';
     showMapView();
     window.setTimeout(() => {
         const ok = fitTourRoute();
