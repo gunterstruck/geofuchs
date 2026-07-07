@@ -29,7 +29,13 @@ export function initImportWizard() {
     dialog = document.getElementById('import-dialog');
 
     const fileInput = document.getElementById('file-input');
-    const openFilePicker = () => fileInput.click();
+    const openFilePicker = () => {
+        if (!hasComplianceOptIn()) {
+            showComplianceToast();
+            return;
+        }
+        fileInput.click();
+    };
     document.getElementById('btn-upload').addEventListener('click', openFilePicker);
     document.getElementById('btn-upload-more')?.addEventListener('click', openFilePicker);
     fileInput.addEventListener('change', (e) => {
@@ -70,11 +76,24 @@ export function initImportWizard() {
         dragDepth = 0;
         document.getElementById('dropzone').classList.remove('active');
         const file = e.dataTransfer?.files?.[0];
-        if (file) handleFile(file);
+        if (!file) return;
+        if (!hasComplianceOptIn()) {
+            showComplianceToast();
+            return;
+        }
+        handleFile(file);
     });
 
     dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
     document.getElementById('mapping-confirm').addEventListener('click', confirmImport);
+}
+
+function hasComplianceOptIn() {
+    return [...document.querySelectorAll('[data-compliance-optin]')].some((input) => input.checked);
+}
+
+function showComplianceToast() {
+    showToast('Bitte bestätigen Sie zuerst, dass Sie zur Verarbeitung der Daten berechtigt sind.', 'info', 6000);
 }
 
 async function handleFile(file) {

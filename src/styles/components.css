@@ -81,6 +81,34 @@
 .ob-or::before, .ob-or::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
 .ob-upload-btn { width: 100%; }
 .ob-upload-sub { margin: 4px 0 8px; }
+.compliance-optin {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 8px 0 6px;
+    padding: 9px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-l);
+    background: var(--color-surface-2);
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    cursor: pointer;
+}
+.compliance-optin.compact {
+    margin: -2px 0 4px;
+    padding: 7px 9px;
+}
+.compliance-optin input {
+    flex-shrink: 0;
+    margin-top: 2px;
+    accent-color: var(--color-primary);
+}
+.compliance-optin:has(input:checked) {
+    border-color: rgba(13, 148, 136, 0.38);
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+}
 
 /* aufklappbare Vorbereitungs-Schritte (Show, don't tell) */
 .ob-details { margin: 8px 0; }

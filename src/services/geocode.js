@@ -68,8 +68,19 @@ function addressKey(c) {
     return `${c.strasse}|${c.plz}|${c.ort}`.toLowerCase();
 }
 
+function nominatimAddressParams(c) {
+    return Object.fromEntries(Object.entries({
+        street: String(c.strasse || '').trim(),
+        postalcode: String(c.plz || '').trim(),
+        city: String(c.ort || '').trim()
+    }).filter(([, value]) => value));
+}
+
 /**
  * Exakte Adress-Geocodierung über Nominatim (OpenStreetMap).
+ * Datenschutz-Audit: An Nominatim gehen ausschließlich neutrale Adressdaten
+ * (Straße, PLZ, Ort) plus technische Suchparameter. Namen, Kundennummern,
+ * Umsätze, Vertriebsgebiete oder sonstige Kundendaten werden nie übertragen.
  * Läuft sequenziell mit Drosselung; onProgress(done, total) für die UI.
  * Über das zurückgegebene Handle abbrechbar: handle.cancel()
  */
@@ -95,13 +106,12 @@ export function geocodeExact(customers, onProgress) {
                 if (requestsMade > 0) await sleep(CONFIG.nominatim.delayMs);
                 requestsMade++;
                 try {
+                    const addressParams = nominatimAddressParams(c);
                     const params = new URLSearchParams({
                         format: 'jsonv2',
                         countrycodes: 'de',
                         limit: '1',
-                        street: c.strasse,
-                        postalcode: c.plz,
-                        city: c.ort
+                        ...addressParams
                     });
                     const controller = new AbortController();
                     const timer = setTimeout(() => controller.abort(), CONFIG.nominatim.timeout);
