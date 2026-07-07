@@ -119,6 +119,23 @@ export function showMapView() {
     persistSettings();
 }
 
+function hasTourRouteForMap() {
+    return state.ui.mode === 'aussendienst'
+        && !!state.tour.start
+        && (state.tour.stops.length > 0 || !!state.tour.destination);
+}
+
+function handleMapTabRouteToggle(tab) {
+    if (!isMobileUi() || tab !== 'karte' || !hasTourRouteForMap()) return;
+    if (state.tour.mapFocus && state.ui.activeTab === 'karte') {
+        state.tour.routeLineMode = state.tour.routeLineMode === 'road' ? 'air' : 'road';
+    } else if (!state.tour.mapFocus) {
+        state.tour.mapFocus = true;
+        state.tour.routeLineMode ||= 'air';
+    }
+    emit('tour:changed');
+}
+
 /** Prüfen, ob ein Tab im gegebenen Modus sichtbar ist */
 function tabInMode(tabBtn, mode) {
     if (isMobileUi()) {
@@ -198,6 +215,7 @@ export function initSidebar() {
     // Tabs
     document.querySelectorAll('.tab-button').forEach((btn) => {
         btn.addEventListener('click', () => {
+            handleMapTabRouteToggle(btn.dataset.tab);
             activateTab(btn.dataset.tab);
             persistSettings();
         });

@@ -51,7 +51,8 @@ export const state = {
         radiusKm: CONFIG.tour.defaultRadiusKm,
         roundTrip: false,   // Rundreise: am Ende zurück zum Start
         suggestMode: 'radius', // 'radius' = Umkreis um Start | 'route' = Korridor entlang der Tour
-        mapFocus: false     // Karte zeigt nur Tour + passende Vorschlagskunden
+        mapFocus: false,    // Karte zeigt nur Tour + passende Vorschlagskunden
+        routeLineMode: 'air' // 'air' = Luftlinie | 'road' = Straßenroute
     },
 
     ui: {
