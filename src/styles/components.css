@@ -446,6 +446,7 @@
     white-space: nowrap;
     font-size: 0.78rem;
 }
+.mobile-data-reset { display: none; width: 100%; margin-top: 10px; }
 .btn-nearby { width: 100%; margin: 4px 0 10px; }
 .aussen-view-block { margin: 0 0 14px; }
 .aussen-view-block .field-label { display: block; }
