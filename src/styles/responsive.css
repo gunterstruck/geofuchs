@@ -77,6 +77,10 @@
         transition: transform 0.24s ease, height 0.24s ease;
     }
 
+    .sidebar-resize {
+        display: none;
+    }
+
     .sidebar.open {
         transform: translateY(0);
     }

@@ -86,6 +86,35 @@
 }
 .sidebar.open { transform: translateX(0); }
 
+.sidebar-resize {
+    position: absolute;
+    top: 0;
+    right: -5px;
+    bottom: 0;
+    width: 10px;
+    cursor: ew-resize;
+    z-index: 2;
+}
+.sidebar-resize::after {
+    content: '';
+    position: absolute;
+    top: 12px;
+    bottom: 12px;
+    left: 4px;
+    width: 2px;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    transition: background 0.14s ease;
+}
+.sidebar-resize:hover::after,
+.sidebar-resizing .sidebar-resize::after {
+    background: rgba(13, 148, 136, 0.45);
+}
+.sidebar-resizing {
+    cursor: ew-resize;
+    user-select: none;
+}
+
 /* Fokus-Umschalter Außendienst / Gebietsplanung */
 .mode-switch {
     display: grid;
