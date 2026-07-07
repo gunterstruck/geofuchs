@@ -12,6 +12,17 @@
     .stat-grid { grid-template-columns: repeat(2, 1fr); }
     dialog { padding: 12px; }
     .mapping-table select { min-width: 120px; }
+
+    .pwa-update-banner {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .pwa-update-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
 }
 
 /* Touch-Ziele auf Mobilgeräten vergrößern */

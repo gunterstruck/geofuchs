@@ -14,7 +14,8 @@ export default defineConfig({
     },
     plugins: [
         VitePWA({
-            registerType: 'autoUpdate',
+            registerType: 'prompt',
+            injectRegister: false,
             includeAssets: ['icons/favicon.svg'],
             manifest: {
                 id: '/',
