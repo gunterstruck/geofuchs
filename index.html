@@ -177,7 +177,7 @@
                     <p id="chancen-count" class="muted small"></p>
                 </div>
 
-                <h3>1. Startpunkt</h3>
+                <h3>1. Startpunkt <span class="help-dot" tabindex="0" title="Starte mit deinem Standort oder einem Kunden. Danach schlägt GeoFuchs passende Kunden in der Nähe oder entlang der Route vor.">?</span></h3>
                 <div id="tour-start"></div>
                 <div class="button-row">
                     <button id="btn-my-location">📍 Mein Standort</button>
@@ -188,7 +188,7 @@
                 </div>
 
                 <div class="expert-only">
-                    <h3>2. Ziel <span class="muted small">(optional)</span></h3>
+                    <h3>2. Ziel <span class="muted small">(optional)</span> <span class="help-dot" tabindex="0" title="Mit Ziel berechnet GeoFuchs Vorschläge entlang der Strecke. Ohne Ziel ist der letzte Stopp automatisch das Ziel.">?</span></h3>
                     <div id="tour-dest"></div>
                     <div class="start-search-wrap">
                         <input id="dest-search" type="search" placeholder="Zielkunde wählen – Vorschläge dann entlang der Strecke" autocomplete="off">
@@ -196,7 +196,7 @@
                     </div>
                 </div>
 
-                <h3 id="suggest-head">2. Vorschläge</h3>
+                <h3><span id="suggest-head">2. Vorschläge</span> <span class="help-dot" tabindex="0" title="Umkreis zeigt Kunden nahe am Start. Entlang der Tour zeigt Kunden im Korridor der geplanten Strecke.">?</span></h3>
                 <div class="seg-toggle expert-only" id="suggest-mode" role="group" aria-label="Vorschlagsmodus">
                     <button type="button" id="mode-radius" class="seg active" data-mode="radius">Umkreis um Start</button>
                     <button type="button" id="mode-route" class="seg" data-mode="route">Entlang der Tour</button>
@@ -207,7 +207,7 @@
                 <label class="check-inline"><input type="checkbox" id="overdue-first"> Überfällige zuerst</label>
                 <div id="tour-suggestions" class="scroll-list"></div>
 
-                <h3 id="mytour-head">3. Meine Tour</h3>
+                <h3><span id="mytour-head">3. Meine Tour</span> <span class="help-dot" tabindex="0" title="Tippe Kunden aus den Vorschlägen oder aus Karten-Popups zur Tour. Karte zeigt die Reihenfolge farbig von Rot nach Lila.">?</span></h3>
                 <label class="check-inline expert-only"><input type="checkbox" id="round-trip"> 🔁 Rundreise (zurück zum Start)</label>
                 <div id="tour-stops"></div>
                 <p id="tour-summary"></p>

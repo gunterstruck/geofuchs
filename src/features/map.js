@@ -29,6 +29,8 @@ let featureByKey = new Map();
 let currentView = { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
 let roadRouteSeq = 0;
 const roadRouteCache = new Map();
+const ROUTE_HUE_START = 0;      // rot
+const ROUTE_HUE_END = 276;      // lila
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
@@ -51,6 +53,74 @@ function popupOptions(extra = {}) {
     };
 }
 
+function routeColor(index, total) {
+    const t = total <= 1 ? 0 : index / (total - 1);
+    const hue = ROUTE_HUE_START + (ROUTE_HUE_END - ROUTE_HUE_START) * t;
+    return `hsl(${Math.round(hue)} 78% 48%)`;
+}
+
+function drawColoredRoute(latLngs, { dashed = false, tooltip = '' } = {}) {
+    if (latLngs.length < 2) return;
+    L.polyline(latLngs, {
+        color: '#ffffff',
+        weight: dashed ? 10 : 11,
+        opacity: dashed ? 0.78 : 0.96,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false
+    }).addTo(tourLayer);
+
+    for (let i = 0; i < latLngs.length - 1; i++) {
+        L.polyline([latLngs[i], latLngs[i + 1]], {
+            color: routeColor(i, latLngs.length - 1),
+            weight: dashed ? 4 : 5,
+            dashArray: dashed ? '10 7' : null,
+            opacity: dashed ? 0.86 : 0.98,
+            lineCap: 'round',
+            lineJoin: 'round',
+            interactive: false
+        }).addTo(tourLayer);
+    }
+    if (tooltip) {
+        L.polyline(latLngs, {
+            color: 'transparent',
+            weight: 14,
+            opacity: 0,
+            interactive: true
+        }).addTo(tourLayer).bindTooltip(tooltip);
+    }
+}
+
+function makePopupDraggable(popupEl) {
+    if (!popupEl || !isMobileMap() || popupEl.dataset.draggablePopup === '1') return;
+    popupEl.dataset.draggablePopup = '1';
+    const wrapper = popupEl.querySelector('.leaflet-popup-content-wrapper');
+    if (!wrapper) return;
+    wrapper.classList.add('draggable-popup');
+
+    let startX = 0, startY = 0, tx = 0, ty = 0, dragging = false;
+    wrapper.addEventListener('pointerdown', (ev) => {
+        if (ev.target.closest('button, a, input, select, textarea')) return;
+        dragging = true;
+        startX = ev.clientX - tx;
+        startY = ev.clientY - ty;
+        wrapper.setPointerCapture?.(ev.pointerId);
+        wrapper.classList.add('dragging');
+    });
+    wrapper.addEventListener('pointermove', (ev) => {
+        if (!dragging) return;
+        tx = ev.clientX - startX;
+        ty = ev.clientY - startY;
+        popupEl.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+    });
+    const endDrag = () => {
+        dragging = false;
+        wrapper.classList.remove('dragging');
+    };
+    wrapper.addEventListener('pointerup', endDrag);
+    wrapper.addEventListener('pointercancel', endDrag);
+}
+
 export function initMap(containerId) {
     map = L.map(containerId, {
         attributionControl: true,
@@ -66,9 +136,11 @@ export function initMap(containerId) {
     L.tileLayer(CONFIG.tileLayer.url, CONFIG.tileLayer).addTo(map);
 
     clusterGroup = L.markerClusterGroup({
-        maxClusterRadius: 44,
+        maxClusterRadius: isMobileMap() ? 54 : 44,
         spiderfyOnMaxZoom: true,
+        spiderfyDistanceMultiplier: isMobileMap() ? 1.85 : 1.2,
         showCoverageOnHover: false,
+        spiderLegPolylineOptions: { weight: 2, color: '#0f766e', opacity: 0.65 },
         iconCreateFunction: (cluster) => L.divIcon({
             html: `<div class="cluster-icon">${cluster.getChildCount()}</div>`,
             className: 'cluster-wrapper',
@@ -89,6 +161,7 @@ export function initMap(containerId) {
     map.on('popupopen', (e) => {
         const el = e.popup.getElement();
         if (!el) return;
+        makePopupDraggable(el);
         el.querySelectorAll('[data-action]:not([data-action="edit-region"])').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const keepOpen = handlePopupAction(btn.dataset.action, btn.dataset.id);
@@ -525,6 +598,7 @@ function renderLabels() {
 
 /** Zuweisung für die ganze Fläche eines Gebiets */
 function territoryAssignHtml(feature) {
+    if (isMobileMap()) return '';
     const name = regionName(state.level, feature);
     const key = regionKey(state.level, feature);
     const terr = getTerritory(state.level, key) || {};
@@ -546,11 +620,15 @@ function regionPopupHtml(feature) {
     const name = regionName(state.level, feature);
     const entry = regionStats.get(regionKey(state.level, feature));
     const assign = territoryAssignHtml(feature);
+    const revenue = entry?.customers?.reduce((sum, c) => sum + (c.umsatz || 0), 0) || 0;
+    const revenueLine = revenue ? `<p class="region-revenue">Umsatz gesamt: <b>${revenue.toLocaleString('de-DE')} €</b></p>` : '';
+    const readonly = isMobileMap() ? '<p class="muted small">Mobile Ansicht: Gebiete sind hier nur lesbar. Änderungen bitte am Desktop vornehmen.</p>' : '';
 
     if (!entry || entry.total === 0) {
         return `<div class="popup">
             <h3>${escapeHtml(name)}</h3>
             <p class="muted">Keine (sichtbaren) Kunden in diesem Gebiet.</p>
+            ${readonly}
             ${assign}
         </div>`;
     }
@@ -567,6 +645,8 @@ function regionPopupHtml(feature) {
     return `<div class="popup">
         <h3>${escapeHtml(name)}</h3>
         <p><b>${entry.total}</b> Kunde${entry.total === 1 ? '' : 'n'}</p>
+        ${revenueLine}
+        ${readonly}
         <ul class="rep-list">${districtRows}</ul>
         <ul class="cust-list">${list}${more}</ul>
         ${assign}
@@ -589,8 +669,8 @@ function customerIcon(customer) {
     return L.divIcon({
         className: 'customer-marker-wrapper',
         html: `<div class="customer-marker${customer.geo === 'plz' ? ' approx' : ''}${inTour ? ' in-tour' : ''}${overdue ? ' overdue' : ''}" style="background:${color}"></div>`,
-        iconSize: [16, 16],
-        iconAnchor: [8, 8]
+        iconSize: isMobileMap() ? [36, 36] : [24, 24],
+        iconAnchor: isMobileMap() ? [18, 18] : [12, 12]
     });
 }
 
@@ -741,23 +821,7 @@ function attachTourCustomerPopup(marker, point, tooltipText) {
 }
 
 function drawAirRoute(routePts) {
-    L.polyline(routePts, {
-        color: '#ffffff',
-        weight: 9,
-        opacity: 0.72,
-        lineCap: 'round',
-        lineJoin: 'round',
-        interactive: false
-    }).addTo(tourLayer);
-    L.polyline(routePts, {
-        color: '#0f766e',
-        weight: 4,
-        dashArray: '10 7',
-        opacity: 0.78,
-        lineCap: 'round',
-        lineJoin: 'round',
-        interactive: false
-    }).addTo(tourLayer).bindTooltip('Luftlinie als Fallback');
+    drawColoredRoute(routePts, { dashed: true, tooltip: 'Luftlinie: Rot = Start, Lila = Ziel' });
 }
 
 async function drawRoadRoute(routePts) {
@@ -771,24 +835,9 @@ async function drawRoadRoute(routePts) {
     if (seq !== roadRouteSeq || state.tour.routeLineMode !== 'road') return null;
     if (!road?.latLngs?.length) return false;
 
-    L.polyline(road.latLngs, {
-        color: '#ffffff',
-        weight: 10,
-        opacity: 0.95,
-        lineCap: 'round',
-        lineJoin: 'round',
-        interactive: false
-    }).addTo(tourLayer);
-    L.polyline(road.latLngs, {
-        color: '#0891b2',
-        weight: 5,
-        opacity: 0.98,
-        lineCap: 'round',
-        lineJoin: 'round',
-        interactive: false
-    }).addTo(tourLayer).bindTooltip(
-        `Straßenroute (${road.provider}): ${Math.round(road.distanceKm)} km, ca. ${Math.round(road.durationMin)} min`
-    );
+    drawColoredRoute(road.latLngs, {
+        tooltip: `Straßenroute (${road.provider}): ${Math.round(road.distanceKm)} km, ca. ${Math.round(road.durationMin)} min · Rot = Start, Lila = Ziel`
+    });
     return true;
 }
 
@@ -815,7 +864,7 @@ function renderTour() {
         const marker = L.marker([start.lat, start.lng], {
             icon: L.divIcon({
                 className: 'tour-marker-wrapper',
-                html: `<div class="tour-marker start">${startIsEnd ? 'S/Z' : 'S'}</div>`,
+                html: `<div class="tour-marker start" style="--route-step:${routeColor(0, Math.max(2, routePts.length))}">${startIsEnd ? 'S/Z' : 'S'}</div>`,
                 iconSize: [28, 28],
                 iconAnchor: [14, 14]
             }),
@@ -829,7 +878,7 @@ function renderTour() {
         const marker = L.marker([c.lat, c.lng], {
             icon: L.divIcon({
                 className: 'tour-marker-wrapper',
-                html: `<div class="tour-marker${autoDestination ? ' dest auto-dest' : ''}">${i + 1}</div>`,
+                html: `<div class="tour-marker${autoDestination ? ' dest auto-dest' : ''}" style="--route-step:${routeColor(i + 1, Math.max(2, routePts.length))}">${i + 1}</div>`,
                 iconSize: [26, 26],
                 iconAnchor: [13, 13]
             }),
@@ -842,7 +891,7 @@ function renderTour() {
         const marker = L.marker([dest.lat, dest.lng], {
             icon: L.divIcon({
                 className: 'tour-marker-wrapper',
-                html: '<div class="tour-marker dest">🏁</div>',
+                html: `<div class="tour-marker dest" style="--route-step:${routeColor(routePts.length - 1, Math.max(2, routePts.length))}">🏁</div>`,
                 iconSize: [28, 28],
                 iconAnchor: [14, 14]
             }),

@@ -494,6 +494,26 @@
 
 .scroll-list { max-height: 220px; overflow-y: auto; }
 
+.tour-empty-guide {
+    padding: 10px 12px;
+    margin: 6px 0;
+    border: 1px dashed rgba(13, 148, 136, 0.34);
+    border-radius: var(--radius-l);
+    background: rgba(204, 251, 241, 0.55);
+    color: var(--color-primary-dark);
+    font-size: 0.84rem;
+    line-height: 1.35;
+}
+.tour-empty-guide b {
+    display: block;
+    margin-bottom: 4px;
+}
+.tour-empty-guide ol {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+.tour-empty-guide li { margin: 2px 0; }
+
 .suggestion-row {
     display: flex;
     align-items: center;

@@ -1,5 +1,14 @@
 /* Karten-spezifische Styles (Marker, Cluster, Popups) */
 
+.customer-marker-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: transparent;
+    border-radius: 50%;
+}
+
 .customer-marker {
     width: 14px;
     height: 14px;
@@ -34,7 +43,7 @@
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    background: #0d9488;
+    background: var(--route-step, #0d9488);
     color: #fff;
     font-weight: 800;
     font-size: 0.82rem;
@@ -44,8 +53,8 @@
     border: 2px solid #fff;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
-.tour-marker.start { background: #1d4ed8; width: 28px; height: 28px; font-size: 0.7rem; letter-spacing: 0; }
-.tour-marker.dest { background: #b91c1c; width: 28px; height: 28px; font-size: 0.95rem; }
+.tour-marker.start { width: 28px; height: 28px; font-size: 0.7rem; letter-spacing: 0; }
+.tour-marker.dest { width: 28px; height: 28px; font-size: 0.95rem; }
 .tour-marker.auto-dest { font-size: 0.78rem; }
 
 /* Gebiets-Labels (Bezirk / Gruppe + Umsatz) */
@@ -82,6 +91,13 @@
 }
 .popup h3 { margin: 0 0 4px; font-size: 1rem; color: var(--color-text); text-transform: none; letter-spacing: 0; }
 .popup p { margin: 3px 0; font-size: 0.86rem; }
+.region-revenue {
+    display: inline-block;
+    padding: 4px 9px;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+}
 .popup .rep-list { list-style: none; padding: 0; margin: 6px 0; }
 .popup .rep-list li { display: flex; align-items: center; gap: 4px; font-size: 0.85rem; padding: 1px 0; }
 .popup .rep-list b { margin-left: auto; }
@@ -145,6 +161,14 @@
 .terr-row select { flex: 1; min-width: 0; font-size: 0.8rem; padding: 3px 6px; }
 
 .leaflet-container { font-family: var(--font); }
+.draggable-popup {
+    touch-action: none;
+    cursor: grab;
+}
+.draggable-popup.dragging {
+    cursor: grabbing;
+    box-shadow: 0 12px 34px rgba(15, 23, 42, 0.22);
+}
 .leaflet-control-zoom a,
 .leaflet-bar,
 .leaflet-bar a:first-child,
@@ -153,6 +177,24 @@
 }
 
 @media (max-width: 768px) {
+    .customer-marker-wrapper {
+        width: 36px !important;
+        height: 36px !important;
+    }
+    .customer-marker-wrapper::before {
+        content: '';
+        position: absolute;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: rgba(13, 148, 136, 0.001);
+    }
+    .customer-marker {
+        position: relative;
+        z-index: 1;
+        width: 17px;
+        height: 17px;
+    }
     .leaflet-popup-content {
         max-height: min(48dvh, 360px);
     }
