@@ -440,7 +440,14 @@ function renderStops() {
     const autoLastStopIsDestination = !state.tour.roundTrip && !explicitDest && stops.length > 0;
 
     if (stops.length === 0) {
-        el.innerHTML = '<p class="muted">Noch keine Stopps. Fügen Sie Kunden über die Vorschläge oder das Karten-Popup hinzu.</p>';
+        el.innerHTML = `<div class="tour-empty-guide">
+            <b>Noch keine Stopps</b>
+            <ol>
+                <li>Startpunkt wählen</li>
+                <li>Kunden aus Vorschlägen oder Karten-Popups hinzufügen</li>
+                <li>Route auf der Karte anzeigen</li>
+            </ol>
+        </div>`;
     } else {
         el.innerHTML = stops.map((c, i) => `
             <div class="stop-row${autoLastStopIsDestination && i === stops.length - 1 ? ' final-row' : ''}">
