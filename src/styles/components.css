@@ -441,6 +441,11 @@
 #tour-planner.basic .expert-only { display: none !important; }
 .tour-mode { display: flex; align-items: center; gap: 8px; margin: 18px 0 4px; padding-top: 10px; border-top: 1px solid var(--color-surface-2); }
 .tour-mode .seg-toggle { flex: 1; margin: 0; }
+.expert-reset {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 0.78rem;
+}
 .btn-nearby { width: 100%; margin: 4px 0 10px; }
 .aussen-view-block { margin: 0 0 14px; }
 .aussen-view-block .field-label { display: block; }

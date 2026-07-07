@@ -27,6 +27,10 @@ let overdueFirst = false;
 let savedTours = [];
 let scopeExpanded = false; // Bezirk-Auswahl aufgeklappt?
 let tourExpert = false;    // Experten-Modus (mehr Optionen)
+let hiddenExpertSections = new Set();
+
+const HIDDEN_EXPERT_KEY = 'gf_hidden_expert_sections';
+const SWIPE_HIDE_PX = 72;
 
 export function initTourPanel() {
     document.getElementById('btn-my-location').addEventListener('click', useMyLocation);
@@ -53,6 +57,7 @@ export function initTourPanel() {
     document.querySelectorAll('#tour-mode-toggle .seg').forEach((btn) => {
         btn.addEventListener('click', () => applyTourMode(btn.dataset.tourmode));
     });
+    initExpertSwipeControls();
 
     const radius = document.getElementById('radius-slider');
     radius.value = state.tour.radiusKm;
@@ -249,7 +254,92 @@ function applyTourMode(mode, doEmit = true) {
         state.tour.destination = null;
     }
     updateSuggestModeUi();
+    applyHiddenExpertSections();
     if (doEmit) emit('tour:changed');
+}
+
+function initExpertSwipeControls() {
+    try {
+        hiddenExpertSections = new Set(JSON.parse(localStorage.getItem(HIDDEN_EXPERT_KEY) || '[]'));
+    } catch (e) {
+        hiddenExpertSections = new Set();
+    }
+
+    document.querySelectorAll('[data-expert-section]').forEach((el) => {
+        if (el.dataset.swipeReady === '1') return;
+        el.dataset.swipeReady = '1';
+        let startX = 0;
+        let startY = 0;
+        let swiping = false;
+
+        el.addEventListener('pointerdown', (ev) => {
+            const nestedInteractive = ev.target.closest('input, select, textarea, a') ||
+                (ev.target.closest('button') && ev.target.closest('[data-expert-section]') !== el);
+            if (!canSwipeExpertSection() || nestedInteractive) return;
+            startX = ev.clientX;
+            startY = ev.clientY;
+            swiping = true;
+            el.classList.add('swiping');
+            el.setPointerCapture?.(ev.pointerId);
+        });
+        el.addEventListener('pointermove', (ev) => {
+            if (!swiping) return;
+            const dx = Math.min(0, ev.clientX - startX);
+            const dy = Math.abs(ev.clientY - startY);
+            if (Math.abs(dx) < 8 || Math.abs(dx) < dy) return;
+            ev.preventDefault();
+            el.style.setProperty('--swipe-x', `${Math.max(dx, -110)}px`);
+        });
+        const finish = (ev) => {
+            if (!swiping) return;
+            const dx = ev.clientX - startX;
+            const dy = Math.abs(ev.clientY - startY);
+            swiping = false;
+            el.classList.remove('swiping');
+            el.style.removeProperty('--swipe-x');
+            if (dx < -SWIPE_HIDE_PX && Math.abs(dx) > dy * 1.15) hideExpertSection(el.dataset.expertSection);
+        };
+        el.addEventListener('pointerup', finish);
+        el.addEventListener('pointercancel', () => {
+            swiping = false;
+            el.classList.remove('swiping');
+            el.style.removeProperty('--swipe-x');
+        });
+    });
+
+    document.getElementById('btn-reset-hidden-expert')?.addEventListener('click', resetHiddenExpertSections);
+    applyHiddenExpertSections();
+}
+
+function canSwipeExpertSection() {
+    return tourExpert && window.matchMedia('(max-width: 768px)').matches;
+}
+
+function hideExpertSection(key) {
+    if (!key) return;
+    hiddenExpertSections.add(key);
+    saveHiddenExpertSections();
+    applyHiddenExpertSections();
+    showToast('Element ausgeblendet. Unten kannst du es zurücksetzen.', 'success');
+}
+
+function resetHiddenExpertSections() {
+    hiddenExpertSections.clear();
+    saveHiddenExpertSections();
+    applyHiddenExpertSections();
+    showToast('Experten-Elemente wieder eingeblendet.', 'success');
+}
+
+function saveHiddenExpertSections() {
+    try { localStorage.setItem(HIDDEN_EXPERT_KEY, JSON.stringify([...hiddenExpertSections])); } catch (e) { /* egal */ }
+}
+
+function applyHiddenExpertSections() {
+    document.querySelectorAll('[data-expert-section]').forEach((el) => {
+        el.classList.toggle('swipe-hidden', hiddenExpertSections.has(el.dataset.expertSection));
+    });
+    const reset = document.getElementById('btn-reset-hidden-expert');
+    if (reset) reset.hidden = !tourExpert || hiddenExpertSections.size === 0;
 }
 
 /** Kundenauswahl der Tour: sichtbare Kunden, ggf. auf den gewählten Bezirk beschränkt */
