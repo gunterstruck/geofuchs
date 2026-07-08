@@ -22,6 +22,7 @@ let regionLayer = null;
 let clusterGroup = null;
 let tourLayer = null;
 let labelLayer = null;
+let baseLayer = null;
 let regionStats = new Map();
 let maxRegionTotal = 1;   // höchste Kundenzahl je Gebiet (für die Abdeckungs-Ansicht)
 let currentLevelData = null;
@@ -38,6 +39,17 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
 
 function isMobileMap() {
     return window.innerWidth <= 768;
+}
+
+function tileOptions(key = state.basemap) {
+    return CONFIG.tileLayers?.[key] || CONFIG.tileLayers?.light || CONFIG.tileLayer;
+}
+
+function applyBasemap() {
+    if (!map) return;
+    const opts = tileOptions();
+    if (baseLayer) map.removeLayer(baseLayer);
+    baseLayer = L.tileLayer(opts.url, opts).addTo(map);
 }
 
 function popupOptions(extra = {}) {
@@ -151,7 +163,7 @@ export function initMap(containerId) {
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     map.setMaxBounds(CONFIG.map.bounds);
 
-    L.tileLayer(CONFIG.tileLayer.url, CONFIG.tileLayer).addTo(map);
+    applyBasemap();
 
     clusterGroup = L.markerClusterGroup({
         maxClusterRadius: isMobileMap() ? 54 : 44,
@@ -211,10 +223,21 @@ export function initMap(containerId) {
             openRegionEditor({ level: btn.dataset.level, key: btn.dataset.key, name: btn.dataset.name, feature });
         });
     });
+    map.on('popupclose', (e) => {
+        const el = e.popup.getElement();
+        if (!el) return;
+        el.dataset.draggablePopup = '';
+        const wrapper = el.querySelector('.leaflet-popup-content-wrapper');
+        if (wrapper) {
+            wrapper.style.transform = '';
+            wrapper.classList.remove('dragging');
+        }
+    });
 
     on('customers:changed', refreshAll);
     on('filters:changed', refreshAll);
     on('colormode:changed', applyView);
+    on('basemap:changed', applyBasemap);
     on('level:changed', () => { setLevel(state.level); });
     on('tour:scope-changed', refreshAll);
     on('tour:changed', renderTour);

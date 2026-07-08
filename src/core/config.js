@@ -1,5 +1,5 @@
-/**
- * Zentrale Konfiguration – GeoFuchs Vertrieb
+﻿/**
+ * Zentrale Konfiguration – TourFuchs Vertrieb
  */
 
 export const CONFIG = {
@@ -40,13 +40,33 @@ export const CONFIG = {
         lodBezirkZoom: 7
     },
 
-    tileLayer: {
-        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        maxZoom: 19,
-        minZoom: 5,
-        crossOrigin: true
+    tileLayers: {
+        light: {
+            label: 'Hell',
+            url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            maxZoom: 19,
+            minZoom: 5,
+            crossOrigin: true
+        },
+        standard: {
+            label: 'Standard',
+            url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19,
+            minZoom: 5,
+            crossOrigin: true
+        },
+        satellite: {
+            label: 'Satellit',
+            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+            maxZoom: 19,
+            minZoom: 5,
+            crossOrigin: true
+        }
     },
+    tileLayer: null,
 
     // Gebietsebenen: Datenquelle + Schlüsselermittlung pro Kunde
     levels: {

@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="GeoFuchs Vertrieb – Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete (Landkreise & PLZ), Team-Filter und Besuchsplanung mit Tourenoptimierung. Alle Daten bleiben im Browser.">
+    <meta name="description" content="TourFuchs Vertrieb – Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete (Landkreise & PLZ), Team-Filter und Besuchsplanung mit Tourenoptimierung. Alle Daten bleiben im Browser.">
     <meta name="theme-color" content="#0d9488">
-    <title>GeoFuchs Vertrieb – Gebiets- & Besuchsplanung</title>
+    <title>TourFuchs Vertrieb – Gebiets- & Besuchsplanung</title>
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
 </head>
@@ -15,7 +15,7 @@
             <button id="sidebar-toggle" class="icon-button" aria-label="Menü umschalten" aria-expanded="true">☰</button>
             <div class="brand">
                 <span class="brand-icon">🦊</span>
-                <span class="brand-name">GeoFuchs <em>Vertrieb</em></span>
+                <span class="brand-name">TourFuchs <em>Vertrieb</em></span>
             </div>
             <div class="search-wrap">
                 <input id="global-search" type="search" placeholder="Kunde, Ort, PLZ suchen…" autocomplete="off">
@@ -33,12 +33,21 @@
             <button id="sidebar-drag" class="sidebar-drag" type="button" aria-label="Bedienpanel verschieben" title="Panel an eine andere Stelle ziehen">
                 <span></span>
             </button>
+            <div class="panel-zoom" aria-label="Panel-Zoom">
+                <button type="button" id="panel-zoom-out" aria-label="Panel verkleinern">−</button>
+                <span id="panel-zoom-label">100%</span>
+                <button type="button" id="panel-zoom-in" aria-label="Panel vergrößern">+</button>
+            </div>
             <div class="mode-switch" role="group" aria-label="Fokus wählen">
                 <button type="button" class="mode-btn active" data-mode="aussendienst">🚗 Außendienst</button>
                 <button type="button" class="mode-btn" data-mode="gebietsplanung">🗺️ Gebietsplanung</button>
             </div>
             <p id="mode-hint" class="mode-hint"></p>
-            <div id="mobile-desktop-note" class="mobile-desktop-note" role="note">Komplexe Gebietsplanung ist für Desktop optimiert. Auf dem Smartphone stehen Karte und Tour zur Verfügung.</div>
+            <label class="basemap-control" for="basemap-select">
+                <span>Kartenstil</span>
+                <select id="basemap-select"></select>
+            </label>
+            <div id="mobile-desktop-note" class="mobile-desktop-note" role="note">Komplexe Gebietsplanung steht nur auf dem Desktop zur Verfügung. Auf dem Smartphone stehen Karte und Tour zur Verfügung.</div>
 
             <nav class="tabs" role="tablist">
                 <button class="tab-button mobile-map-tab" data-tab="karte" data-modes="aussendienst" data-mobile-only="true" role="tab">Karte</button>
@@ -56,7 +65,7 @@
                 <div id="onboarding">
                     <div class="ob-hero">
                         <div class="ob-fox">🦊</div>
-                        <h2>Willkommen bei GeoFuchs</h2>
+                        <h2>Willkommen bei TourFuchs</h2>
                         <p class="muted">Deine Kundenliste auf der Deutschlandkarte – Touren planen und Vertriebsgebiete sehen.</p>
                     </div>
 
@@ -70,7 +79,7 @@
                     <button id="btn-upload" class="ob-upload-btn">📤 Excel-Liste hochladen</button>
                     <label class="compliance-optin">
                         <input type="checkbox" data-compliance-optin>
-                        <span>Ich bin berechtigt, diese Daten zu verarbeiten und in GeoFuchs lokal zu verwenden.</span>
+                        <span>Ich bin berechtigt, diese Daten zu verarbeiten und in TourFuchs lokal zu verwenden.</span>
                     </label>
                     <p class="muted small ob-upload-sub only-desktop">Datei auswählen oder einfach auf die Karte ziehen.</p>
                     <p class="muted small ob-upload-sub only-mobile">Schon am PC vorbereitet? Lade deine Liste direkt hier hoch – die Demo brauchst du dann nicht.</p>
@@ -148,7 +157,6 @@
                 </select>
                 <p class="muted small" id="colormode-hint"></p>
                 <div id="colormode-legend" class="legend"></div>
-
                 <h3>Auswertung</h3>
                 <button id="btn-cockpit" class="primary" style="width:100%">📊 Gebiets-Cockpit öffnen</button>
                 <p class="muted small">Kunden & Umsatz je Vertriebsbezirk, plus Was-wäre-wenn-Zuweisung von Gebieten.</p>
@@ -182,7 +190,7 @@
                     <p id="chancen-count" class="muted small"></p>
                 </div>
 
-                <h3>1. Startpunkt <span class="help-dot" tabindex="0" title="Starte mit deinem Standort oder einem Kunden. Danach schlägt GeoFuchs passende Kunden in der Nähe oder entlang der Route vor.">?</span></h3>
+                <h3>1. Startpunkt <span class="help-dot" tabindex="0" title="Starte mit deinem Standort oder einem Kunden. Danach schlägt TourFuchs passende Kunden in der Nähe oder entlang der Route vor.">?</span></h3>
                 <div id="tour-start"></div>
                 <div class="button-row">
                     <button id="btn-my-location">📍 Mein Standort</button>
@@ -193,7 +201,7 @@
                 </div>
 
                 <div class="expert-only expert-swipe-section" data-expert-section="destination">
-                    <h3>2. Ziel <span class="muted small">(optional)</span> <span class="help-dot" tabindex="0" title="Mit Ziel berechnet GeoFuchs Vorschläge entlang der Strecke. Ohne Ziel ist der letzte Stopp automatisch das Ziel.">?</span></h3>
+                    <h3>2. Ziel <span class="muted small">(optional)</span> <span class="help-dot" tabindex="0" title="Mit Ziel berechnet TourFuchs Vorschläge entlang der Strecke. Ohne Ziel ist der letzte Stopp automatisch das Ziel.">?</span></h3>
                     <div id="tour-dest"></div>
                     <div class="start-search-wrap">
                         <input id="dest-search" type="search" placeholder="Zielkunde wählen – Vorschläge dann entlang der Strecke" autocomplete="off">
@@ -274,7 +282,7 @@
                 <button class="dialog-close" aria-label="Schließen">Schließen</button>
             </header>
             <p id="mapping-file-info" class="muted"></p>
-            <p class="muted small">GeoFuchs hat die Spalten automatisch erkannt – bitte prüfen und ggf. anpassen.</p>
+            <p class="muted small">TourFuchs hat die Spalten automatisch erkannt – bitte prüfen und ggf. anpassen.</p>
             <div class="table-scroll">
                 <table class="mapping-table">
                     <thead><tr><th>Feld</th><th>Spalte in Ihrer Datei</th><th>Beispielwerte</th></tr></thead>
@@ -289,7 +297,7 @@
         <!-- Info-Dialog -->
         <dialog id="info-dialog">
             <header>
-                <h2>🦊 GeoFuchs Vertrieb</h2>
+                <h2>🦊 TourFuchs Vertrieb</h2>
                 <button class="dialog-close" aria-label="Schließen">Schließen</button>
             </header>
             <div class="info-content">
@@ -417,7 +425,7 @@
     <div id="orientation-lock" class="orientation-lock" role="status" aria-live="polite">
         <div>
             <strong>Bitte drehe dein Gerät</strong>
-            <span>GeoFuchs ist auf dem Smartphone für Hochformat optimiert.</span>
+            <span>TourFuchs ist auf dem Smartphone für Hochformat optimiert.</span>
         </div>
     </div>
     <script type="module" src="/src/main.js"></script>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Import-Assistent
  * Schritt 1: Datei wählen (oder Drag & Drop)
  * Schritt 2: Spalten-Zuordnung prüfen/anpassen (mit Vorschau)
@@ -16,7 +16,7 @@ let dialog = null;
 let resultDialog = null;
 let parsed = null; // { headers, rows, fileName }
 let lastErrors = [];
-let lastFileBase = 'geofuchs';
+let lastFileBase = 'TourFuchs';
 
 // SheetJS (xlsx) ist groß – erst laden, wenn wirklich importiert/exportiert wird
 const excel = () => import('../services/excel.js');
@@ -176,7 +176,7 @@ async function confirmImport() {
     // Flächenzeilen (Gebietszuordnungen) auflösen – lädt Gebietsdaten bei Bedarf
     const areaCount = await resolveAreas(areaRows, errors);
 
-    lastFileBase = (parsed.fileName || 'geofuchs').replace(/\.[^.]+$/, '');
+    lastFileBase = (parsed.fileName || 'TourFuchs').replace(/\.[^.]+$/, '');
 
     if (customers.length === 0 && areaCount === 0 && contactRows.length === 0) {
         dialog.close();

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Besuchsplaner-Panel (Tab "Tour")
  *
  * Ablauf für den Außendienst:
@@ -221,7 +221,7 @@ function renderTourScope() {
         .concat(bezirke.map((b) => `<option value="${escapeHtml(b)}">${escapeHtml(b)} (${counts.get(b) ?? 0})</option>`)).join('');
     scope.innerHTML = `<label class="field-label" for="tour-bezirk">Für welchen Bezirk planst du?</label>
         <select id="tour-bezirk">${opts}</select>
-        <p class="muted small">Wähle deinen Vertriebsbezirk – GeoFuchs schlägt dann nur Kunden aus <b>diesem</b> Gebiet für deine Tour vor. Start, Ziel und Route legst du danach fest. („Alle Bezirke" zeigt sämtliche Kunden.)</p>`;
+        <p class="muted small">Wähle deinen Vertriebsbezirk – TourFuchs schlägt dann nur Kunden aus <b>diesem</b> Gebiet für deine Tour vor. Start, Ziel und Route legst du danach fest. („Alle Bezirke" zeigt sämtliche Kunden.)</p>`;
     document.getElementById('tour-bezirk').value = chosen ? state.tour.bezirk : '__none__';
     updatePlannerVisibility();
 }

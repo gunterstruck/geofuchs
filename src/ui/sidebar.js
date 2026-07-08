@@ -28,14 +28,20 @@ function toHexColor(value) {
 let geocodeHandle = null;
 let autoRevealTimer = null;
 let mobileSheetExpanded = false;
+let mobileSheetSnap = 'half';
 
 const mobileQuery = window.matchMedia('(max-width: 768px)');
 const MOBILE_DATA_TABS = new Set(['karte', 'tour']);
 const MOBILE_EMPTY_TABS = new Set(['karte', 'daten']);
 const SIDEBAR_WIDTH_KEY = 'gf_sidebar_width';
 const SIDEBAR_POS_KEY = 'gf_sidebar_position';
-const SIDEBAR_MIN = 300;
-const SIDEBAR_MAX = 560;
+const PANEL_ZOOM_KEY = 'tf_panel_zoom';
+const SIDEBAR_MIN = 340;
+const SIDEBAR_MAX = 400;
+const PANEL_ZOOM_MIN = 0.85;
+const PANEL_ZOOM_MAX = 1.2;
+const PANEL_ZOOM_STEP = 0.05;
+const DOCK_THRESHOLD = 34;
 
 function hasDataset() {
     return state.customers.length > 0 || Object.keys(state.territories).length > 0;
@@ -55,6 +61,33 @@ function setSidebarWidth(width, persist = false) {
     if (persist) {
         try { localStorage.setItem(SIDEBAR_WIDTH_KEY, String(next)); } catch (e) { /* egal */ }
     }
+}
+
+function setPanelZoom(value, persist = false) {
+    const next = Math.max(PANEL_ZOOM_MIN, Math.min(PANEL_ZOOM_MAX, Number(value) || 1));
+    document.documentElement.style.setProperty('--panel-zoom', next.toFixed(2));
+    const label = document.getElementById('panel-zoom-label');
+    if (label) label.textContent = `${Math.round(next * 100)}%`;
+    if (persist) {
+        try { localStorage.setItem(PANEL_ZOOM_KEY, next.toFixed(2)); } catch (e) { /* egal */ }
+    }
+}
+
+function currentPanelZoom() {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue('--panel-zoom') || '1';
+    return parseFloat(raw) || 1;
+}
+
+function initPanelZoom() {
+    const saved = parseFloat(localStorage.getItem(PANEL_ZOOM_KEY) || '');
+    setPanelZoom(Number.isFinite(saved) ? saved : 1);
+    document.getElementById('panel-zoom-out')?.addEventListener('click', () => setPanelZoom(currentPanelZoom() - PANEL_ZOOM_STEP, true));
+    document.getElementById('panel-zoom-in')?.addEventListener('click', () => setPanelZoom(currentPanelZoom() + PANEL_ZOOM_STEP, true));
+    document.getElementById('sidebar')?.addEventListener('wheel', (ev) => {
+        if (isMobileUi() || !ev.ctrlKey) return;
+        ev.preventDefault();
+        setPanelZoom(currentPanelZoom() + (ev.deltaY < 0 ? PANEL_ZOOM_STEP : -PANEL_ZOOM_STEP), true);
+    }, { passive: false });
 }
 
 function initDesktopSidebarResize() {
@@ -139,6 +172,10 @@ function initDesktopSidebarDrag() {
         dragging = false;
         document.body.classList.remove('sidebar-dragging');
         const rect = sidebar.getBoundingClientRect();
+        if (rect.left <= DOCK_THRESHOLD) {
+            resetSidebarPosition();
+            return;
+        }
         try { localStorage.setItem(SIDEBAR_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top })); } catch (e) { /* egal */ }
     };
     handle.addEventListener('pointerup', stopDrag);
@@ -153,8 +190,8 @@ function applySidebar() {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
     sidebar.classList.toggle('open', state.ui.sidebarOpen);
-    sidebar.classList.toggle('sheet-full', isMobileUi() && mobileSheetExpanded && state.ui.activeTab === 'tour');
-    sidebar.classList.toggle('sheet-peek', isMobileUi() && state.ui.activeTab === 'karte');
+    sidebar.classList.toggle('sheet-full', isMobileUi() && mobileSheetSnap === 'full' && state.ui.activeTab === 'tour');
+    sidebar.classList.toggle('sheet-peek', isMobileUi() && (state.ui.activeTab === 'karte' || mobileSheetSnap === 'peek'));
     document.getElementById('sidebar-toggle').setAttribute('aria-expanded', String(state.ui.sidebarOpen));
     const grip = document.getElementById('sheet-grip');
     if (grip) {
@@ -162,6 +199,36 @@ function applySidebar() {
         grip.setAttribute('aria-label', full ? 'Tour-Panel verkleinern' : 'Tour-Panel vergrößern');
         grip.title = full ? 'Tour-Panel verkleinern' : 'Tour-Panel vergrößern';
     }
+}
+
+function setMobileSheetSnap(snap) {
+    mobileSheetSnap = snap;
+    mobileSheetExpanded = snap === 'full';
+    state.ui.sidebarOpen = snap !== 'peek';
+    applySidebar();
+}
+
+function initMobileSheetDrag() {
+    const grip = document.getElementById('sheet-grip');
+    if (!grip) return;
+    let dragging = false;
+    let startY = 0;
+    grip.addEventListener('pointerdown', (ev) => {
+        if (!isMobileUi()) return;
+        dragging = true;
+        startY = ev.clientY;
+        grip.setPointerCapture?.(ev.pointerId);
+    });
+    grip.addEventListener('pointerup', (ev) => {
+        if (!dragging) return;
+        dragging = false;
+        const dy = ev.clientY - startY;
+        const y = ev.clientY / Math.max(1, window.innerHeight);
+        if (dy < -36 || y < 0.34) setMobileSheetSnap('full');
+        else if (dy > 46 || y > 0.72) setMobileSheetSnap('peek');
+        else setMobileSheetSnap('half');
+    });
+    grip.addEventListener('pointercancel', () => { dragging = false; });
 }
 
 /**
@@ -212,8 +279,10 @@ function activateTab(tab) {
         if (tab === 'karte') {
             state.ui.sidebarOpen = false;
             mobileSheetExpanded = false;
+            mobileSheetSnap = 'peek';
         } else if (tab === 'tour') {
             state.ui.sidebarOpen = true;
+            if (mobileSheetSnap === 'peek') mobileSheetSnap = 'half';
         }
         applySidebar();
     }
@@ -329,8 +398,10 @@ async function clearAllData() {
 }
 
 export function initSidebar() {
+    initPanelZoom();
     initDesktopSidebarResize();
     initDesktopSidebarDrag();
+    initMobileSheetDrag();
 
     // Fokus-Umschalter
     document.querySelectorAll('.mode-btn').forEach((btn) => {
@@ -366,9 +437,7 @@ export function initSidebar() {
         if (!isMobileUi()) return;
         if (state.ui.activeTab !== 'tour') activateTab('tour');
         else {
-            mobileSheetExpanded = !mobileSheetExpanded;
-            state.ui.sidebarOpen = true;
-            applySidebar();
+            setMobileSheetSnap(mobileSheetSnap === 'full' ? 'half' : 'full');
         }
     });
 
@@ -405,6 +474,18 @@ export function initSidebar() {
     renderLegend();
 
     // Außendienst-Kartenansicht (Kunden / Status / Chancen)
+    const basemapSelect = document.getElementById('basemap-select');
+    if (basemapSelect) {
+        basemapSelect.innerHTML = Object.entries(CONFIG.tileLayers || {})
+            .map(([key, def]) => `<option value="${key}"${key === state.basemap ? ' selected' : ''}>${def.label}</option>`)
+            .join('');
+        basemapSelect.addEventListener('change', () => {
+            state.basemap = basemapSelect.value;
+            emit('basemap:changed');
+            persistSettings();
+        });
+    }
+
     document.querySelectorAll('#aussen-view .seg').forEach((btn) => {
         btn.addEventListener('click', () => setAussenView(btn.dataset.view));
     });
@@ -584,6 +665,7 @@ function persistSettings() {
         activeTab: state.ui.activeTab,
         level: state.level,
         colorMode: state.colorMode,
+        basemap: state.basemap,
         repVisibility: Object.fromEntries([...state.reps].map(([k, v]) => [k, v.visible])),
         repColors: Object.fromEntries([...state.reps].map(([k, v]) => [k, v.color])),
         dimVisibility,

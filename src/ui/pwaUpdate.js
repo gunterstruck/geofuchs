@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Dezenter PWA-Update-Hinweis.
  *
  * Wichtig: Dieser Flow aktualisiert nur den Service Worker/App-Cache und lädt
@@ -73,7 +73,7 @@ async function activateWaitingServiceWorker() {
     }
 
     if (!registration?.waiting) {
-        showToast('Noch kein Update bereit. GeoFuchs prüft weiter im Hintergrund.', 'info', 5000);
+        showToast('Noch kein Update bereit. TourFuchs prüft weiter im Hintergrund.', 'info', 5000);
         dismissUpdateBanner();
         return;
     }
