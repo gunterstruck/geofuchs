@@ -201,7 +201,8 @@
 .kpi-tools { display: flex; gap: 6px; align-items: center; }
 .kpi-tools input[type="search"] { width: 130px; padding: 4px 8px; font-size: 0.82rem; }
 .kpi-tools select { padding: 4px 6px; font-size: 0.82rem; }
-.kpi-tools .ghost { padding: 5px 10px; font-size: 0.8rem; }
+.cockpit-table-actions { display: flex; justify-content: center; margin: 8px 0 2px; }
+.cockpit-table-actions .ghost { padding: 5px 14px; font-size: 0.82rem; }
 .cockpit-kpi-cards {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -239,12 +240,13 @@
     color: var(--color-text-muted);
     font-weight: 700;
 }
-.cockpit-kpi-card b {
-    font-size: 1rem;
+.cockpit-kpi-card .kpi-value {
+    font-size: 1.35rem;
     line-height: 1.15;
     overflow-wrap: anywhere;
+    color: var(--color-text);
 }
-.cockpit-kpi-card small { color: var(--color-text-muted); line-height: 1.25; }
+.cockpit-kpi-card .kpi-subline { color: var(--color-text-muted); line-height: 1.25; }
 .cockpit-kpi-scroll { max-height: 188px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--radius-l); }
 
 .cockpit-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
@@ -256,6 +258,9 @@
 }
 .cockpit-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cockpit-table .bar-cell { width: 34%; }
+.cockpit-table tr.flop-start td {
+    border-top: 10px solid var(--color-surface-2);
+}
 .bar-track { display: inline-block; width: calc(100% - 42px); height: 10px; background: var(--color-surface-2); border-radius: 99px; overflow: hidden; vertical-align: middle; }
 .bar-fill { height: 100%; border-radius: 99px; }
 .share { display: inline-block; width: 36px; text-align: right; font-size: 0.78rem; color: var(--color-text-muted); }
@@ -319,15 +324,28 @@
     color: var(--color-primary-dark);
     font-weight: 700;
 }
+.simulation-panel #sim-commit {
+    background: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
+    color: #ffffff;
+    font-weight: 800;
+    box-shadow: 0 8px 18px rgba(15, 118, 110, 0.22);
+}
+.simulation-panel #sim-commit:hover:not(:disabled) {
+    background: #115e59;
+    border-color: #115e59;
+}
 .text-action {
     background: transparent;
     border-color: transparent;
     color: var(--color-text-muted);
     padding-left: 0;
+    font-weight: 500;
 }
 .text-action:hover {
     color: var(--color-danger);
     background: transparent;
+    border-color: transparent;
 }
 
 /* Gebiets-Editor */
