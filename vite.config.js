@@ -19,8 +19,8 @@ export default defineConfig({
             includeAssets: ['icons/favicon.svg'],
             manifest: {
                 id: '/',
-                name: 'GeoFuchs Vertrieb',
-                short_name: 'GeoFuchs',
+                name: 'TourFuchs Vertrieb',
+                short_name: 'TourFuchs',
                 description: 'Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete (Landkreise & PLZ), Team-Filter und Besuchsplanung mit Tourenoptimierung.',
                 lang: 'de',
                 start_url: '/',
