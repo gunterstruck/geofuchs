@@ -24,6 +24,7 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
 ));
 
 const MAX_ROWS = 400;
+const KPI_COLLAPSED_LIMIT = 6;
 
 let dialog = null;
 let overrides = new Map();     // customerId -> neuer Zielwert (für assignAttr)
@@ -36,6 +37,7 @@ let assignAttr = 'bezirk';     // Zuweisungs-Ziel: Gebietsebene (bezirk | gruppe
 let includeEmpty = false;      // Gebiete ohne Kunden einbeziehen
 let kpiSearch = '';            // Kennzahlen-Filter
 let kpiSort = 'count';         // Kennzahlen-Sortierung
+let showAllKpis = false;       // kompakte Top/Flop-Ansicht im Cockpit
 
 const filters = { search: '', dim: {} };
 
@@ -78,8 +80,16 @@ export function initCockpit() {
     document.getElementById('sim-apply').addEventListener('click', assignSelected);
     document.getElementById('sim-reset').addEventListener('click', resetSimulation);
     document.getElementById('sim-commit').addEventListener('click', commitSimulation);
-    document.getElementById('cockpit-kpi-search').addEventListener('input', (e) => { kpiSearch = e.target.value; renderTable(); });
+    document.getElementById('cockpit-kpi-search').addEventListener('input', (e) => {
+        kpiSearch = e.target.value;
+        showAllKpis = Boolean(kpiSearch.trim());
+        renderTable();
+    });
     document.getElementById('cockpit-kpi-sort').addEventListener('change', (e) => { kpiSort = e.target.value; renderTable(); });
+    document.getElementById('cockpit-kpi-toggle').addEventListener('click', () => {
+        showAllKpis = !showAllKpis;
+        renderTable();
+    });
     document.getElementById('sim-assign-attr').addEventListener('change', (e) => {
         assignAttr = e.target.value;
         // Zuweisungs-Ziel gewechselt -> laufende Simulation verwerfen
@@ -101,6 +111,7 @@ async function open() {
     includeEmpty = false;
     kpiSearch = '';
     kpiSort = 'count';
+    showAllKpis = false;
     filters.search = '';
     filters.dim = {};
     document.getElementById('sim-search').value = '';
@@ -262,6 +273,7 @@ function renderTable() {
     const allKeys = [...new Set([...base.keys(), ...sim.keys()])];
     const totalCount = state.customers.length || 1;
     const maxCount = Math.max(1, ...allKeys.map((k) => sim.get(k)?.count ?? 0));
+    const maxRevenue = Math.max(1, ...allKeys.map((k) => sim.get(k)?.umsatz ?? 0));
 
     // Suche + Sortierung (wichtig bei vielen Einträgen, z. B. 40 Bezirke)
     const sortFns = {
@@ -272,11 +284,26 @@ function renderTable() {
     const q = kpiSearch.trim().toLowerCase();
     let keys = allKeys.filter((k) => !q || k.toLowerCase().includes(q));
     keys.sort(sortFns[kpiSort] || sortFns.count);
+    const filteredCount = keys.length;
+    const canCollapse = !q && filteredCount > KPI_COLLAPSED_LIMIT && kpiSort !== 'name';
+    if (canCollapse && !showAllKpis) {
+        const top = keys.slice(0, 3);
+        const flop = keys.slice(-3).reverse();
+        keys = [...new Set([...top, ...flop])];
+    }
 
     const countEl = document.getElementById('cockpit-kpi-count');
     if (countEl) {
         const unit = attrLabel(assignAttr);
-        countEl.textContent = q ? `${keys.length} von ${allKeys.length} ${unit}` : `${allKeys.length} ${unit}`;
+        countEl.textContent = q
+            ? `${keys.length} von ${allKeys.length} ${unit}`
+            : canCollapse && !showAllKpis ? `Top & Flop 3 von ${allKeys.length} ${unit}` : `${allKeys.length} ${unit}`;
+    }
+
+    const toggle = document.getElementById('cockpit-kpi-toggle');
+    if (toggle) {
+        toggle.hidden = Boolean(q) || filteredCount <= KPI_COLLAPSED_LIMIT || kpiSort === 'name';
+        toggle.textContent = showAllKpis ? 'Top & Flop' : 'Alle anzeigen';
     }
 
     const fmtEur = (n) => n ? `${Math.round(n).toLocaleString('de-DE')} €` : '–';
@@ -291,7 +318,9 @@ function renderTable() {
         const b = base.get(key) ?? { count: 0, umsatz: 0 };
         const s = sim.get(key) ?? { count: 0, umsatz: 0 };
         const share = Math.round((s.count / totalCount) * 100);
-        const barW = Math.round((s.count / maxCount) * 100);
+        const metric = kpiSort === 'umsatz' ? s.umsatz : s.count;
+        const metricMax = kpiSort === 'umsatz' ? maxRevenue : maxCount;
+        const barW = Math.round((metric / metricMax) * 100);
         return `<tr>
             <td><span class="dot" style="background:${valueColor(key)}"></span>${escapeHtml(key)}</td>
             <td class="num">${s.count}${delta(s.count, b.count)}</td>
@@ -323,19 +352,39 @@ function renderFairness(sim, allKeys, fmtEur) {
     const cRatio = cMax.count / Math.max(1, cMin.count);
     const balanced = cRatio <= 1.5;
 
-    let revLine = '';
+    let top = cMax;
+    let weak = cMin;
+    let topValue = `${cMax.count} Kunden`;
+    let weakValue = `${cMin.count} Kunden`;
     const withRev = units.filter((u) => u.umsatz > 0);
     if (withRev.length >= 2) {
         const byRev = [...withRev].sort((a, b) => a.umsatz - b.umsatz);
         const rMin = byRev[0], rMax = byRev[byRev.length - 1];
-        const rRatio = rMax.umsatz / Math.max(1, rMin.umsatz);
-        revLine = `<div class="fairness-line">Umsatz: <b>${escapeHtml(rMax.key)}</b> ${fmtEur(rMax.umsatz)} … <b>${escapeHtml(rMin.key)}</b> ${fmtEur(rMin.umsatz)} <span class="muted">(${rRatio.toFixed(1)}×)</span></div>`;
+        top = rMax;
+        weak = rMin;
+        topValue = fmtEur(rMax.umsatz);
+        weakValue = fmtEur(rMin.umsatz);
     }
 
-    summaryEl.innerHTML = `<div class="balance-note ${balanced ? 'ok' : 'warn'}">
-        <div class="fairness-head">${balanced ? '✅ Ausgewogen' : '⚠️ Ungleich verteilt'} · Kunden-Faktor ${cRatio.toFixed(1)}× über ${units.length} ${escapeHtml(attrLabel(assignAttr))}</div>
-        <div class="fairness-line">Kunden: <b>${escapeHtml(cMax.key)}</b> ${cMax.count} … <b>${escapeHtml(cMin.key)}</b> ${cMin.count}</div>
-        ${revLine}
+    summaryEl.innerHTML = `<div class="cockpit-kpi-cards">
+        <div class="cockpit-kpi-card ${balanced ? 'ok' : 'warn'}">
+            <span class="kpi-icon">${balanced ? '✓' : '!'}</span>
+            <span class="kpi-label">Status</span>
+            <b>${balanced ? 'Ausgewogen' : 'Ungleich verteilt'}</b>
+            <small>Kunden-Faktor ${cRatio.toFixed(1)}× über ${units.length} ${escapeHtml(attrLabel(assignAttr))}</small>
+        </div>
+        <div class="cockpit-kpi-card">
+            <span class="kpi-icon">↑</span>
+            <span class="kpi-label">Top-Bezirk</span>
+            <b>${escapeHtml(top.key)}</b>
+            <small>${escapeHtml(topValue)}</small>
+        </div>
+        <div class="cockpit-kpi-card">
+            <span class="kpi-icon">↓</span>
+            <span class="kpi-label">Schwächster Bezirk</span>
+            <b>${escapeHtml(weak.key)}</b>
+            <small>${escapeHtml(weakValue)}</small>
+        </div>
     </div>`;
 }
 
