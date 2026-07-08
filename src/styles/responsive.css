@@ -85,6 +85,10 @@
         display: none;
     }
 
+    .panel-zoom {
+        display: none;
+    }
+
     .mobile-data-reset {
         display: block;
     }

@@ -1,4 +1,4 @@
-# 🦊 GeoFuchs Vertrieb
+﻿# 🦊 TourFuchs Vertrieb
 
 **Kundenlisten aus Excel auf der Deutschlandkarte – Gebietsübersicht und Besuchsplanung für den Außendienst.**
 
@@ -8,9 +8,9 @@
 
 ---
 
-## Was macht GeoFuchs Vertrieb?
+## Was macht TourFuchs Vertrieb?
 
-GeoFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
+TourFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 
 1. **„Wer betreut wo welche Kunden?“** – Excel-Liste hochladen, fertig. Kunden erscheinen
    auf der Deutschlandkarte, Gebiete werden nach Vertriebsbeauftragten eingefärbt.

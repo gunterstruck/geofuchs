@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Excel-Service
  * Einlesen von Excel-/CSV-Kundenlisten (SheetJS), automatische
  * Spaltenerkennung, Excel-Vorlage und Demo-Daten.
@@ -323,7 +323,7 @@ export function attachContacts(customers, contactRows, errors = []) {
 }
 
 /** Fehler-/Hinweisliste als Excel herunterladen */
-export function exportErrors(errors, fileBase = 'geofuchs') {
+export function exportErrors(errors, fileBase = 'tourfuchs') {
     const ws = XLSX.utils.json_to_sheet(errors);
     ws['!cols'] = [{ wch: 8 }, { wch: 10 }, { wch: 40 }];
     const wb = XLSX.utils.book_new();
@@ -376,7 +376,7 @@ export function downloadTemplate() {
     ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 22 }, { wch: 8 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 12 }, { wch: 20 }, { wch: 16 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Kunden');
-    XLSX.writeFile(wb, 'geofuchs-kundenliste-vorlage.xlsx');
+    XLSX.writeFile(wb, 'tourfuchs-kundenliste-vorlage.xlsx');
 }
 
 /** Aktuelle Kundenliste als Excel exportieren (inkl. Besuchsdaten) */
@@ -403,7 +403,7 @@ export function exportCustomers(customers) {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Kunden');
-    XLSX.writeFile(wb, `geofuchs-kunden-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `tourfuchs-kunden-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 /**

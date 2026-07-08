@@ -1,5 +1,5 @@
-/**
- * GeoFuchs Vertrieb – Einstiegspunkt
+﻿/**
+ * TourFuchs Vertrieb – Einstiegspunkt
  */
 
 import './styles/main.css';
@@ -31,6 +31,12 @@ async function restorePersistedState() {
         emit('level:changed');
     }
     if (settings?.radiusKm) state.tour.radiusKm = settings.radiusKm;
+    if (settings?.basemap && CONFIG.tileLayers?.[settings.basemap]) {
+        state.basemap = settings.basemap;
+        const basemapSelect = document.getElementById('basemap-select');
+        if (basemapSelect) basemapSelect.value = state.basemap;
+        emit('basemap:changed');
+    }
     const validModes = ['auto', 'rep', 'bezirk', 'gruppe', 'status', 'luecken'];
     if (validModes.includes(settings?.colorMode)) {
         state.colorMode = settings.colorMode;
@@ -129,7 +135,7 @@ async function init() {
     document.getElementById('btn-info').addEventListener('click', () => infoDialog.showModal());
     infoDialog.querySelector('.dialog-close').addEventListener('click', () => infoDialog.close());
 
-    console.log('🦊 GeoFuchs Vertrieb bereit.');
+    console.log('🦊 TourFuchs Vertrieb bereit.');
 }
 
 if (document.readyState === 'loading') {

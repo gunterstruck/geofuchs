@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tour-Exporte: druckbarer Tagesplan und Kalender-Datei (.ics).
  * Zeiten werden aus einer geschätzten Besuchsdauer und der Luftlinien-Fahrzeit
  * hochgerechnet (grobe Planungshilfe, keine echte Routing-Zeit).
@@ -84,7 +84,7 @@ export function printDayPlan(start, stops, { startTime = defaultStart(), tourNam
             <thead><tr><th>#</th><th>Ankunft</th><th>Kunde</th><th>✓</th></tr></thead>
             <tbody>${body}</tbody>
         </table>
-        <p class="foot">Zeiten geschätzt (${VISIT_MINUTES} min je Besuch, ${AVG_SPEED_KMH} km/h Fahrt). Erstellt mit GeoFuchs Vertrieb.</p>
+        <p class="foot">Zeiten geschätzt (${VISIT_MINUTES} min je Besuch, ${AVG_SPEED_KMH} km/h Fahrt). Erstellt mit TourFuchs Vertrieb.</p>
         <button class="noprint" onclick="window.print()" style="margin-top:16px;padding:8px 16px;">Drucken</button>
         </body></html>`;
 
@@ -108,7 +108,7 @@ export function downloadIcs(start, stops, { startTime = defaultStart(), tourName
     const rows = schedule(start, stops, startTime);
     const now = icsDate(new Date());
     const lines = [
-        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//GeoFuchs Vertrieb//DE', 'CALSCALE:GREGORIAN'
+        'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TourFuchs Vertrieb//DE', 'CALSCALE:GREGORIAN'
     ];
     rows.forEach((r, i) => {
         const c = r.customer;
@@ -122,7 +122,7 @@ export function downloadIcs(start, stops, { startTime = defaultStart(), tourName
         ].filter(Boolean).join('\n');
         lines.push(
             'BEGIN:VEVENT',
-            `UID:geofuchs-${Date.now()}-${i}@geofuchs`,
+            `UID:tourfuchs-${Date.now()}-${i}@tourfuchs`,
             `DTSTAMP:${now}`,
             `DTSTART:${icsDate(r.arrival)}`,
             `DTEND:${icsDate(end)}`,

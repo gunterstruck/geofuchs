@@ -1,6 +1,6 @@
-/**
+﻿/**
  * Übergabe an andere Werkzeuge (Outlook, Copilot, Notizen …) per Zwischenablage.
- * Bewusst schlank: GeoFuchs baut keine Berichts-/Briefing-Logik nach, sondern
+ * Bewusst schlank: TourFuchs baut keine Berichts-/Briefing-Logik nach, sondern
  * reicht Kunde bzw. Tour als sauberen Text weiter, den man dort einfügen kann.
  */
 
