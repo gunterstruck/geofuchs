@@ -66,6 +66,11 @@ Beim Import werden die Zeilen geprüft. **Gültige Zeilen werden importiert**, p
 - Kundendaten werden **ausschließlich lokal im Browser** gespeichert (IndexedDB) – kein Server, kein Tracking, keine KI.
 - Nur die optionale adressgenaue Verortung sendet die jeweilige Adresse an OpenStreetMap (Nominatim), gedrosselt gemäß deren Nutzungsrichtlinie.
 
+### Schulungsunterlagen
+
+- [Ausführliches Schulungshandbuch](./docs/schulung-tourfuchs.md)
+- [Kurzanleitung für Anwender](./docs/kurzanleitung-tourfuchs.md)
+
 ---
 
 ## Entwicklung
