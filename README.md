@@ -12,8 +12,8 @@
 
 TourFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 
-1. **„Wer betreut wo welche Kunden?“** – Excel-Liste hochladen, fertig. Kunden erscheinen
-   auf der Deutschlandkarte, Gebiete werden nach Vertriebsbeauftragten eingefärbt.
+1. **„Welcher Vertriebsbezirk betreut welche Kunden?“** – Excel-Liste hochladen, fertig.
+   Kunden erscheinen auf der Deutschlandkarte, Gebiete werden nach Vertriebsbezirken eingefärbt.
 2. **„Wen besuche ich als Nächstes?“** – Startpunkt wählen, Umkreis-Vorschläge erhalten,
    Tour zusammenstellen, Reihenfolge optimieren lassen und direkt in Google Maps navigieren.
 
@@ -23,10 +23,10 @@ TourFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 |---|---|
 | 📄 **Daten** | Excel-/CSV-Import per Klick oder Drag & Drop, automatische Spaltenerkennung mit Prüf-Dialog, Excel-Vorlage, Demo-Daten, Excel-Export |
 | 📍 **Verortung** | Sofort über PLZ-Koordinaten (offline, ohne API-Schlüssel); optional adressgenau über OpenStreetMap/Nominatim |
-| 🗺️ **Gebiete** | Landkreise (400 Kreise & Städte) **und** PLZ-Ebenen (1-, 2-, 3- und 5-stellig); Flächen einfärbbar nach Vertriebsbeauftragtem, **Betriebsbezirk** oder **Vertriebsgruppe** (mit Namens-Label und Umsatzsumme); Klick zeigt Kunden & Team-Verteilung je Gebiet |
-| ✏️ **Gebiets-Editor** | Im Gebiets-Popup „Kunden dieses Gebiets umordnen": Kundenliste des Gebiets mit Checkboxen & Filter, ausgewählte Kunden (oder das ganze Gebiet) einem anderen Vertriebsbeauftragten/Betriebsbezirk zuweisen – auch gemischte Gebiete gezielt aufteilen; wirkt sofort auf der Karte, mit **Rückgängig** |
+| 🗺️ **Gebiete** | Landkreise (400 Kreise & Städte) **und** PLZ-Ebenen (1-, 2-, 3- und 5-stellig); Flächen primär nach **Betriebsbezirk** einfärbbar, optional nach Vertriebsgruppe (mit Label und Umsatzsumme); Klick zeigt Kunden & Bezirksverteilung je Gebiet |
+| ✏️ **Gebiets-Editor** | Im Gebiets-Popup „Kunden dieses Gebiets umordnen": Kundenliste des Gebiets mit Checkboxen & Filter, ausgewählte Kunden (oder das ganze Gebiet) einem anderen Betriebsbezirk oder einer Gruppe zuweisen – auch gemischte Gebiete gezielt aufteilen; wirkt sofort auf der Karte, mit **Rückgängig** |
 | 🔍 **Zoom-Automatik** | „Automatisch (nach Zoom)": weit herausgezoomt zeigt die Karte Vertriebsgruppen als Flächen (mit Umsatz), mittlerer Zoom die Betriebsbezirke, hineingezoomt die einzelnen Kunden – der Detailgrad wächst mit dem Zoom |
-| 👥 **Team** | Vertriebsbeauftragte (feste Farben) und die dreistufige Vertriebshierarchie **Vertriebschannel › Vertriebsgruppe › Betriebsbezirk** einzeln ein-/ausblenden; jede Ebene optional, nur vorhandene Ebenen werden angezeigt; Kundenzähler |
+| 👥 **Filter** | **Betriebsbezirk** ist die führende Pflicht-Ebene. Vertriebsgruppe kann zusätzlich eingeblendet werden; weitere optionale Ebenen lassen sich bei Bedarf ergänzen. Kundenzähler helfen beim schnellen Prüfen der Verteilung |
 | 🚗 **Tour** | Startpunkt = eigener GPS-Standort oder ein Kunde; Vorschläge „Wen könnte ich in der Nähe noch besuchen?“ (Umkreis einstellbar); Tourenoptimierung (kürzeste Strecke, Nearest-Neighbor + 2-Opt); Übergabe an Google Maps zur Navigation |
 | 🔍 **Suche** | Kunden nach Name, Ort, PLZ oder Kundennummer finden und anfliegen |
 | 📱 **PWA** | Auf Smartphone/Desktop installierbar, App-Shell und Gebietsdaten offline verfügbar, zuletzt gesehene Kartenausschnitte werden gecacht |
@@ -43,20 +43,19 @@ und können beim Import manuell zugeordnet werden. Empfohlene Spalten:
 | Straße & Hausnummer | – | Hauptstraße 12 |
 | Ort | – | Köln |
 | Betriebsbezirk | ✅ | Bezirk Rheinland |
-| Vertriebsbeauftragter | – | Max Mustermann |
 | Vertriebschannel | – | Fachhandel |
 | Vertriebsgruppe | – | Handel |
 | Ansprechpartner, Telefon, E-Mail | – | Herr Schmidt · 0221 123456 |
 | Besuchsrhythmus (Wochen), Letzter Besuch | – | 6 · 12.05.2026 |
 | Kundennummer, Umsatz, Lat/Lng | – | optional |
 
-Die drei Ebenen **Vertriebschannel › Vertriebsgruppe › Betriebsbezirk** bilden eine Hierarchie (oben → unten). Der **Betriebsbezirk** (unterste, operative Ebene) ist Pflicht; Vertriebschannel, Vertriebsgruppe und der Vertriebsbeauftragte sind optional – fehlt eine dieser optionalen Spalten, wird die Ebene einfach nicht angezeigt. Im Gebiets-Cockpit lässt sich wahlweise nach **Vertriebsbeauftragtem oder Betriebsbezirk** (bzw. Gruppe/Channel) auswerten und zuweisen.
+Der **Betriebsbezirk** ist die führende operative Pflicht-Ebene und steuert Gebietsplanung, Farben, Cockpit und Tourfilter. **Vertriebsgruppe** ist die empfohlene zweite Ebene; Vertriebschannel und weitere Ebenen sind optional und werden nur angezeigt, wenn sie bewusst ergänzt werden. Persönliche Vertriebsnamen sind für die Gebietssteuerung nicht leitend.
 
 Eine fertige Vorlage gibt es in der App unter **Daten → Excel-Vorlage herunterladen**.
 
 #### Flächenzeilen (Gebiete ohne Kunden zuordnen)
 
-Neben Kundenzeilen kann die Liste **Flächenzeilen** enthalten: eine Zeile **ohne Kundenname**, aber mit der Spalte **Gebiet (LK/PLZ)** und einem **Betriebsbezirk** (oder Vertriebsbeauftragten). So lässt sich ein ganzer Landkreis oder ein PLZ-Bereich einem Bezirk/VB zuordnen, auch wenn dort (noch) keine Kunden sind – z. B. um Gebiete für Neukunden zu reservieren. „Gebiet" ist entweder ein **Landkreis-Name** (z. B. `Oberhausen`) oder eine **PLZ / PLZ-Präfix** (`46` = alle 46xxx, `46045` = genau dieses PLZ-Gebiet). Dasselbe geht interaktiv über das **Gebiets-Popup** auf der Karte oder im **Cockpit** (Häkchen „Auch Gebiete ohne Kunden einbeziehen").
+Neben Kundenzeilen kann die Liste **Flächenzeilen** enthalten: eine Zeile **ohne Kundenname**, aber mit der Spalte **Gebiet (LK/PLZ)** und einem **Betriebsbezirk**. So lässt sich ein ganzer Landkreis oder ein PLZ-Bereich einem Bezirk zuordnen, auch wenn dort (noch) keine Kunden sind – z. B. um Gebiete für Neukunden zu reservieren. „Gebiet" ist entweder ein **Landkreis-Name** (z. B. `Oberhausen`) oder eine **PLZ / PLZ-Präfix** (`46` = alle 46xxx, `46045` = genau dieses PLZ-Gebiet). Dasselbe geht interaktiv über das **Gebiets-Popup** auf der Karte oder im **Cockpit** (Häkchen „Auch Gebiete ohne Kunden einbeziehen").
 
 #### Plausibilitätsprüfung beim Import
 
