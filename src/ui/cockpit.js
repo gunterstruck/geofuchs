@@ -36,7 +36,7 @@ let selected = new Set();      // ausgewählte regionKeys
 let assignAttr = 'bezirk';     // Zuweisungs-Ziel: Gebietsebene (bezirk | gruppe | channel)
 let includeEmpty = false;      // Gebiete ohne Kunden einbeziehen
 let kpiSearch = '';            // Kennzahlen-Filter
-let kpiSort = 'count';         // Kennzahlen-Sortierung
+let kpiSort = 'umsatz';        // Kennzahlen-Sortierung
 let showAllKpis = false;       // kompakte Top/Flop-Ansicht im Cockpit
 
 const filters = { search: '', dim: {} };
@@ -110,13 +110,13 @@ async function open() {
     assignAttr = state.dims.bezirk?.active ? 'bezirk' : (assignableDims()[0]?.id ?? 'bezirk');
     includeEmpty = false;
     kpiSearch = '';
-    kpiSort = 'count';
+    kpiSort = 'umsatz';
     showAllKpis = false;
     filters.search = '';
     filters.dim = {};
     document.getElementById('sim-search').value = '';
     document.getElementById('cockpit-kpi-search').value = '';
-    document.getElementById('cockpit-kpi-sort').value = 'count';
+    document.getElementById('cockpit-kpi-sort').value = 'umsatz';
     document.getElementById('sim-include-empty').checked = false;
     renderLevelSelect();
     renderAssignAttrSelect();
@@ -271,7 +271,6 @@ function renderTable() {
     const hasSim = overrides.size > 0;
 
     const allKeys = [...new Set([...base.keys(), ...sim.keys()])];
-    const totalCount = state.customers.length || 1;
     const maxCount = Math.max(1, ...allKeys.map((k) => sim.get(k)?.count ?? 0));
     const maxRevenue = Math.max(1, ...allKeys.map((k) => sim.get(k)?.umsatz ?? 0));
 
@@ -286,10 +285,12 @@ function renderTable() {
     keys.sort(sortFns[kpiSort] || sortFns.count);
     const filteredCount = keys.length;
     const canCollapse = !q && filteredCount > KPI_COLLAPSED_LIMIT && kpiSort !== 'name';
+    let flopStartKey = null;
     if (canCollapse && !showAllKpis) {
         const top = keys.slice(0, 3);
         const flop = keys.slice(-3).reverse();
         keys = [...new Set([...top, ...flop])];
+        flopStartKey = flop[0] ?? null;
     }
 
     const countEl = document.getElementById('cockpit-kpi-count');
@@ -317,17 +318,17 @@ function renderTable() {
     document.getElementById('cockpit-rows').innerHTML = keys.map((key) => {
         const b = base.get(key) ?? { count: 0, umsatz: 0 };
         const s = sim.get(key) ?? { count: 0, umsatz: 0 };
-        const share = Math.round((s.count / totalCount) * 100);
         const metric = kpiSort === 'umsatz' ? s.umsatz : s.count;
         const metricMax = kpiSort === 'umsatz' ? maxRevenue : maxCount;
         const barW = Math.round((metric / metricMax) * 100);
-        return `<tr>
+        const rowClass = key === flopStartKey ? ' class="flop-start"' : '';
+        return `<tr${rowClass}>
             <td><span class="dot" style="background:${valueColor(key)}"></span>${escapeHtml(key)}</td>
             <td class="num">${s.count}${delta(s.count, b.count)}</td>
             <td class="num">${fmtEur(s.umsatz)}${delta(s.umsatz, b.umsatz, '€')}</td>
             <td class="bar-cell">
                 <div class="bar-track"><div class="bar-fill" style="width:${barW}%;background:${valueColor(key)}"></div></div>
-                <span class="share">${share}%</span>
+                <span class="share" title="Relativ zum stärksten sichtbaren Wert">${barW}%</span>
             </td>
         </tr>`;
     }).join('');
@@ -370,20 +371,20 @@ function renderFairness(sim, allKeys, fmtEur) {
         <div class="cockpit-kpi-card ${balanced ? 'ok' : 'warn'}">
             <span class="kpi-icon">${balanced ? '✓' : '!'}</span>
             <span class="kpi-label">Status</span>
-            <b>${balanced ? 'Ausgewogen' : 'Ungleich verteilt'}</b>
-            <small>Kunden-Faktor ${cRatio.toFixed(1)}× über ${units.length} ${escapeHtml(attrLabel(assignAttr))}</small>
+            <b class="kpi-value">${balanced ? 'Ausgewogen' : 'Ungleich verteilt'}</b>
+            <small class="kpi-subline">Kunden-Faktor ${cRatio.toFixed(1)}× über ${units.length} ${escapeHtml(attrLabel(assignAttr))}</small>
         </div>
         <div class="cockpit-kpi-card">
             <span class="kpi-icon">↑</span>
             <span class="kpi-label">Top-Bezirk</span>
-            <b>${escapeHtml(top.key)}</b>
-            <small>${escapeHtml(topValue)}</small>
+            <b class="kpi-value">${escapeHtml(topValue)}</b>
+            <small class="kpi-subline">${escapeHtml(top.key)}</small>
         </div>
         <div class="cockpit-kpi-card">
             <span class="kpi-icon">↓</span>
             <span class="kpi-label">Schwächster Bezirk</span>
-            <b>${escapeHtml(weak.key)}</b>
-            <small>${escapeHtml(weakValue)}</small>
+            <b class="kpi-value">${escapeHtml(weakValue)}</b>
+            <small class="kpi-subline">${escapeHtml(weak.key)}</small>
         </div>
     </div>`;
 }
