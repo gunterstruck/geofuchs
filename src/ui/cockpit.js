@@ -29,7 +29,7 @@ const KPI_COLLAPSED_LIMIT = 6;
 let dialog = null;
 let overrides = new Map();     // customerId -> neuer Zielwert (für assignAttr)
 let pendingTerr = new Map();   // territoryId -> { value, name } (für assignAttr)
-let opsLog = [];               // [{ desc, count, toRep }]
+let opsLog = [];               // [{ desc, count, revenue, toRep }]
 let membership = [];           // [{ key, name, customerIds }] mit Kunden
 let allRegions = [];           // ALLE Gebiete der Ebene (auch ohne Kunden)
 let selected = new Set();      // ausgewählte regionKeys
@@ -83,6 +83,10 @@ function inGroupScope(customer) {
 
 function scopedCustomers() {
     return state.customers.filter(inGroupScope);
+}
+
+function formatRevenue(value) {
+    return `${Math.round(value || 0).toLocaleString('de-DE')} €`;
 }
 
 function resetSimulationState() {
@@ -505,7 +509,6 @@ function renderRegionList() {
     }
 
     const shown = visible.slice(0, MAX_ROWS);
-    const fmtEur = (value) => `${Math.round(value).toLocaleString('de-DE')} €`;
     const regionRevenue = (ids) => ids.reduce((sum, id) => sum + (getCustomer(id)?.umsatz || 0), 0);
     listEl.innerHTML = shown.map(({ region, ids, dom, empty }) => `
         <label class="sim-region-row${empty ? ' is-empty' : ''}">
@@ -513,7 +516,7 @@ function renderRegionList() {
             <span class="sim-region-name">${escapeHtml(region.name)}${empty ? ' <span class="muted small">(leer)</span>' : ''}</span>
             <span class="sim-region-meta">
                 <span class="sim-region-owner"><span class="dot" style="background:${valueColor(dom)}"></span>${escapeHtml(dom)}${empty ? '' : ` · ${ids.length}`}</span>
-                ${empty ? '' : `<span class="sim-region-revenue">${fmtEur(regionRevenue(ids))} Umsatz</span>`}
+                ${empty ? '' : `<span class="sim-region-revenue">${formatRevenue(regionRevenue(ids))} Umsatz</span>`}
             </span>
         </label>
     `).join('') + (visible.length > MAX_ROWS
@@ -546,11 +549,16 @@ function assignSelected() {
     }
 
     let moved = 0;
+    let movedRevenue = 0;
     for (const { region, ids } of chosen) {
         // Kunden im Gebiet umbuchen
         for (const id of ids) {
             const c = getCustomer(id);
-            if (c && attrValueOf(c) !== target) { overrides.set(id, target); moved++; }
+            if (c && attrValueOf(c) !== target) {
+                overrides.set(id, target);
+                moved++;
+                movedRevenue += c.umsatz || 0;
+            }
         }
         // Gebietszuordnung (auch für leere Gebiete) merken
         pendingTerr.set(`${state.level}:${region.key}`, {
@@ -568,7 +576,12 @@ function assignSelected() {
     for (const def of DIMENSIONS) if (filters.dim[def.id]) parts.push(filters.dim[def.id]);
     if (searchDigits()) parts.push(`PLZ ${searchDigits()}xxx`);
     const scope = parts.length ? ` (${parts.join(', ')})` : '';
-    opsLog.push({ desc: `${chosen.length} Gebiet${chosen.length === 1 ? '' : 'e'}${scope}`, count: moved, toRep: target });
+    opsLog.push({
+        desc: `${chosen.length} Gebiet${chosen.length === 1 ? '' : 'e'}${scope}`,
+        count: moved,
+        revenue: movedRevenue,
+        toRep: target
+    });
 
     selected = new Set();
     document.getElementById('sim-select-all').checked = false;
@@ -591,18 +604,37 @@ function renderChanges() {
     document.getElementById('sim-commit').disabled = nothing;
     if (nothing) { el.innerHTML = ''; return; }
 
-    // Zusammenfassung je Ziel (Gebiete zugeordnet)
-    const byTarget = new Map();
-    for (const { value } of pendingTerr.values()) byTarget.set(value, (byTarget.get(value) ?? 0) + 1);
-    const summary = [...byTarget.entries()].map(([v, n]) =>
-        `<span class="legend-item"><span class="dot" style="background:${valueColor(v)}"></span>${escapeHtml(v)}: <b>${n} Gebiet${n === 1 ? '' : 'e'}</b></span>`).join('');
+    const movedCustomers = [...overrides.keys()]
+        .map((id) => getCustomer(id))
+        .filter(Boolean);
+    const totalRevenue = movedCustomers.reduce((sum, customer) => sum + (customer.umsatz || 0), 0);
 
-    el.innerHTML = `<p class="muted small">${pendingTerr.size} Gebiet${pendingTerr.size === 1 ? '' : 'e'} zugeordnet${overrides.size ? `, ${overrides.size} Kunden umgebucht` : ''}:</p>
+    // Zusammenfassung je Ziel (Gebiete und aktuell umgebuchte Kunden)
+    const byTarget = new Map();
+    for (const { value } of pendingTerr.values()) {
+        const entry = byTarget.get(value) ?? { regions: 0, customers: 0, revenue: 0 };
+        entry.regions++;
+        byTarget.set(value, entry);
+    }
+    for (const customer of movedCustomers) {
+        const value = overrides.get(customer.id);
+        const entry = byTarget.get(value) ?? { regions: 0, customers: 0, revenue: 0 };
+        entry.customers++;
+        entry.revenue += customer.umsatz || 0;
+        byTarget.set(value, entry);
+    }
+    const summary = [...byTarget.entries()].map(([value, data]) =>
+        `<span class="legend-item"><span class="dot" style="background:${valueColor(value)}"></span>${escapeHtml(value)}:
+            <b>${data.regions} Gebiet${data.regions === 1 ? '' : 'e'}</b>
+            ${data.customers ? ` · ${data.customers} Kd. · ${formatRevenue(data.revenue)}` : ''}
+        </span>`).join('');
+
+    el.innerHTML = `<p class="muted small">${pendingTerr.size} Gebiet${pendingTerr.size === 1 ? '' : 'e'} zugeordnet${overrides.size ? `, ${overrides.size} Kunden mit <b>${formatRevenue(totalRevenue)}</b> Umsatz umgebucht` : ''}:</p>
         <div class="legend">${summary}</div>` +
         opsLog.map((op) => `
             <div class="change-row">
                 <span>${escapeHtml(op.desc)}</span>
-                <span class="muted small">${op.count ? `${op.count} Kd. ` : ''}→ <b>${escapeHtml(op.toRep)}</b></span>
+                <span class="change-row-result">${op.count ? `${op.count} Kd. · ${formatRevenue(op.revenue)} ` : ''}→ <b>${escapeHtml(op.toRep)}</b></span>
             </div>`).join('');
 }
 
