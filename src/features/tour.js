@@ -63,9 +63,10 @@ export function distanceToRouteKm(p, path) {
  * Vorschläge entlang der geplanten Route: Kunden, die höchstens `corridorKm`
  * neben der Strecke Start → Stopps (→ Start bei Rundreise) liegen.
  */
-export function suggestAlongRoute(start, stops, customers, corridorKm, excludeIds = new Set(), roundTrip = false, overdueFirst = false) {
-    const path = [start, ...stops];
-    if (roundTrip && stops.length) path.push(start);
+export function suggestAlongRoute(start, stops, customers, corridorKm, excludeIds = new Set(), roundTrip = false, overdueFirst = false, roadPath = null) {
+    const fallbackPath = [start, ...stops];
+    if (roundTrip && stops.length) fallbackPath.push(start);
+    const path = Array.isArray(roadPath) && roadPath.length >= 2 ? roadPath : fallbackPath;
     if (path.length < 2) return [];
     return customers
         .filter((c) => c.lat !== null && !excludeIds.has(c.id))

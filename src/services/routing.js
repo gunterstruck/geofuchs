@@ -5,6 +5,9 @@
 
 import { CONFIG } from '../core/config.js';
 
+const routeCache = new Map();
+const pendingRoutes = new Map();
+
 function routePoint(point) {
     return {
         lat: Number(point.lat ?? point[0]),
@@ -19,6 +22,24 @@ function pointKey(point) {
 
 export function routingKey(points) {
     return points.map(pointKey).join(';');
+}
+
+export function peekRoadRoute(points) {
+    return routeCache.get(routingKey(points));
+}
+
+export async function getRoadRoute(points) {
+    const key = routingKey(points);
+    if (routeCache.has(key)) return routeCache.get(key);
+    if (pendingRoutes.has(key)) return pendingRoutes.get(key);
+
+    const pending = fetchRoadRoute(points).then((route) => {
+        routeCache.set(key, route);
+        pendingRoutes.delete(key);
+        return route;
+    });
+    pendingRoutes.set(key, pending);
+    return pending;
 }
 
 export async function fetchRoadRoute(points) {
