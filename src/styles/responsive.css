@@ -236,6 +236,38 @@
         justify-content: center;
         min-height: 36px;
     }
+
+    .simulation-map-bar {
+        top: calc(var(--topbar-height) + 8px);
+        width: calc(100vw - 16px);
+        padding: 10px;
+    }
+
+    .simulation-map-status {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .simulation-map-status #simulation-map-summary {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .simulation-map-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .simulation-view-toggle {
+        grid-column: 1 / -1;
+        min-width: 0;
+    }
+
+    #simulation-map-edit,
+    #simulation-map-commit {
+        grid-column: 1 / -1;
+    }
 }
 
 @media (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {

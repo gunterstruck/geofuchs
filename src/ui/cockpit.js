@@ -29,7 +29,7 @@ const KPI_COLLAPSED_LIMIT = 6;
 let dialog = null;
 let overrides = new Map();     // customerId -> neuer Zielwert (für assignAttr)
 let pendingTerr = new Map();   // territoryId -> { value, name } (für assignAttr)
-let opsLog = [];               // [{ desc, count, revenue, toRep }]
+let opsLog = [];               // [{ desc, count, revenue, toRep, territoryIds }]
 let membership = [];           // [{ key, name, customerIds }] mit Kunden
 let allRegions = [];           // ALLE Gebiete der Ebene (auch ohne Kunden)
 let selected = new Set();      // ausgewählte regionKeys
@@ -39,6 +39,8 @@ let kpiSearch = '';            // Kennzahlen-Filter
 let kpiSort = 'umsatz';        // Kennzahlen-Sortierung
 let showAllKpis = false;       // kompakte Top/Flop-Ansicht im Cockpit
 let groupScope = '';           // Vertriebsgruppe-Fokus im Cockpit
+let simulationMapActive = false;
+let simulationMapMode = 'changes';
 
 const filters = { search: '', dim: {} };
 
@@ -98,9 +100,66 @@ function resetSimulationState() {
     if (selectAll) selectAll.checked = false;
 }
 
+function simulationTotals() {
+    const customers = [...overrides.keys()].map((id) => getCustomer(id)).filter(Boolean);
+    return {
+        regions: pendingTerr.size,
+        customers: customers.length,
+        revenue: customers.reduce((sum, customer) => sum + (customer.umsatz || 0), 0)
+    };
+}
+
+function simulationPayload(active = true) {
+    return {
+        active,
+        mode: simulationMapMode,
+        level: state.level,
+        attr: assignAttr,
+        territories: new Map(pendingTerr),
+        overrides: new Map(overrides)
+    };
+}
+
+function updateSimulationMapBar() {
+    const bar = document.getElementById('simulation-map-bar');
+    bar.hidden = !simulationMapActive;
+    if (!simulationMapActive) return;
+    const totals = simulationTotals();
+    document.getElementById('simulation-map-summary').textContent =
+        `${totals.regions} Gebiet${totals.regions === 1 ? '' : 'e'} · ${totals.customers} Kunden · ${formatRevenue(totals.revenue)}`;
+    bar.querySelectorAll('[data-simulation-view]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.simulationView === simulationMapMode);
+    });
+}
+
+function showSimulationMap() {
+    if (pendingTerr.size === 0 && overrides.size === 0) {
+        dialog.close();
+        return;
+    }
+    simulationMapActive = true;
+    simulationMapMode = 'changes';
+    dialog.close();
+    updateSimulationMapBar();
+    emit('simulation:preview', simulationPayload());
+}
+
+function hideSimulationMap() {
+    simulationMapActive = false;
+    updateSimulationMapBar();
+    emit('simulation:preview', { active: false });
+}
+
+function editSimulation() {
+    hideSimulationMap();
+    renderAll();
+    dialog.showModal();
+    dialog.scrollTop = Math.max(0, dialog.scrollHeight - dialog.clientHeight);
+}
+
 export function initCockpit() {
     dialog = document.getElementById('cockpit-dialog');
-    dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
+    document.getElementById('cockpit-to-map').addEventListener('click', showSimulationMap);
 
     document.getElementById('sim-level').addEventListener('change', onLevelChange);
     document.getElementById('sim-search').addEventListener('input', (e) => { filters.search = e.target.value; renderRegionList(); });
@@ -113,6 +172,22 @@ export function initCockpit() {
     document.getElementById('sim-apply').addEventListener('click', assignSelected);
     document.getElementById('sim-reset').addEventListener('click', resetSimulation);
     document.getElementById('sim-commit').addEventListener('click', commitSimulation);
+    document.getElementById('simulation-map-edit').addEventListener('click', editSimulation);
+    document.getElementById('simulation-map-discard').addEventListener('click', () => {
+        if (!confirm('Simulation vollständig verwerfen? Die echten Kundendaten bleiben unverändert.')) return;
+        hideSimulationMap();
+        resetSimulationState();
+        renderAll();
+        showToast('Simulation verworfen.', 'info');
+    });
+    document.getElementById('simulation-map-commit').addEventListener('click', commitSimulation);
+    document.querySelectorAll('[data-simulation-view]').forEach((button) => {
+        button.addEventListener('click', () => {
+            simulationMapMode = button.dataset.simulationView;
+            updateSimulationMapBar();
+            emit('simulation:preview', simulationPayload());
+        });
+    });
     document.getElementById('cockpit-kpi-search').addEventListener('input', (e) => {
         kpiSearch = e.target.value;
         showAllKpis = Boolean(kpiSearch.trim());
@@ -143,6 +218,12 @@ document.getElementById('cockpit-group-scope').addEventListener('change', (e) =>
 }
 
 async function open() {
+    if (pendingTerr.size > 0 || overrides.size > 0) {
+        hideSimulationMap();
+        renderAll();
+        dialog.showModal();
+        return;
+    }
     resetSimulationState();
     assignAttr = state.dims.bezirk?.active ? 'bezirk' : (assignableDims()[0]?.id ?? 'bezirk');
     includeEmpty = false;
@@ -551,22 +632,28 @@ function assignSelected() {
     let moved = 0;
     let movedRevenue = 0;
     for (const { region, ids } of chosen) {
+        const territoryId = `${state.level}:${region.key}`;
+        const previous = pendingTerr.get(territoryId);
+        for (const id of previous?.customerIds || []) overrides.delete(id);
+        const movedIds = [];
         // Kunden im Gebiet umbuchen
         for (const id of ids) {
             const c = getCustomer(id);
             if (c && attrValueOf(c) !== target) {
                 overrides.set(id, target);
+                movedIds.push(id);
                 moved++;
                 movedRevenue += c.umsatz || 0;
             }
         }
         // Gebietszuordnung (auch für leere Gebiete) merken
-        pendingTerr.set(`${state.level}:${region.key}`, {
+        pendingTerr.set(territoryId, {
             value: target,
             group: groupScope || null,
             name: region.name,
             level: state.level,
-            key: region.key
+            key: region.key,
+            customerIds: movedIds
         });
     }
 
@@ -576,11 +663,15 @@ function assignSelected() {
     for (const def of DIMENSIONS) if (filters.dim[def.id]) parts.push(filters.dim[def.id]);
     if (searchDigits()) parts.push(`PLZ ${searchDigits()}xxx`);
     const scope = parts.length ? ` (${parts.join(', ')})` : '';
+    const territoryIds = chosen.map(({ region }) => `${state.level}:${region.key}`);
+    const changedIds = new Set(territoryIds);
+    opsLog = opsLog.filter((op) => !(op.territoryIds || []).some((id) => changedIds.has(id)));
     opsLog.push({
         desc: `${chosen.length} Gebiet${chosen.length === 1 ? '' : 'e'}${scope}`,
         count: moved,
         revenue: movedRevenue,
-        toRep: target
+        toRep: target,
+        territoryIds
     });
 
     selected = new Set();
@@ -590,6 +681,7 @@ function assignSelected() {
 }
 
 function resetSimulation() {
+    hideSimulationMap();
     overrides = new Map();
     pendingTerr = new Map();
     opsLog = [];
@@ -602,6 +694,9 @@ function renderChanges() {
     const el = document.getElementById('sim-changes');
     const nothing = overrides.size === 0 && pendingTerr.size === 0;
     document.getElementById('sim-commit').disabled = nothing;
+    const mapButton = document.getElementById('cockpit-to-map');
+    mapButton.textContent = nothing ? 'Zur Karte' : 'Simulation auf Karte prüfen';
+    mapButton.classList.toggle('simulation-ready', !nothing);
     if (nothing) { el.innerHTML = ''; return; }
 
     const movedCustomers = [...overrides.keys()]
@@ -643,6 +738,8 @@ function commitSimulation() {
     const label = attrLabel(assignAttr).replace(/\(.*\)/, '').trim();
     if (!confirm(`${pendingTerr.size} Gebiet(e) und ${overrides.size} Kunden dauerhaft „${label}" zuweisen?\nDies aktualisiert Ihre Gebietszuordnungen${overrides.size ? ` und das Feld „${label}" der betroffenen Kunden` : ''}.`)) return;
 
+    const regionCount = pendingTerr.size;
+    const customerCount = overrides.size;
     for (const c of state.customers) {
         if (overrides.has(c.id)) c[assignAttr] = overrides.get(c.id);
     }
@@ -653,6 +750,8 @@ function commitSimulation() {
     setCustomers(state.customers, { fileName: state.fileName, importedAt: state.importedAt });
     emit('dataset:dirty');
 
+    hideSimulationMap();
+    resetSimulationState();
     dialog.close();
-    showToast(`${pendingTerr.size} Gebiet(e)${overrides.size ? ` und ${overrides.size} Kunden` : ''} zugewiesen und gespeichert.`, 'success', 6000);
+    showToast(`${regionCount} Gebiet(e)${customerCount ? ` und ${customerCount} Kunden` : ''} zugewiesen und gespeichert.`, 'success', 6000);
 }

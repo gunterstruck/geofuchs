@@ -367,6 +367,72 @@
     background: #115e59;
     border-color: #115e59;
 }
+
+#cockpit-to-map.simulation-ready {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+}
+
+.simulation-map-bar {
+    position: absolute;
+    z-index: 1100;
+    top: calc(var(--topbar-height) + 12px);
+    left: 50%;
+    width: min(980px, calc(100vw - 32px));
+    transform: translateX(-50%);
+    padding: 12px 14px;
+    border: 2px solid #f59e0b;
+    border-radius: var(--radius-xl);
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: var(--shadow-2);
+    backdrop-filter: blur(10px);
+}
+.simulation-map-bar[hidden] { display: none; }
+.simulation-map-status,
+.simulation-map-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.simulation-map-status { margin-bottom: 10px; }
+.simulation-map-status #simulation-map-summary {
+    margin-left: auto;
+    color: var(--color-text-muted);
+    font-size: 0.84rem;
+}
+.simulation-map-badge {
+    padding: 4px 9px;
+    border-radius: var(--radius-pill);
+    background: #f59e0b;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+.simulation-map-actions { justify-content: flex-end; }
+.simulation-view-toggle { margin-right: auto; min-width: 250px; }
+.simulation-region-popup .simulation-popup-state {
+    color: #b45309;
+    font-weight: 800;
+}
+.simulation-compare {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0;
+}
+.simulation-compare > div {
+    min-width: 0;
+    padding: 8px;
+    border-radius: var(--radius-l);
+    background: var(--color-surface-2);
+}
+.simulation-compare span { display: block; color: var(--color-text-muted); font-size: 0.75rem; }
+.simulation-compare b { display: flex; align-items: center; margin-top: 3px; overflow-wrap: anywhere; }
+.simulation-arrow { font-size: 1.2rem !important; color: var(--color-primary) !important; }
+
 .text-action {
     background: transparent;
     border-color: transparent;
