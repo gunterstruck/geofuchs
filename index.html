@@ -59,7 +59,7 @@
 
             <!-- Tab: Daten -->
             <section id="tab-daten" class="tab-panel active">
-                <input id="file-input" type="file" accept=".xlsx,.xls,.csv,.ods" hidden>
+                <input id="file-input" type="file" accept=".xlsx,.xls,.csv,.ods,text/csv" hidden>
 
                 <!-- Geführter Einstieg (nur solange keine Daten geladen sind) -->
                 <div id="onboarding">
@@ -76,7 +76,7 @@
                     <!-- Eigene Liste hochladen – auf Desktop UND Handy verfügbar
                          (z. B. am PC vorbereitet, am Handy hochgeladen) -->
                     <div class="ob-or"><span>oder eigene Kundenliste</span></div>
-                    <button id="btn-upload" class="ob-upload-btn">📤 Excel-Liste hochladen</button>
+                    <button id="btn-upload" class="ob-upload-btn">📤 Excel- oder CSV-Liste hochladen</button>
                     <label class="compliance-optin">
                         <input type="checkbox" data-compliance-optin>
                         <span>Ich bin berechtigt, diese Daten zu verarbeiten und in TourFuchs lokal zu verwenden.</span>
@@ -114,7 +114,7 @@
                     <p class="muted small">Stammdaten und Kontaktdaten können getrennt geladen werden, wenn beide Dateien die Kundennummer enthalten. Erneute Uploads werden als Delta übernommen; bestehende Besuchs- und Gebietsarbeit bleibt erhalten.</p>
                     <div id="data-actions">
                         <div class="button-column">
-                            <button id="btn-upload-more">📤 Andere Excel-Liste laden</button>
+                            <button id="btn-upload-more">📤 Andere Excel- oder CSV-Liste laden</button>
                             <label class="compliance-optin compact">
                                 <input type="checkbox" data-compliance-optin>
                                 <span>Ich bin berechtigt, diese Daten zu verarbeiten.</span>
@@ -259,7 +259,7 @@
 
         <main id="map" role="application" aria-label="Deutschlandkarte"></main>
 
-        <div id="dropzone" class="dropzone"><div>📥 Excel-Datei hier ablegen</div></div>
+        <div id="dropzone" class="dropzone"><div>📥 Excel- oder CSV-Datei hier ablegen</div></div>
         <div id="toasts" class="toasts" aria-live="polite"></div>
 
         <!-- Mobile-Vorschau (nur zu Demonstrationszwecken am Desktop) -->
