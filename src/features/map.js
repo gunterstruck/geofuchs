@@ -29,6 +29,7 @@ let currentLevelData = null;
 let featureByKey = new Map();
 let currentView = { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
 let roadRouteSeq = 0;
+let simulationPreview = null;
 const roadRouteCache = new Map();
 const ROUTE_HUE_START = 0;      // rot
 const ROUTE_HUE_END = 276;      // lila
@@ -241,6 +242,11 @@ export function initMap(containerId) {
     on('level:changed', () => { setLevel(state.level); });
     on('tour:scope-changed', refreshAll);
     on('tour:changed', renderTour);
+    on('simulation:preview', (preview) => {
+        simulationPreview = preview?.active ? preview : null;
+        map.closePopup();
+        applyView();
+    });
 
     setLevel(state.level);
     return map;
@@ -343,7 +349,9 @@ function resolveView() {
 }
 
 function applyView() {
-    currentView = resolveView();
+    currentView = simulationPreview
+        ? { paint: simulationPreview.attr, markers: false, labels: false, markerBy: simulationPreview.attr }
+        : resolveView();
     restyleRegions();
     renderMarkers();
     renderLabels();
@@ -504,7 +512,53 @@ function styleLuecken(feature) {
     return { fillColor: '#16a34a', color: '#ffffff', weight: 1, dashArray: '', opacity: 1, fillOpacity: 0.18 + t * 0.4 };
 }
 
+function simulationRegionInfo(feature) {
+    const key = regionKey(state.level, feature);
+    const change = simulationPreview?.territories.get(`${state.level}:${key}`);
+    const oldValue = regionValue(feature, simulationPreview?.attr);
+    return {
+        change,
+        oldValue: oldValue || UNASSIGNED,
+        newValue: change?.value || oldValue || UNASSIGNED
+    };
+}
+
+function simulationStyle(feature) {
+    const info = simulationRegionInfo(feature);
+    const changed = Boolean(info.change);
+    if (simulationPreview.mode === 'changes' && !changed) {
+        return {
+            fillColor: '#cbd5e1',
+            fillOpacity: 0.08,
+            color: '#94a3b8',
+            opacity: 0.28,
+            weight: 0.7
+        };
+    }
+
+    const value = simulationPreview.mode === 'old' ? info.oldValue : info.newValue;
+    const fillColor = attrColor(simulationPreview.attr, value);
+    if (simulationPreview.mode === 'changes' && changed) {
+        return {
+            fillColor,
+            fillOpacity: 0.72,
+            color: attrColor(simulationPreview.attr, info.oldValue),
+            opacity: 1,
+            weight: 4,
+            dashArray: '8 5'
+        };
+    }
+    return {
+        fillColor,
+        fillOpacity: changed ? 0.7 : 0.48,
+        color: changed ? '#f59e0b' : '#ffffff',
+        opacity: 1,
+        weight: changed ? 3 : 1
+    };
+}
+
 function styleFor(feature) {
+    if (simulationPreview) return simulationStyle(feature);
     if (currentView.paint === 'luecken') return styleLuecken(feature);
     if (state.ui.mode === 'aussendienst' && currentView.markers) {
         return {
@@ -537,6 +591,14 @@ function regionTooltip(feature) {
     const key = regionKey(state.level, feature);
     const entry = regionStats.get(key);
     const total = entry?.total ?? 0;
+
+    if (simulationPreview) {
+        const info = simulationRegionInfo(feature);
+        if (!info.change) return `${name} · unverändert · ${total} Kunden`;
+        const customers = (info.change.customerIds || []).map((id) => getCustomer(id)).filter(Boolean);
+        const revenue = customers.reduce((sum, customer) => sum + (customer.umsatz || 0), 0);
+        return `${name} · ${info.oldValue} → ${info.newValue} · ${customers.length} Kd. · ${Math.round(revenue).toLocaleString('de-DE')} €`;
+    }
 
     if (currentView.paint === 'luecken') {
         if (total === 0) {
@@ -586,7 +648,7 @@ function fmtEuroShort(n) {
 function renderLabels() {
     if (!labelLayer) return;
     labelLayer.clearLayers();
-    if (!currentView.labels || !currentLevelData) return;
+    if (simulationPreview || !currentView.labels || !currentLevelData) return;
 
     const attr = currentView.paint;
     const revByVal = new Map();
@@ -641,6 +703,7 @@ function renderLabels() {
 
 /** Zuweisung für die ganze Fläche eines Gebiets */
 function territoryAssignHtml(feature) {
+    if (simulationPreview) return '';
     if (isMobileMap()) return '';
     const name = regionName(state.level, feature);
     const key = regionKey(state.level, feature);
@@ -662,6 +725,22 @@ function territoryAssignHtml(feature) {
 function regionPopupHtml(feature) {
     const name = regionName(state.level, feature);
     const entry = regionStats.get(regionKey(state.level, feature));
+    if (simulationPreview) {
+        const info = simulationRegionInfo(feature);
+        const customers = (info.change?.customerIds || []).map((id) => getCustomer(id)).filter(Boolean);
+        const revenue = customers.reduce((sum, customer) => sum + (customer.umsatz || 0), 0);
+        const changed = Boolean(info.change);
+        return `<div class="popup simulation-region-popup">
+            <h3>${escapeHtml(name)}</h3>
+            <p class="simulation-popup-state">${changed ? 'Simulierte Änderung' : 'Unverändert'}</p>
+            <div class="simulation-compare">
+                <div><span>Alt</span><b><i class="dot" style="background:${attrColor(simulationPreview.attr, info.oldValue)}"></i>${escapeHtml(info.oldValue)}</b></div>
+                <span class="simulation-arrow">→</span>
+                <div><span>Neu</span><b><i class="dot" style="background:${attrColor(simulationPreview.attr, info.newValue)}"></i>${escapeHtml(info.newValue)}</b></div>
+            </div>
+            ${changed ? `<p><b>${customers.length}</b> Kunden · <b>${Math.round(revenue).toLocaleString('de-DE')} €</b> Umsatz</p>` : '<p class="muted small">Für dieses Gebiet ist keine Änderung vorgesehen.</p>'}
+        </div>`;
+    }
     const assign = territoryAssignHtml(feature);
     const revenue = entry?.customers?.reduce((sum, c) => sum + (c.umsatz || 0), 0) || 0;
     const revenueLine = revenue ? `<p class="region-revenue">Umsatz gesamt: <b>${revenue.toLocaleString('de-DE')} €</b></p>` : '';

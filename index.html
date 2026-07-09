@@ -258,6 +258,23 @@
         </aside>
 
         <main id="map" role="application" aria-label="Deutschlandkarte"></main>
+        <section id="simulation-map-bar" class="simulation-map-bar" aria-label="Simulationsansicht" hidden>
+            <div class="simulation-map-status">
+                <span class="simulation-map-badge">Simulation</span>
+                <strong>Noch nicht gespeichert</strong>
+                <span id="simulation-map-summary"></span>
+            </div>
+            <div class="simulation-map-actions">
+                <div class="seg-toggle simulation-view-toggle" role="group" aria-label="Vergleichsansicht">
+                    <button type="button" class="seg" data-simulation-view="old">Alt</button>
+                    <button type="button" class="seg" data-simulation-view="new">Neu</button>
+                    <button type="button" class="seg active" data-simulation-view="changes">Änderungen</button>
+                </div>
+                <button type="button" id="simulation-map-edit">Simulation bearbeiten</button>
+                <button type="button" id="simulation-map-discard" class="danger">Verwerfen</button>
+                <button type="button" id="simulation-map-commit" class="primary">Zuweisung übernehmen</button>
+            </div>
+        </section>
 
         <div id="dropzone" class="dropzone"><div>📥 Excel- oder CSV-Datei hier ablegen</div></div>
         <div id="toasts" class="toasts" aria-live="polite"></div>
@@ -325,7 +342,7 @@
         <dialog id="cockpit-dialog" class="panel-sheet">
             <header>
                 <h2>🗺️ Gebietsplanung · Cockpit</h2>
-                <button class="dialog-close" aria-label="Zurück zur Karte">Zur Karte</button>
+                <button id="cockpit-to-map" class="dialog-close" aria-label="Zurück zur Karte">Zur Karte</button>
             </header>
             <p class="muted small">Kennzahlen je Vertriebsbezirk. Weisen Sie unten ausgewählte Gebiete testweise einem anderen Ziel zu – die Werte aktualisieren sich sofort (Simulation, ändert Ihre Daten nicht).</p>
             <div class="cockpit-scope">
