@@ -38,6 +38,7 @@ let includeEmpty = false;      // Gebiete ohne Kunden einbeziehen
 let kpiSearch = '';            // Kennzahlen-Filter
 let kpiSort = 'umsatz';        // Kennzahlen-Sortierung
 let showAllKpis = false;       // kompakte Top/Flop-Ansicht im Cockpit
+let groupScope = '';           // Vertriebsgruppe-Fokus im Cockpit
 
 const filters = { search: '', dim: {} };
 
@@ -61,8 +62,36 @@ function valueColor(value) {
     return attrColor(assignAttr, value);
 }
 function targetValues() {
-    return [...new Set(state.customers.map(attrValueOf))].filter((v) => v !== UNASSIGNED)
+    return [...new Set(scopedCustomers().map(attrValueOf))].filter((v) => v !== UNASSIGNED)
         .sort((a, b) => a.localeCompare(b, 'de'));
+}
+
+function groupValueOf(customer) {
+    return String(customer?.gruppe ?? '').trim() || UNASSIGNED;
+}
+
+function groupOptions() {
+    const values = state.dims.gruppe?.active
+        ? [...state.dims.gruppe.values.keys()]
+        : [...new Set(state.customers.map(groupValueOf))];
+    return values.filter((v) => v !== UNASSIGNED).sort((a, b) => a.localeCompare(b, 'de'));
+}
+
+function inGroupScope(customer) {
+    return !groupScope || groupValueOf(customer) === groupScope;
+}
+
+function scopedCustomers() {
+    return state.customers.filter(inGroupScope);
+}
+
+function resetSimulationState() {
+    overrides = new Map();
+    pendingTerr = new Map();
+    opsLog = [];
+    selected = new Set();
+    const selectAll = document.getElementById('sim-select-all');
+    if (selectAll) selectAll.checked = false;
 }
 
 export function initCockpit() {
@@ -90,12 +119,19 @@ export function initCockpit() {
         showAllKpis = !showAllKpis;
         renderTable();
     });
+document.getElementById('cockpit-group-scope').addEventListener('change', (e) => {
+    groupScope = e.target.value;
+    filters.dim.gruppe = '';
+    resetSimulationState();
+    renderGroupSelect();
+    renderAssignAttrSelect();
+    renderFilterControls();
+    renderAll();
+});
     document.getElementById('sim-assign-attr').addEventListener('change', (e) => {
         assignAttr = e.target.value;
         // Zuweisungs-Ziel gewechselt -> laufende Simulation verwerfen
-        overrides = new Map();
-        pendingTerr = new Map();
-        opsLog = [];
+        resetSimulationState();
         renderAll();
     });
 
@@ -103,21 +139,20 @@ export function initCockpit() {
 }
 
 async function open() {
-    overrides = new Map();
-    pendingTerr = new Map();
-    opsLog = [];
-    selected = new Set();
+    resetSimulationState();
     assignAttr = state.dims.bezirk?.active ? 'bezirk' : (assignableDims()[0]?.id ?? 'bezirk');
     includeEmpty = false;
     kpiSearch = '';
     kpiSort = 'umsatz';
     showAllKpis = false;
+    groupScope = '';
     filters.search = '';
     filters.dim = {};
     document.getElementById('sim-search').value = '';
     document.getElementById('cockpit-kpi-search').value = '';
     document.getElementById('cockpit-kpi-sort').value = 'umsatz';
     document.getElementById('sim-include-empty').checked = false;
+    renderGroupSelect();
     renderLevelSelect();
     renderAssignAttrSelect();
     renderFilterControls();
@@ -128,8 +163,24 @@ async function open() {
 
 function renderAssignAttrSelect() {
     const sel = document.getElementById('sim-assign-attr');
-    const options = assignableDims();
+    let options = assignableDims();
+    if (groupScope) options = options.filter((o) => o.id !== 'gruppe');
+    if (!options.some((o) => o.id === assignAttr)) assignAttr = options[0]?.id ?? 'bezirk';
     sel.innerHTML = options.map((o) => `<option value="${o.id}"${o.id === assignAttr ? ' selected' : ''}>${escapeHtml(o.label)}</option>`).join('');
+}
+
+function renderGroupSelect() {
+    const sel = document.getElementById('cockpit-group-scope');
+    const groups = groupOptions();
+    sel.innerHTML = '<option value="">Alle Gruppen</option>' +
+        groups.map((g) => `<option value="${escapeHtml(g)}"${g === groupScope ? ' selected' : ''}>${escapeHtml(g)}</option>`).join('');
+    sel.disabled = groups.length === 0;
+    const note = document.getElementById('cockpit-scope-note');
+    if (note) {
+        note.textContent = groupScope
+            ? `Analyse und Simulation sind auf „${groupScope}" begrenzt.`
+            : 'Alle Vertriebsgruppen im Vergleich.';
+    }
 }
 
 function renderLevelSelect() {
@@ -184,6 +235,7 @@ function searchDigits() {
 }
 
 function customerMatches(c) {
+    if (!inGroupScope(c)) return false;
     for (const def of DIMENSIONS) {
         const val = filters.dim[def.id];
         if (val && (String(c[def.field] ?? '').trim() || UNASSIGNED) !== val) return false;
@@ -219,6 +271,7 @@ function visibleRegions() {
             if (!includeEmpty) continue;
             if (digits && !regionPlz(region).startsWith(digits)) continue;
             const terr = getTerritory(state.level, region.key);
+            if (groupScope && ((terr && terr.gruppe) || UNASSIGNED) !== groupScope) continue;
             result.push({ region, ids: [], dom: (terr && terr[assignAttr]) || '—', empty: true });
         } else {
             const ids = filteredIds(region);
@@ -245,7 +298,7 @@ function dominantOf(ids) {
 
 function computeStats(useOverrides) {
     const stats = new Map();
-    for (const c of state.customers) {
+    for (const c of scopedCustomers()) {
         const key = useOverrides ? effectiveValue(c) : attrValueOf(c);
         if (!stats.has(key)) stats.set(key, { count: 0, umsatz: 0 });
         const s = stats.get(key);
@@ -394,7 +447,7 @@ function renderFairness(sim, allKeys, fmtEur) {
 function renderFilterControls() {
     // Hierarchie-Filter (nur aktive Gebietsebenen)
     const dimWrap = document.getElementById('sim-dim-filters');
-    const dims = assignableDims();
+    const dims = assignableDims().filter((dim) => dim.id !== 'gruppe' || !groupScope);
     dimWrap.innerHTML = dims.map((dim) => {
         const def = DIMENSIONS.find((d) => d.id === dim.id);
         const values = state.dims[dim.id]?.values ?? new Map();
@@ -407,6 +460,7 @@ function renderFilterControls() {
     dimWrap.querySelectorAll('select[data-dimfilter]').forEach((sel) => {
         sel.addEventListener('change', () => {
             filters.dim[sel.dataset.dimfilter] = sel.value;
+            renderTargetSelect();
             renderRegionList();
         });
     });
@@ -427,7 +481,8 @@ function renderRegionList() {
 
     const totalCust = visible.reduce((sum, v) => sum + v.ids.length, 0);
     const emptyCount = visible.filter((v) => v.empty).length;
-    infoEl.textContent = `${visible.length} Gebiet${visible.length === 1 ? '' : 'e'} · ${totalCust} Kunden gefiltert${emptyCount ? ` · ${emptyCount} ohne Kunden` : ''}`;
+    const groupText = groupScope ? ` · Gruppe: ${groupScope}` : '';
+    infoEl.textContent = `${visible.length} Gebiet${visible.length === 1 ? '' : 'e'} · ${totalCust} Kunden gefiltert${groupText}${emptyCount ? ` · ${emptyCount} ohne Kunden` : ''}`;
 
     document.getElementById('sim-apply').disabled = visible.length === 0;
     document.getElementById('sim-select-all').checked = visible.length > 0 && visible.every((v) => selected.has(v.region.key));
@@ -492,11 +547,18 @@ function assignSelected() {
             if (c && attrValueOf(c) !== target) { overrides.set(id, target); moved++; }
         }
         // Gebietszuordnung (auch für leere Gebiete) merken
-        pendingTerr.set(`${state.level}:${region.key}`, { value: target, name: region.name, level: state.level, key: region.key });
+        pendingTerr.set(`${state.level}:${region.key}`, {
+            value: target,
+            group: groupScope || null,
+            name: region.name,
+            level: state.level,
+            key: region.key
+        });
     }
 
     // Kurzbeschreibung mit aktiven Filtern
     const parts = [];
+    if (groupScope) parts.push(groupScope);
     for (const def of DIMENSIONS) if (filters.dim[def.id]) parts.push(filters.dim[def.id]);
     if (searchDigits()) parts.push(`PLZ ${searchDigits()}xxx`);
     const scope = parts.length ? ` (${parts.join(', ')})` : '';
@@ -548,6 +610,7 @@ function commitSimulation() {
     }
     for (const info of pendingTerr.values()) {
         setTerritory(info.level, info.key, assignAttr, info.value, info.name);
+        if (info.group && assignAttr !== 'gruppe') setTerritory(info.level, info.key, 'gruppe', info.group, info.name);
     }
     setCustomers(state.customers, { fileName: state.fileName, importedAt: state.importedAt });
     emit('dataset:dirty');
