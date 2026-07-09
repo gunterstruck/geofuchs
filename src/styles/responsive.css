@@ -51,6 +51,34 @@
         text-align: left;
         white-space: normal;
     }
+
+    .sim-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .sim-options {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .sim-options #sim-region-info {
+        margin-left: 0;
+    }
+
+    .simulation-panel footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .simulation-history-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .simulation-panel #sim-commit {
+        width: 100%;
+    }
 }
 
 /* Touch-Ziele auf Mobilgeräten vergrößern */

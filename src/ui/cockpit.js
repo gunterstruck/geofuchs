@@ -41,6 +41,7 @@ let showAllKpis = false;       // kompakte Top/Flop-Ansicht im Cockpit
 let groupScope = '';           // Vertriebsgruppe-Fokus im Cockpit
 let simulationMapActive = false;
 let simulationMapMode = 'changes';
+let undoStack = [];
 
 const filters = { search: '', dim: {} };
 
@@ -95,9 +96,33 @@ function resetSimulationState() {
     overrides = new Map();
     pendingTerr = new Map();
     opsLog = [];
+    undoStack = [];
     selected = new Set();
     const selectAll = document.getElementById('sim-select-all');
     if (selectAll) selectAll.checked = false;
+}
+
+function snapshotSimulation() {
+    return {
+        overrides: new Map(overrides),
+        pendingTerr: new Map([...pendingTerr].map(([id, info]) => [
+            id,
+            { ...info, customerIds: [...(info.customerIds || [])] }
+        ])),
+        opsLog: opsLog.map((op) => ({ ...op, territoryIds: [...(op.territoryIds || [])] }))
+    };
+}
+
+function undoSimulationStep() {
+    const previous = undoStack.pop();
+    if (!previous) return;
+    overrides = previous.overrides;
+    pendingTerr = previous.pendingTerr;
+    opsLog = previous.opsLog;
+    selected = new Set();
+    document.getElementById('sim-select-all').checked = false;
+    renderAll();
+    showToast('Letzten Simulationsschritt zurückgenommen.', 'info');
 }
 
 function simulationTotals() {
@@ -170,6 +195,7 @@ export function initCockpit() {
         renderRegionList();
     });
     document.getElementById('sim-apply').addEventListener('click', assignSelected);
+    document.getElementById('sim-undo').addEventListener('click', undoSimulationStep);
     document.getElementById('sim-reset').addEventListener('click', resetSimulation);
     document.getElementById('sim-commit').addEventListener('click', commitSimulation);
     document.getElementById('simulation-map-edit').addEventListener('click', editSimulation);
@@ -629,6 +655,9 @@ function assignSelected() {
         return;
     }
 
+    undoStack.push(snapshotSimulation());
+    if (undoStack.length > 30) undoStack.shift();
+
     let moved = 0;
     let movedRevenue = 0;
     for (const { region, ids } of chosen) {
@@ -685,6 +714,7 @@ function resetSimulation() {
     overrides = new Map();
     pendingTerr = new Map();
     opsLog = [];
+    undoStack = [];
     selected = new Set();
     document.getElementById('sim-select-all').checked = false;
     renderAll();
@@ -694,6 +724,7 @@ function renderChanges() {
     const el = document.getElementById('sim-changes');
     const nothing = overrides.size === 0 && pendingTerr.size === 0;
     document.getElementById('sim-commit').disabled = nothing;
+    document.getElementById('sim-undo').disabled = undoStack.length === 0;
     const mapButton = document.getElementById('cockpit-to-map');
     mapButton.textContent = nothing ? 'Zur Karte' : 'Simulation auf Karte prüfen';
     mapButton.classList.toggle('simulation-ready', !nothing);
