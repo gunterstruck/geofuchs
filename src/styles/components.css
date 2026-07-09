@@ -292,6 +292,12 @@
 .fairness-line { font-size: 0.82rem; margin-top: 2px; }
 
 .change-row { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--color-surface-2); }
+.change-row-result {
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    text-align: right;
+    white-space: nowrap;
+}
 
 /* Cockpit-Simulation: Filter + Gebietsliste */
 .simulation-panel {

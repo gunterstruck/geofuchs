@@ -41,6 +41,16 @@
         margin-left: 28px;
         justify-items: start;
     }
+
+    .change-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .change-row-result {
+        text-align: left;
+        white-space: normal;
+    }
 }
 
 /* Touch-Ziele auf Mobilgeräten vergrößern */
