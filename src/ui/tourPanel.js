@@ -15,6 +15,7 @@ import { printDayPlan, downloadIcs } from '../features/tourExport.js';
 import { copyText, tourText } from '../features/handoff.js';
 import { visitStatus, STATUS_COLORS, STATUS_LABELS } from '../features/visits.js';
 import { loadTours, saveTours } from '../services/storage.js';
+import { getRoadRoute, routingKey } from '../services/routing.js';
 import { flyToCustomer, focusPoint, fitTourRoute } from '../features/map.js';
 import { showMapView } from './sidebar.js';
 import { showToast } from './toast.js';
@@ -28,6 +29,11 @@ let savedTours = [];
 let scopeExpanded = false; // Bezirk-Auswahl aufgeklappt?
 let tourExpert = false;    // Experten-Modus (mehr Optionen)
 let hiddenExpertSections = new Set();
+let suggestionRoadKey = '';
+let suggestionRoadPath = null;
+let suggestionRoadLoading = false;
+let suggestionRoadFailed = false;
+let suggestionRoadSeq = 0;
 
 const HIDDEN_EXPERT_KEY = 'gf_hidden_expert_sections';
 const SWIPE_HIDE_PX = 72;
@@ -476,6 +482,34 @@ function effStops() {
     return dest ? [...tourStops(), dest] : tourStops();
 }
 
+function suggestionRoutePoints() {
+    if (!state.tour.start) return [];
+    const points = [state.tour.start, ...effStops()];
+    if (state.tour.roundTrip && points.length > 1) points.push(state.tour.start);
+    return points.filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng));
+}
+
+function requestSuggestionRoadRoute(points) {
+    const key = routingKey(points);
+    if (key === suggestionRoadKey) return;
+    const seq = ++suggestionRoadSeq;
+    suggestionRoadKey = key;
+    suggestionRoadPath = null;
+    suggestionRoadLoading = true;
+    suggestionRoadFailed = false;
+    updateSuggestModeUi();
+
+    getRoadRoute(points).then((route) => {
+        if (seq !== suggestionRoadSeq || key !== suggestionRoadKey) return;
+        suggestionRoadLoading = false;
+        suggestionRoadFailed = !route?.latLngs?.length;
+        suggestionRoadPath = route?.latLngs?.map(([lat, lng]) => ({ lat, lng })) || null;
+        updateSuggestModeUi();
+        renderSuggestions();
+        if (state.tour.mapFocus) emit('tour:changed');
+    });
+}
+
 function toggleRouteLineMode() {
     state.tour.routeLineMode = state.tour.routeLineMode === 'road' ? 'air' : 'road';
     emit('tour:changed');
@@ -632,7 +666,13 @@ function updateSuggestModeUi() {
     });
     document.getElementById('radius-label').textContent = route ? 'Korridor (Abstand zur Route)' : 'Umkreis';
     document.getElementById('suggest-hint').textContent = route
-        ? 'Kunden entlang der gesamten Strecke (Start → Stopps → zurück), höchstens so weit neben dem Weg.'
+        ? (suggestionRoadLoading
+            ? 'Straßenroute wird berechnet. Danach erscheinen Kunden im Korridor entlang des tatsächlichen Straßenverlaufs.'
+            : suggestionRoadFailed
+                ? 'Straßenroute derzeit nicht verfügbar. Vorschläge verwenden vorübergehend die direkte Verbindung.'
+                : suggestionRoadPath
+                    ? 'Kunden entlang der berechneten Straßenroute, höchstens so weit neben dem tatsächlichen Straßenverlauf.'
+                    : 'Kunden entlang der Tour. Sobald Start und Ziel feststehen, wird der Straßenverlauf berechnet.')
         : 'Kunden im Umkreis des Startpunkts.';
 }
 
@@ -646,8 +686,17 @@ function renderSuggestions() {
 
     const routeMode = state.tour.suggestMode === 'route';
     const pool = tourPool();
+    const routePoints = routeMode ? suggestionRoutePoints() : [];
+    if (routeMode && routePoints.length >= 2) {
+        const key = routingKey(routePoints);
+        if (key !== suggestionRoadKey) requestSuggestionRoadRoute(routePoints);
+        if (suggestionRoadLoading) {
+            el.innerHTML = '<p class="muted"><span class="spinner"></span> Straßenroute und passende Kunden werden berechnet…</p>';
+            return;
+        }
+    }
     const suggestions = routeMode
-        ? suggestAlongRoute(state.tour.start, effStops(), pool, state.tour.radiusKm, exclude, state.tour.roundTrip, overdueFirst)
+        ? suggestAlongRoute(state.tour.start, effStops(), pool, state.tour.radiusKm, exclude, state.tour.roundTrip, overdueFirst, suggestionRoadPath)
         : suggestNearby(state.tour.start, pool, state.tour.radiusKm, exclude, overdueFirst);
 
     if (suggestions.length === 0) {

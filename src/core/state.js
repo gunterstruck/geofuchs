@@ -39,7 +39,7 @@ export const state = {
     level: 'kreise',
     // 'auto' = nach Zoom | 'rep' = Außendienst/Kundenpunkte | 'bezirk' | 'gruppe' | 'status'
     colorMode: 'auto',
-    basemap: 'light',
+    basemap: 'standard',
 
     // Gebietszuordnungen (unabhängig von Kunden): 'level:regionKey' -> { bezirk, gruppe, channel, name }
     territories: {},

@@ -10,7 +10,7 @@ import 'leaflet.markercluster';
 import { CONFIG } from '../core/config.js';
 import { state, on, emit, repColor, attrColor, visibleCustomers, tourScopedCustomers, getCustomer, markDirty, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
-import { fetchRoadRoute, routingKey } from '../services/routing.js';
+import { getRoadRoute, peekRoadRoute } from '../services/routing.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
 import { suggestNearby, suggestAlongRoute } from './tour.js';
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
@@ -30,7 +30,6 @@ let featureByKey = new Map();
 let currentView = { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
 let roadRouteSeq = 0;
 let simulationPreview = null;
-const roadRouteCache = new Map();
 const ROUTE_HUE_START = 0;      // rot
 const ROUTE_HUE_END = 276;      // lila
 
@@ -43,7 +42,7 @@ function isMobileMap() {
 }
 
 function tileOptions(key = state.basemap) {
-    return CONFIG.tileLayers?.[key] || CONFIG.tileLayers?.light || CONFIG.tileLayer;
+    return CONFIG.tileLayers?.[key] || CONFIG.tileLayers?.standard || CONFIG.tileLayer;
 }
 
 function applyBasemap() {
@@ -873,7 +872,7 @@ function markerCustomers() {
 }
 
 function tourFocusCustomers() {
-    const { start, stopCustomers, dest } = currentTourRoutePoints();
+    const { start, stopCustomers, dest, routePts } = currentTourRoutePoints();
     const ids = new Set();
     if (start?.customerId) ids.add(start.customerId);
     for (const c of stopCustomers) ids.add(c.id);
@@ -882,8 +881,10 @@ function tourFocusCustomers() {
 
     const pool = tourScopedCustomers();
     const exclude = new Set(ids);
+    const road = state.tour.suggestMode === 'route' ? peekRoadRoute(routePts) : null;
+    const roadPath = road?.latLngs?.map(([lat, lng]) => ({ lat, lng })) || null;
     const suggestions = state.tour.suggestMode === 'route'
-        ? suggestAlongRoute(start, [...stopCustomers, dest].filter(Boolean), pool, state.tour.radiusKm, exclude, state.tour.roundTrip, false)
+        ? suggestAlongRoute(start, [...stopCustomers, dest].filter(Boolean), pool, state.tour.radiusKm, exclude, state.tour.roundTrip, false, roadPath)
         : suggestNearby(start, pool, state.tour.radiusKm, exclude, false);
 
     for (const { customer } of suggestions) ids.add(customer.id);
@@ -948,12 +949,7 @@ function drawAirRoute(routePts) {
 
 async function drawRoadRoute(routePts) {
     const seq = roadRouteSeq;
-    const key = routingKey(routePts);
-    let road = roadRouteCache.get(key);
-    if (road === undefined) {
-        road = await fetchRoadRoute(routePts.map(([lat, lng]) => ({ lat, lng })));
-        roadRouteCache.set(key, road);
-    }
+    const road = await getRoadRoute(routePts);
     if (seq !== roadRouteSeq || state.tour.routeLineMode !== 'road') return null;
     if (!road?.latLngs?.length) return false;
 
