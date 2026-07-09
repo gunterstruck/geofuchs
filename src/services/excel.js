@@ -41,13 +41,31 @@ function normalizeHeader(h) {
  */
 export async function readWorkbook(file) {
     const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array', codepage: 65001 });
+    const isCsv = /\.csv$/i.test(file.name) || file.type === 'text/csv';
+    let workbook;
+    if (isCsv) {
+        let text;
+        try {
+            text = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+        } catch {
+            text = new TextDecoder('windows-1252').decode(buffer);
+        }
+        text = text.replace(/^\uFEFF/, '');
+        const firstLine = text.split(/\r?\n/, 1)[0] ?? '';
+        const delimiters = [';', ',', '\t'];
+        const separator = delimiters.reduce((best, candidate) => (
+            firstLine.split(candidate).length > firstLine.split(best).length ? candidate : best
+        ), ';');
+        workbook = XLSX.read(text, { type: 'string', FS: separator, raw: false });
+    } else {
+        workbook = XLSX.read(buffer, { type: 'array', codepage: 65001 });
+    }
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    if (!sheet) throw new Error('Die Datei enthält kein Tabellenblatt.');
+    if (!sheet) throw new Error(isCsv ? 'Die CSV-Datei enthält keine Tabelle.' : 'Die Datei enthält kein Tabellenblatt.');
 
     // defval: '' damit leere Zellen nicht fehlen; raw: false liefert formatierte Strings
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
-    if (rows.length === 0) throw new Error('Das Tabellenblatt enthält keine Datenzeilen.');
+    if (rows.length === 0) throw new Error(isCsv ? 'Die CSV-Datei enthält keine Datenzeilen.' : 'Das Tabellenblatt enthält keine Datenzeilen.');
 
     const headers = Object.keys(rows[0]);
     return { headers, rows, sheetName: workbook.SheetNames[0] };

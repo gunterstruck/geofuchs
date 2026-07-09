@@ -330,8 +330,17 @@
 }
 .sim-region-row:hover { background: var(--color-surface-2); }
 .sim-region-row input { accent-color: var(--color-primary); flex-shrink: 0; }
-.sim-region-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sim-region-meta { display: inline-flex; align-items: center; gap: 4px; color: var(--color-text-muted); font-size: 0.8rem; white-space: nowrap; }
+.sim-region-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sim-region-meta {
+    display: grid;
+    justify-items: end;
+    gap: 2px;
+    min-width: 170px;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+}
+.sim-region-owner { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; }
+.sim-region-revenue { color: var(--color-text); font-weight: 700; font-variant-numeric: tabular-nums; }
 
 .sim-assign { display: flex; align-items: flex-end; gap: 10px; margin: 12px 0 4px; flex-wrap: wrap; }
 .sim-assign .sim-field { flex: 1; }
@@ -722,6 +731,20 @@ dialog footer { margin-top: 14px; display: flex; justify-content: flex-end; gap:
     background: var(--color-primary-light);
     border-color: var(--color-primary);
     color: var(--color-primary-dark);
+}
+
+.context-help-popover {
+    position: fixed;
+    z-index: 10000;
+    width: min(300px, calc(100vw - 24px));
+    padding: 10px 12px;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-l);
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-2);
+    font-size: 0.86rem;
+    line-height: 1.4;
 }
 
 .orientation-lock {

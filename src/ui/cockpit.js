@@ -159,6 +159,7 @@ async function open() {
     await loadMembership();
     renderAll();
     dialog.showModal();
+    dialog.scrollTop = 0;
 }
 
 function renderAssignAttrSelect() {
@@ -504,11 +505,16 @@ function renderRegionList() {
     }
 
     const shown = visible.slice(0, MAX_ROWS);
+    const fmtEur = (value) => `${Math.round(value).toLocaleString('de-DE')} €`;
+    const regionRevenue = (ids) => ids.reduce((sum, id) => sum + (getCustomer(id)?.umsatz || 0), 0);
     listEl.innerHTML = shown.map(({ region, ids, dom, empty }) => `
         <label class="sim-region-row${empty ? ' is-empty' : ''}">
             <input type="checkbox" data-region="${escapeHtml(region.key)}" ${selected.has(region.key) ? 'checked' : ''}>
             <span class="sim-region-name">${escapeHtml(region.name)}${empty ? ' <span class="muted small">(leer)</span>' : ''}</span>
-            <span class="sim-region-meta"><span class="dot" style="background:${valueColor(dom)}"></span>${escapeHtml(dom)}${empty ? '' : ` · ${ids.length}`}</span>
+            <span class="sim-region-meta">
+                <span class="sim-region-owner"><span class="dot" style="background:${valueColor(dom)}"></span>${escapeHtml(dom)}${empty ? '' : ` · ${ids.length}`}</span>
+                ${empty ? '' : `<span class="sim-region-revenue">${fmtEur(regionRevenue(ids))} Umsatz</span>`}
+            </span>
         </label>
     `).join('') + (visible.length > MAX_ROWS
         ? `<p class="muted small">… ${visible.length - MAX_ROWS} weitere – bitte Filter verfeinern.</p>` : '');
