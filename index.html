@@ -377,16 +377,18 @@
                 <h3>Was-wäre-wenn: Gebiete zuweisen <span class="help-dot" tabindex="0" title="Simulation bedeutet: Die Karte und Kennzahlen zeigen eine testweise Zuordnung. Erst &quot;Zuweisung übernehmen&quot; schreibt die Änderung in Ihre Daten.">?</span></h3>
                 <p class="muted small">Filtern Sie die Gebiete, wählen Sie eine oder mehrere aus (z. B. mehrere Landkreise oder alle PLZ 52xxx) und weisen Sie die gefilterten Kunden testweise einem Vertriebsbezirk oder einer Gruppe zu.</p>
                 <div class="sim-filters">
-                    <label class="sim-field">Ebene <span class="help-dot" tabindex="0" title="Bestimmt, welche Gebietsgrenzen in der Simulation ausgewählt werden: Landkreis oder PLZ-Ebene.">?</span>
+                    <label class="sim-field">
+                        <span class="sim-field-label">Ebene <span class="help-dot" tabindex="0" title="Bestimmt, welche Gebietsgrenzen in der Simulation ausgewählt werden: Landkreis oder PLZ-Ebene.">?</span></span>
                         <select id="sim-level"></select>
                     </label>
-                    <label class="sim-field">Suche / PLZ-Präfix <span class="help-dot" tabindex="0" title="Grenzt die Gebietsliste ein. PLZ-Präfix 52 findet z. B. alle passenden PLZ-Gebiete.">?</span>
+                    <label class="sim-field">
+                        <span class="sim-field-label">Suche / PLZ-Präfix <span class="help-dot" tabindex="0" title="Grenzt die Gebietsliste ein. PLZ-Präfix 52 findet z. B. alle passenden PLZ-Gebiete.">?</span></span>
                         <input id="sim-search" type="search" placeholder="z. B. 52 oder Kreisname" autocomplete="off">
                     </label>
                     <span id="sim-dim-filters"></span>
                 </div>
-                <label class="check-inline"><input type="checkbox" id="sim-include-empty"> Auch Gebiete ohne Kunden einbeziehen <span class="help-dot" tabindex="0" title="Aktivieren, wenn Sie weiße Flecken oder leere Gebiete bewusst einem Vertriebsbezirk zuordnen wollen.">?</span></label>
-                <div class="sim-region-head">
+                <div class="sim-options">
+                    <label class="check-inline"><input type="checkbox" id="sim-include-empty"> Auch Gebiete ohne Kunden einbeziehen <span class="help-dot" tabindex="0" title="Aktivieren, wenn Sie weiße Flecken oder leere Gebiete bewusst einem Vertriebsbezirk zuordnen wollen.">?</span></label>
                     <label class="check-inline"><input type="checkbox" id="sim-select-all"> Alle sichtbaren auswählen</label>
                     <span id="sim-region-info" class="muted small"></span>
                 </div>
@@ -402,7 +404,10 @@
                 </div>
                 <div id="sim-changes"></div>
                 <footer>
-                    <button id="sim-reset" class="text-action">Simulation zurücksetzen</button>
+                    <div class="simulation-history-actions">
+                        <button id="sim-undo" type="button" disabled>↶ Ein Schritt zurück</button>
+                        <button id="sim-reset" class="text-action">Simulation zurücksetzen</button>
+                    </div>
                     <button id="sim-commit" class="primary">Zuweisung übernehmen</button>
                 </footer>
             </div>

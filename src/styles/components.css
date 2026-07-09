@@ -315,12 +315,31 @@
     gap: 10px;
     margin-top: 12px;
 }
-.sim-filters { display: flex; flex-wrap: wrap; gap: 8px 10px; margin: 8px 0; }
+.sim-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+    align-items: end;
+    gap: 10px 12px;
+    margin: 12px 0;
+}
 .sim-field { display: flex; flex-direction: column; font-size: 0.75rem; color: var(--color-text-muted); gap: 3px; }
-.sim-field select, .sim-field input { font-size: 0.86rem; min-width: 130px; }
+.sim-field-label { display: inline-flex; align-items: center; min-height: 20px; }
+.sim-field-label .help-dot { flex: 0 0 auto; }
+.sim-field select, .sim-field input { min-width: 0; font-size: 0.86rem; }
 #sim-dim-filters { display: contents; }
 
-.sim-region-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 4px; flex-wrap: wrap; }
+.sim-options {
+    display: flex;
+    align-items: center;
+    gap: 10px 24px;
+    padding: 9px 10px;
+    margin: 0 0 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-l);
+    background: rgba(255, 255, 255, 0.72);
+    flex-wrap: wrap;
+}
+.sim-options #sim-region-info { margin-left: auto; }
 
 .sim-region-list { border: 1px solid var(--color-border); border-radius: var(--radius-l); max-height: 240px; }
 .sim-region-list > p { padding: 10px; margin: 0; }
@@ -366,6 +385,18 @@
 .simulation-panel #sim-commit:hover:not(:disabled) {
     background: #115e59;
     border-color: #115e59;
+}
+.simulation-history-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+#sim-undo {
+    border-color: var(--color-primary);
+    color: var(--color-primary-dark);
+    background: #ffffff;
+    font-weight: 700;
 }
 
 #cockpit-to-map.simulation-ready {
