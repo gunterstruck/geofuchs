@@ -632,12 +632,9 @@ function restyleRegions() {
     regionLayer.eachLayer((layer) => layer.setStyle(styleFor(layer.feature)));
 }
 
-/** Kompakte Euro-Angabe für Labels */
-function fmtEuroShort(n) {
-    if (!n) return '';
-    if (n >= 1e6) return `${(n / 1e6).toLocaleString('de-DE', { maximumFractionDigits: 1 })} Mio €`;
-    if (n >= 1e3) return `${Math.round(n / 1e3).toLocaleString('de-DE')} T€`;
-    return `${Math.round(n).toLocaleString('de-DE')} €`;
+/** Gesamtumsatz kompakt und einheitlich in Tausend Euro anzeigen. */
+function fmtRevenueThousands(n) {
+    return `${Math.round(n / 1e3).toLocaleString('de-DE')} T€`;
 }
 
 /**
@@ -651,9 +648,16 @@ function renderLabels() {
 
     const attr = currentView.paint;
     const revByVal = new Map();
-    for (const c of markerCustomers()) {
+    const revenueValues = new Set();
+    // Filter steuern die sichtbaren Flächen, nicht die fachliche Gesamtsumme
+    // eines Vertriebsbezirks oder einer Vertriebsgruppe.
+    for (const c of state.customers) {
         const v = attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
-        revByVal.set(v, (revByVal.get(v) ?? 0) + (c.umsatz || 0));
+        if (c.umsatz === null || c.umsatz === undefined || c.umsatz === '') continue;
+        const revenue = Number(c.umsatz);
+        if (!Number.isFinite(revenue)) continue;
+        revByVal.set(v, (revByVal.get(v) ?? 0) + revenue);
+        revenueValues.add(v);
     }
 
     // Anker-Gebiet je Wert (meiste Kunden dieses Werts)
@@ -684,15 +688,21 @@ function renderLabels() {
         const [minX, minY, maxX, maxY] = a.feature._bbox;
         const center = [(minY + maxY) / 2, (minX + maxX) / 2];
         const col = attrColor(attr, val);
-        const rev = fmtEuroShort(revByVal.get(val) || 0);
+        const hasRevenue = revenueValues.has(val);
+        const revenue = revByVal.get(val) || 0;
+        const rev = hasRevenue ? fmtRevenueThousands(revenue) : '';
+        const dimension = state.dims[attr]?.label || 'Gebiet';
+        const revenueTitle = hasRevenue
+            ? `Gesamtumsatz ${dimension} ${val}: ${Math.round(revenue).toLocaleString('de-DE')} €`
+            : '';
         L.marker(center, {
             interactive: false,
             keyboard: false,
             icon: L.divIcon({
                 className: 'territory-label-wrapper',
-                html: `<div class="territory-label" style="border-color:${col}">
+                html: `<div class="territory-label" style="border-color:${col}"${revenueTitle ? ` title="${escapeHtml(revenueTitle)}"` : ''}>
                     <span class="tl-dot" style="background:${col}"></span>${escapeHtml(val)}
-                    ${rev ? `<span class="tl-rev">${rev}</span>` : ''}
+                    ${rev ? `<span class="tl-rev">Σ ${rev}</span>` : ''}
                 </div>`,
                 iconSize: null
             })
