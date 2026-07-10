@@ -114,7 +114,12 @@ Datei wählen oder per Drag & Drop ablegen → Dialog „Spalten zuordnen" prüf
 ### 5.4 Umsatz-Formate
 Der Import versteht Umsätze als Excel-Zahl sowie als Text in deutschem Format
 (`1.234,56`), englischem Format (`1,234.56`) und ohne Gruppierung (`45000`, `45.5`).
-Währungszeichen werden ignoriert.
+Währungszeichen werden ignoriert. Die **Umsatzspalte wird spaltenweit einheitlich**
+gelesen: Erkennt TourFuchs eindeutige deutsche Tausenderpunkte (z. B. `189.245`),
+wird die ganze Spalte deutsch interpretiert (`350.070` → 350 070 €, nicht 350,07).
+Nennt die **Überschrift** eine Einheit (`T€`, `TEUR`, `Tsd €`, `Mio €`), wird
+entsprechend ×1000 bzw. ×1 000 000 in volle Euro umgerechnet. In beiden Fällen
+zeigt der Import-Dialog einen **Hinweis mit der erkannten Gesamtsumme** zum Prüfen.
 
 ### 5.5 Neue Liste / Delta-Import
 **Klickpfad:** Tab „📄 Daten" → **„📤 Andere Excel- oder CSV-Liste laden"**

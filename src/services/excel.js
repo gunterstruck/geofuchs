@@ -163,6 +163,43 @@ export function detectRevenueScale(header) {
 
 const scaleNumber = (n, scale) => (n === null ? null : n * scale);
 
+/** Deutsche Schreibweise erzwingen: Punkte = Tausender, Komma = Dezimal. */
+function parseGermanAmount(value) {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    const cleaned = String(value).replace(/[^\d.,\-]/g, '').replace(/\./g, '').replace(',', '.');
+    if (!cleaned || cleaned === '-') return null;
+    const n = parseFloat(cleaned);
+    return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Betragsspalte spaltenweit einlesen. Zahlformate sind pro Wert oft mehrdeutig
+ * (deutsch „350.070" vs. englisch „350.07"), aber innerhalb einer Spalte
+ * einheitlich. Enthält die Spalte eindeutige deutsche Tausenderpunkte
+ * (z. B. „189.245", „1.822") und keine englische Tausendertrennung mit Komma,
+ * wird die GANZE Spalte deutsch interpretiert – das verhindert, dass einzelne
+ * Werte wie „350.070" fälschlich zu 350,07 (1000× zu klein) werden.
+ * @returns {{ values: (number|null)[], format: 'de'|'auto' }}
+ */
+export function parseAmountColumn(rawValues) {
+    let deThousands = 0;
+    let enThousands = 0;
+    let hasComma = 0;
+    for (const raw of rawValues) {
+        const s = raw === null || raw === undefined ? '' : String(raw).trim();
+        if (!s) continue;
+        if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) deThousands++;           // 189.245 / 1.234.567
+        if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) enThousands++;      // 1,234 / 1,234.56
+        if (s.includes(',')) hasComma++;
+    }
+    const forceGerman = deThousands > 0 && enThousands === 0 && hasComma === 0;
+    return {
+        values: rawValues.map((v) => (forceGerman ? parseGermanAmount(v) : parseNumber(v))),
+        format: forceGerman ? 'de' : 'auto'
+    };
+}
+
 function parseCoord(value) {
     if (value === null || value === undefined || value === '') return null;
     const n = parseFloat(String(value).replace(',', '.'));
@@ -259,14 +296,24 @@ export function parseRows(rows, mapping) {
 
     const err = (sheetRow, grund, raw, typ = 'Fehler') => errors.push({ Zeile: sheetRow, Typ: typ, Grund: grund, ...raw });
 
-    // Umsatz-Skalierung aus der Spaltenüberschrift (z. B. „Umsatz T€" → ×1000)
+    // Umsatz spaltenweit einlesen (einheitliches Zahlformat) + optionale
+    // Skalierung aus der Überschrift (z. B. „Umsatz T€" → ×1000).
     const umsatzScale = mapping.umsatz ? detectRevenueScale(mapping.umsatz) : 1;
-    if (umsatzScale !== 1) {
-        const einheit = umsatzScale === 1_000_000 ? 'Millionen Euro' : 'Tausend Euro';
-        errors.push({
-            Zeile: '—', Typ: 'Hinweis',
-            Grund: `Umsatzspalte „${mapping.umsatz}" als ${einheit} erkannt – die Werte wurden ×${umsatzScale.toLocaleString('de-DE')} in volle Euro umgerechnet. Bitte kurz prüfen.`
-        });
+    const umsatzColumn = mapping.umsatz
+        ? parseAmountColumn(rows.map((r) => r[mapping.umsatz]))
+        : { values: [], format: 'auto' };
+    const umsatzByRow = umsatzColumn.values.map((n) => scaleNumber(n, umsatzScale));
+    if (mapping.umsatz) {
+        const total = umsatzByRow.reduce((sum, n) => sum + (n || 0), 0);
+        const hinweise = [];
+        if (umsatzColumn.format === 'de') hinweise.push('deutsche Tausendertrennung (Punkt) erkannt');
+        if (umsatzScale !== 1) hinweise.push(`Einheit ${umsatzScale === 1_000_000 ? 'Millionen' : 'Tausend'} Euro (×${umsatzScale.toLocaleString('de-DE')})`);
+        if (hinweise.length) {
+            errors.push({
+                Zeile: '—', Typ: 'Hinweis',
+                Grund: `Umsatzspalte „${mapping.umsatz}": ${hinweise.join(', ')}. Gesamtsumme ${Math.round(total).toLocaleString('de-DE')} €. Bitte prüfen.`
+            });
+        }
     }
 
     rows.forEach((row, index) => {
@@ -337,7 +384,7 @@ export function parseRows(rows, mapping) {
             ansprechpartner: get('ansprechpartner'),
             telefon: get('telefon'),
             email: get('email'),
-            umsatz: scaleNumber(parseNumber(mapping.umsatz ? row[mapping.umsatz] : null), umsatzScale),
+            umsatz: umsatzByRow[index] ?? null,
             rhythmusWochen: parseWeeks(mapping.rhythmusWochen ? row[mapping.rhythmusWochen] : null),
             besuche: letzterBesuch ? [letzterBesuch] : [],
             lat: hasCoords ? lat : null,
