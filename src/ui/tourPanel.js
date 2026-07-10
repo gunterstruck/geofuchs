@@ -12,7 +12,7 @@ import { CONFIG } from '../core/config.js';
 import { state, on, emit, getCustomer, repColor, tourScopedCustomers, customerInTourScope, UNASSIGNED } from '../core/state.js';
 import { suggestNearby, suggestAlongRoute, optimizeOrder, routeDistance, googleMapsLink } from '../features/tour.js';
 import { printDayPlan, downloadIcs, DEFAULT_VISIT_MINUTES } from '../features/tourExport.js';
-import { planMyDay, combinePlanStart, todayInputValue } from '../features/dayPlanner.js';
+import { combinePlanStart, todayInputValue } from '../features/dayPlanner.js';
 import { encodeTourPayload, MAX_QR_STOPS } from '../features/tourShare.js';
 import { initTourQr, openShareDialog } from './tourQr.js';
 import { copyText, tourText } from '../features/handoff.js';
@@ -45,9 +45,8 @@ export function initTourPanel() {
     document.getElementById('btn-my-location').addEventListener('click', useMyLocation);
     document.getElementById('btn-nearby').addEventListener('click', findNearby);
 
-    // „Mein Tag": Plan-Einstellungen + Ein-Klick-Tagesplaner + QR-Übergabe
+    // Plan-Einstellungen (Datum/Startzeit/Besuchsdauer) + QR-Übergabe
     document.getElementById('plan-date').value = todayInputValue();
-    document.getElementById('btn-plan-day').addEventListener('click', planDay);
     document.getElementById('btn-tour-qr').addEventListener('click', shareTourAsQr);
     initTourQr();
 
@@ -669,7 +668,6 @@ function renderStops() {
     document.getElementById('btn-tour-ics').disabled = !hasRoute;
     document.getElementById('btn-tour-copy').disabled = !hasRoute;
     document.getElementById('btn-tour-qr').disabled = !hasRoute;
-    document.getElementById('btn-plan-day').disabled = !state.tour.start;
     document.getElementById('btn-tour-save').disabled = !hasRoute;
     document.getElementById('btn-tour-clear').disabled = !(state.tour.start || state.tour.destination || stops.length > 0);
 }
@@ -762,32 +760,6 @@ function planOptions() {
         startTime: combinePlanStart(date, time),
         visitMinutes: Number.isFinite(visit) && visit > 0 ? visit : DEFAULT_VISIT_MINUTES
     };
-}
-
-/** „Plane meinen Tag": Tour automatisch aus fälligen/überfälligen Kunden bauen */
-function planDay() {
-    if (!state.tour.start) {
-        showToast('Bitte zuerst einen Startpunkt wählen (Standort oder Kunde).', 'info');
-        return;
-    }
-    const pool = tourPool();
-    if (pool.length === 0) {
-        showToast('Keine Kunden im gewählten Bereich – bitte Bezirk wählen oder Filter prüfen.', 'info', 6000);
-        return;
-    }
-    if (state.tour.stops.length > 0
-        && !confirm('Die aktuelle Tour durch den automatischen Tagesvorschlag ersetzen?')) return;
-
-    const { stops, totalOpportunities } = planMyDay(state.tour.start, pool);
-    if (stops.length === 0) {
-        showToast('Aktuell sind keine Kunden fällig oder überfällig. Tipp: Besuchsrhythmus in den Daten pflegen.', 'info', 7000);
-        return;
-    }
-    state.tour.stops = stops.map((c) => c.id);
-    state.tour.destination = null;
-    emit('tour:changed');
-    const rest = totalOpportunities - stops.length;
-    showToast(`Tagestour mit ${stops.length} Besuchen geplant – überfällige zuerst, Route optimiert.${rest > 0 ? ` ${rest} weitere fällige Kunden bleiben für die nächsten Tage.` : ''}`, 'success', 7000);
 }
 
 /** Tour als QR-Code für die Übergabe ans Handy anzeigen */

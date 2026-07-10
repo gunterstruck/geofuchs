@@ -49,19 +49,24 @@ Tourenoptimierung, Umkreis/Korridor) wird ein **Ein-Klick-Tagesplaner**:
 > überfällige/fällige Kunden des eigenen Bezirks, gewichtet nach Fälligkeit, Umsatz
 > und Fahrstrecke, optimiert als Route ab GPS-Standort.
 
-| # | Item | Akzeptanzkriterien |
-|---|---|---|
-| 2.1 | **Tagesplan-Vorschlag** | Ein Tipp erzeugt Tour mit max. N Stopps (konfigurierbar, Standard 8) aus fälligen/überfälligen Kunden im Tour-Bezirk; Reihenfolge optimiert; Nutzer kann Stopps tauschen/entfernen. Läuft komplett offline (Luftlinien-Optimierung). |
-| 2.2 | **Wochen-Vorschau** | Die 5 nächsten Werktage als Spalten; fällige Kunden automatisch auf Tage verteilt (Kapazität pro Tag einstellbar); Drag & Drop zwischen Tagen. |
-| 2.3 | **Morgen-Startscreen (Mobile)** | App-Start im Außendienst-Modus zeigt Karte + „Plane meinen Tag" + Zähler „X überfällig · Y bald fällig" – ohne Menü-Navigation. |
-| 2.4 | **Besuch abhaken unterwegs** | Stopp als „besucht" markieren aktualisiert `besuche[]` und den Fälligkeitsstatus sofort; nächster Stopp rückt nach. |
-| 2.5 | **Route aufs Handy per QR-Code** | Am Desktop geplante Tour als QR-Code anzeigen (nur die notwendigen Daten: Stopps mit Koordinaten, Name, Telefon, Reihenfolge – komprimiert, Ziel ≤ 1 QR-Code, sonst automatisch mehrteilig). Handy-PWA scannt per Kamera und übernimmt die Tour direkt – **ohne Netzwerk, ohne Datei, ohne Server**. Es wird nie die Kundendatenbank übertragen, nur die Tour. |
+> **Produktentscheidung 10.07.2026 (Nutzerfeedback):** Die Tour plant der Nutzer
+> **manuell** – so wie bisher. Ein automatischer Tourvorschlag (ursprünglich 2.1)
+> ist **gestrichen**; die Wochen-Vorschau (2.2) und der Morgen-Startscreen (2.3)
+> sind **zurückgestellt**, bis der Bedarf erneut validiert ist. Automatik unterstützt
+> nur dort, wo sie nichts vorwegnimmt: Zeiten, Termine, Übergabe.
 
-**Warum das der WOW ist:** Es verwandelt TourFuchs von „Karte mit Kunden" in einen
-Assistenten, der die eigentliche Arbeit (Priorisieren + Planen) abnimmt – und es ist
-zu ~70 % aus vorhandener Logik komponierbar. Die QR-Übergabe (2.5) macht den
-Desktop→Handy-Bruch zum Vorführmoment: Bildschirm zeigen, scannen, losfahren –
-Lokal-first in Reinform.
+| # | Item | Status | Akzeptanzkriterien |
+|---|---|---|---|
+| 2.1 | ~~Tagesplan-Vorschlag (automatisch)~~ | ❌ gestrichen | Nutzerentscheidung: manuelle Planung bleibt der Weg. Logik in Git-Historie erhalten. |
+| 2.2 | Wochen-Vorschau | ⏸ zurückgestellt | Nur nach erneuter Validierung mit Nutzern. |
+| 2.3 | Morgen-Startscreen (Mobile) | ⏸ zurückgestellt | Nur nach erneuter Validierung mit Nutzern. |
+| 2.4 | **Besuch abhaken unterwegs** | offen | Stopp als „besucht" markieren aktualisiert `besuche[]` und den Fälligkeitsstatus sofort; nächster Stopp rückt nach. |
+| 2.5 | **Route aufs Handy per QR-Code** | ✅ umgesetzt | Am Desktop geplante Tour als QR-Code anzeigen (nur die notwendigen Daten). Handy-PWA scannt per Kamera und übernimmt die Tour – ohne Netzwerk, ohne Datei, ohne Server. Es wird nie die Kundendatenbank übertragen, nur die Tour. |
+| 2.6 | **Plan-Einstellungen für Termine** | ✅ umgesetzt | Datum, Startzeit und Besuchsdauer (Standard 45 min) sind wählbar und steuern Tagesplan-Druck und Outlook-Kalendertermine (.ics, ein Termin je Besuch inkl. Fahrzeit). |
+
+**Der WOW-Moment von Release 2** ist die QR-Übergabe (2.5): Bildschirm zeigen,
+scannen, losfahren – Lokal-first in Reinform. Die manuelle Planung bleibt dabei
+vollständig in der Hand des Nutzers.
 
 ### Release 3 – „Entscheidungsvorlage" · **WOW-Feature #2** *(~2 Wochen)*
 
