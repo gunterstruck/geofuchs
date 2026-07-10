@@ -308,12 +308,13 @@ export function parseRows(rows, mapping) {
         const hinweise = [];
         if (umsatzColumn.format === 'de') hinweise.push('deutsche Tausendertrennung (Punkt) erkannt');
         if (umsatzScale !== 1) hinweise.push(`Einheit ${umsatzScale === 1_000_000 ? 'Millionen' : 'Tausend'} Euro (×${umsatzScale.toLocaleString('de-DE')})`);
-        if (hinweise.length) {
-            errors.push({
-                Zeile: '—', Typ: 'Hinweis',
-                Grund: `Umsatzspalte „${mapping.umsatz}": ${hinweise.join(', ')}. Gesamtsumme ${Math.round(total).toLocaleString('de-DE')} €. Bitte prüfen.`
-            });
-        }
+        // Immer die erkannte Gesamtsumme melden – so lässt sich sofort prüfen,
+        // ob die Umsätze korrekt eingelesen wurden.
+        const format = hinweise.length ? `${hinweise.join(', ')}. ` : '';
+        errors.push({
+            Zeile: '—', Typ: 'Hinweis',
+            Grund: `Umsatzspalte „${mapping.umsatz}": ${format}erkannte Gesamtsumme ${Math.round(total).toLocaleString('de-DE')} €. Bitte prüfen, ob das plausibel ist.`
+        });
     }
 
     rows.forEach((row, index) => {

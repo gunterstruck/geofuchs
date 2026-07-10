@@ -79,7 +79,10 @@ describe('parseRows: Umsatz-Skalierung und Summe', () => {
         const { customers, errors } = parseRows(rows, mapping);
         expect(customers[0].umsatz).toBeCloseTo(1234567.89, 2);
         expect(customers[1].umsatz).toBe(48000);
-        expect(errors.some((e) => e.Typ === 'Hinweis')).toBe(false);
+        // kein Tausendertrennungs-/Skalierungs-Vermerk, aber der Summen-Hinweis erscheint immer
+        const hint = errors.find((e) => e.Typ === 'Hinweis');
+        expect(hint.Grund).toContain('erkannte Gesamtsumme');
+        expect(hint.Grund).not.toContain('Tausendertrennung');
     });
 });
 
