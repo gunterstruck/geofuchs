@@ -206,6 +206,21 @@ function initDesktopSidebarDrag() {
     handle.addEventListener('dblclick', resetSidebarPosition);
 }
 
+let desktopNoteHideScheduled = false;
+/**
+ * Den Hinweis „Komplexe Gebietsplanung nur am Desktop" nach kurzer Zeit
+ * automatisch ausblenden – erst wenn er sichtbar ist, dann sanft kollabieren.
+ * Gewinnt Platz und beruhigt das Bild. Läuft einmal pro Sitzung.
+ */
+function scheduleDesktopNoteAutoHide() {
+    if (desktopNoteHideScheduled) return;
+    const note = document.getElementById('mobile-desktop-note');
+    if (!note || note.classList.contains('auto-hidden')) return;
+    if (!isMobileUi() || note.offsetParent === null) return; // nur wenn tatsächlich sichtbar
+    desktopNoteHideScheduled = true;
+    setTimeout(() => note.classList.add('auto-hidden'), 5000);
+}
+
 function applySidebar() {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
@@ -219,6 +234,7 @@ function applySidebar() {
         grip.setAttribute('aria-label', full ? 'Tour-Panel verkleinern' : 'Tour-Panel vergrößern');
         grip.title = full ? 'Tour-Panel verkleinern' : 'Tour-Panel vergrößern';
     }
+    scheduleDesktopNoteAutoHide();
 }
 
 function setMobileSheetSnap(snap) {
