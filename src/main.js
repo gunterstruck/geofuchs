@@ -14,6 +14,8 @@ import { initMap } from './features/map.js';
 import { initSidebar, applyMode, autoRevealIfEmpty } from './ui/sidebar.js';
 import { initImportWizard } from './ui/importWizard.js';
 import { initTourPanel } from './ui/tourPanel.js';
+import { openReceivedFromUrl } from './ui/tourQr.js';
+import { decodeTourPayload, TOUR_HASH_KEY } from './features/tourShare.js';
 import { initCockpit } from './ui/cockpit.js';
 import { initRegionEditor } from './ui/regionEditor.js';
 import { initSearch } from './ui/search.js';
@@ -108,6 +110,16 @@ function scheduleSave() {
     saveTimer = setTimeout(() => saveDataset(datasetSnapshot()), 400);
 }
 
+function handleSharedTourFromUrl() {
+    const hash = window.location.hash || '';
+    if (!hash.includes(`${TOUR_HASH_KEY}=`)) return;
+    const payload = decodeTourPayload(window.location.href);
+    // Fragment entfernen, damit ein Reload die Tour nicht erneut öffnet
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    if (payload) openReceivedFromUrl(payload);
+    else emit('toast', { type: 'error', text: 'Der gescannte Tour-Link konnte nicht gelesen werden.' });
+}
+
 async function init() {
     initToasts();
     initMap('map');
@@ -128,6 +140,12 @@ async function init() {
     } catch (error) {
         console.warn('Gespeicherter Zustand konnte nicht wiederhergestellt werden:', error);
     }
+
+    // QR-Übergabe: Wurde die App über einen gescannten Tour-Link geöffnet
+    // (host/…#t=…), direkt den Empfangs-Dialog zeigen. Kein manuelles Scannen nötig.
+    handleSharedTourFromUrl();
+    // Falls die (bereits offene) PWA einen neuen Tour-Link erhält
+    window.addEventListener('hashchange', handleSharedTourFromUrl);
 
     // Ohne Daten: nach der blanken Karte das Menü mit dem Einstieg einblenden (mobil)
     autoRevealIfEmpty();

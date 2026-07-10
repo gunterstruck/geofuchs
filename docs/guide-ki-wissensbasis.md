@@ -307,11 +307,17 @@ Bereich „Gespeicherte Touren" (Experten-Modus): Namen eingeben
 Setzt den GPS-Standort als Start und zeigt Kunden im Umkreis, überfällige zuerst.
 Die Ansicht „🎯 Chancen" zeigt nur fällige/überfällige Kunden auf der Karte.
 
-### 9.7 Besuchsstatus
+### 9.7 Besuchsstatus und „Heute besucht" abhaken
 Aus „Besuchsrhythmus (Wochen)" und „Letzter Besuch" berechnet TourFuchs je Kunde:
 **ok** (grün) / **bald fällig** (gelb) / **überfällig** (rot; auch: noch nie besucht).
-Kunden ohne Rhythmus haben keinen Status. Im Kunden-Popup kann ein Besuch als
-erledigt eingetragen werden; der Status aktualisiert sich sofort.
+Kunden ohne Rhythmus haben keinen Status.
+Einen Besuch als erledigt eintragen geht an zwei Stellen:
+- **direkt in der Tourliste** (Bereich „Meine Tour"): je Stopp der Button
+  **„✓ Heute"** – der Stopp wird als besucht markiert (durchgestrichen/grün),
+  ideal zum Abarbeiten unterwegs.
+- im **Kunden-Popup** auf der Karte: **„✓ Heute besucht"**.
+Der Besuchsstatus (auch die Farbe auf der Karte) aktualisiert sich sofort und
+wird lokal gespeichert.
 
 ---
 
@@ -325,8 +331,16 @@ Bildschirm → Kamera: ohne Netzwerk, ohne Datei, ohne Server.
 Zeigt den Dialog „📲 Tour an Handy übergeben" mit dem QR-Code. Im Code stecken:
 Stopps (Name, Koordinaten, Adresse, Telefon, Kundennummer), Startpunkt, Datum,
 Startzeit, Besuchsdauer, Rundreise-Einstellung. Maximal 12 Stopps je Code.
+Der QR-Code enthält einen **App-Link** (die Tour steckt im Adress-Fragment `#t=…`,
+das nie an einen Server gesendet wird).
 
-### 10.2 Am Handy (Empfänger)
+### 10.2 Am Handy (Empfänger) – schnellster Weg: normale Kamera
+Den QR-Code einfach mit der **normalen Handy-Kamera** (oder der Kamera-App)
+scannen. Das Handy erkennt den Link und öffnet TourFuchs direkt mit der Tour –
+die **installierte PWA**, sonst der **Browser**. Die App muss vorher nicht
+geöffnet werden. Es erscheint sofort der Empfangs-Dialog (siehe 10.3).
+
+### 10.3 Am Handy (Empfänger) – alternativ in der App scannen
 **Klickpfad:** Tab „Tour" → **„📷 Tour vom Desktop scannen"**
 1. Kamera auf den QR-Code am Desktop-Bildschirm richten (Scan läuft automatisch).
 2. Falls die Kamera nicht verfügbar ist: unten „Foto des QR-Codes wählen"
