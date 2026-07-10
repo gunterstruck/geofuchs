@@ -73,6 +73,7 @@ Beim Import werden die Zeilen geprüft. **Gültige Zeilen werden importiert**, p
 
 - [Ausführliches Schulungshandbuch](./docs/schulung-tourfuchs.md)
 - [Kurzanleitung für Anwender](./docs/kurzanleitung-tourfuchs.md)
+- [Wissensbasis für den Guide-Bot](./docs/guide-ki-wissensbasis.md) – aufgabenorientiert mit dokumentierten Klickpfaden, aktueller Funktionsstand
 
 ---
 
