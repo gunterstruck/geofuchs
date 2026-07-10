@@ -114,6 +114,13 @@
 }
 .popup h3 { margin: 0 0 4px; font-size: 1rem; color: var(--color-text); text-transform: none; letter-spacing: 0; }
 .popup p { margin: 3px 0; font-size: 0.86rem; }
+
+/* Kompakter Kunden-Popup-Kopf */
+.popup-customer h3 { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+.popup-nr { font-size: 0.72rem; font-weight: 600; color: var(--color-text-muted, #64748b); }
+.popup-customer .popup-addr { margin: 2px 0; }
+.popup-customer .popup-meta { margin: 2px 0 4px; }
+.popup-umsatz { color: var(--color-primary-dark, #0f766e); white-space: nowrap; }
 .region-revenue {
     display: inline-block;
     padding: 4px 9px;
@@ -217,7 +224,8 @@
         height: 17px;
     }
     .leaflet-popup-content {
-        max-height: min(48dvh, 360px);
+        margin: 10px 12px;
+        max-height: min(52dvh, 380px);
     }
     .leaflet-popup-content-wrapper {
         max-width: calc(100vw - 28px);
@@ -227,8 +235,16 @@
         top: 0;
         z-index: 2;
         background: linear-gradient(var(--color-surface, #fff) 70%, rgba(255, 255, 255, 0));
-        padding-bottom: 4px;
+        margin: -2px 0 3px;
+        padding-bottom: 3px;
     }
+    /* Kompakter Kopf auf dem Handy: weniger Zeilenabstand, kein Scrollen nötig */
+    .popup h3 { font-size: 0.98rem; margin: 0 0 2px; }
+    .popup p { margin: 2px 0; }
+    .popup .contact-links { margin: 5px 0 3px; }
+    .popup .visit-block { margin: 6px 0 4px; padding: 7px 8px; }
+    .popup .visit-line { margin: 0 0 5px; }
+    .popup-actions { margin-top: 6px; }
     .popup-drag-handle {
         display: inline-flex;
         align-items: center;
