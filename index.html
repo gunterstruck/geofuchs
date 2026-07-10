@@ -200,6 +200,19 @@
                     <div id="start-results"></div>
                 </div>
 
+                <div class="plan-day-box">
+                    <div class="plan-settings">
+                        <label class="plan-field">Datum
+                            <input type="date" id="plan-date"></label>
+                        <label class="plan-field">Start
+                            <input type="time" id="plan-time" value="08:00"></label>
+                        <label class="plan-field">Besuch (Min.)
+                            <input type="number" id="plan-visit-min" value="45" min="10" max="240" step="5"></label>
+                    </div>
+                    <button id="btn-plan-day" class="primary" disabled>🦊 Plane meinen Tag</button>
+                    <p class="muted small">Baut automatisch eine Tour aus fälligen und überfälligen Kunden – überfällige zuerst, Route optimiert. Datum, Startzeit und Besuchsdauer gelten auch für Tagesplan-Druck und Kalender-Termine.</p>
+                </div>
+
                 <div class="expert-only expert-swipe-section" data-expert-section="destination">
                     <h3>2. Ziel <span class="muted small">(optional)</span> <span class="help-dot" tabindex="0" title="Mit Ziel berechnet TourFuchs Vorschläge entlang der Strecke. Ohne Ziel ist der letzte Stopp automatisch das Ziel.">?</span></h3>
                     <div id="tour-dest"></div>
@@ -231,6 +244,8 @@
                     <button id="btn-tour-print" class="expert-only expert-swipe-section" data-expert-section="tour-print" disabled>🖨️ Tagesplan drucken</button>
                     <button id="btn-tour-ics" class="expert-only expert-swipe-section" data-expert-section="tour-ics" disabled>📅 Kalender-Export (.ics)</button>
                     <button id="btn-tour-copy" class="expert-only expert-swipe-section" data-expert-section="tour-copy" disabled>📋 Als Text kopieren (Outlook/Copilot)</button>
+                    <button id="btn-tour-qr" disabled>📲 An Handy übergeben (QR)</button>
+                    <button id="btn-tour-scan">📷 Tour vom Desktop scannen</button>
                     <button id="btn-tour-clear" class="danger" disabled>✕ Tour leeren</button>
                 </div>
 
@@ -453,6 +468,42 @@
                 <button id="import-error-download">⬇ Fehlerliste (.xlsx)</button>
                 <button id="import-result-ok" class="primary">OK</button>
             </footer>
+        </dialog>
+
+        <dialog id="qr-share-dialog">
+            <header>
+                <h2>📲 Tour an Handy übergeben</h2>
+                <button class="dialog-close" aria-label="Schließen">Schließen</button>
+            </header>
+            <div class="qr-share-body">
+                <canvas id="qr-share-canvas"></canvas>
+                <p id="qr-share-info" class="muted small"></p>
+                <p class="muted small">Am Handy in TourFuchs <b>„Tour vom Desktop scannen"</b> wählen und diesen Code abfotografieren. Es wird nur die Tour übertragen – Bildschirm zu Kamera, ohne Netzwerk und ohne Server.</p>
+            </div>
+        </dialog>
+
+        <dialog id="qr-scan-dialog">
+            <header>
+                <h2>📷 Tour vom Desktop scannen</h2>
+                <button class="dialog-close" aria-label="Schließen">Schließen</button>
+            </header>
+            <div class="qr-scan-body">
+                <div id="qr-scan-live">
+                    <video id="qr-scan-video" playsinline muted></video>
+                    <p id="qr-scan-status" class="muted small">Kamera auf den QR-Code am Desktop richten …</p>
+                    <label class="qr-scan-fallback">Kamera klappt nicht? <input type="file" id="qr-scan-file" accept="image/*" capture="environment"> Foto des QR-Codes wählen</label>
+                </div>
+                <div id="qr-scan-result" hidden>
+                    <p id="qr-scan-summary"></p>
+                    <div id="qr-scan-stoplist" class="scroll-list"></div>
+                    <div class="button-column">
+                        <button id="qr-received-adopt" class="primary">➕ Als Tour übernehmen</button>
+                        <button id="qr-received-gmaps">🧭 In Google Maps navigieren</button>
+                        <button id="qr-received-ics">📅 Termine als Kalender (.ics)</button>
+                    </div>
+                    <p id="qr-scan-matchinfo" class="muted small"></p>
+                </div>
+            </div>
         </dialog>
     </div>
     <div id="orientation-lock" class="orientation-lock" role="status" aria-live="polite">
