@@ -833,7 +833,7 @@ function visitBlockHtml(customer) {
         ${RHYTHM_OPTIONS.map(([v, l]) => `<option value="${v}"${String(customer.rhythmusWochen ?? '') === v ? ' selected' : ''}>${l}</option>`).join('')}
     </select>`;
     return `<div class="visit-block">
-        <p class="visit-line">🗓️ Letzter Besuch: <b>${last ? formatDateDe(last) : '—'}</b> <span class="muted small">(${agoText(last)})</span> ${statusBadge}</p>
+        <p class="visit-line">🗓️ Zuletzt: <b>${last ? formatDateDe(last) : '—'}</b> <span class="muted small">(${agoText(last)})</span> ${statusBadge}</p>
         <div class="visit-controls">
             <button data-action="mark-visited" data-id="${escapeHtml(customer.id)}">✓ Heute besucht</button>
             ${rhythmSelect}
@@ -860,21 +860,24 @@ function contactBlockHtml(customer) {
 }
 
 export function customerPopupHtml(customer) {
-    const addr = [customer.strasse, `${customer.plz} ${customer.ort}`.trim()]
-        .filter(Boolean).map(escapeHtml).join('<br>');
     const inTour = state.tour.stops.includes(customer.id);
     const isDest = state.tour.destination?.customerId === customer.id;
-    return `<div class="popup">
-        <h3>${escapeHtml(customer.name)}</h3>
-        ${customer.nummer ? `<p class="muted">Kd.-Nr. ${escapeHtml(customer.nummer)}</p>` : ''}
-        ${addr ? `<p>${addr}</p>` : ''}
-        ${[customer.channel, customer.gruppe, customer.bezirk].some(Boolean)
-            ? `<p class="muted small">${[customer.channel, customer.gruppe, customer.bezirk].filter(Boolean).map(escapeHtml).join(' › ')}</p>`
-            : ''}
-        ${customer.umsatz ? `<p class="muted" title="${formatRevenueFull(customer.umsatz)}">Umsatz: ${formatRevenueShort(customer.umsatz)}</p>` : ''}
+    // Kompakter Kopf: Adresse einzeilig, Hierarchie und Umsatz in einer Zeile,
+    // Kundennummer neben den Namen – damit ohne Scrollen mehr sichtbar ist.
+    const addr = [customer.strasse, `${customer.plz} ${customer.ort}`.trim()]
+        .filter(Boolean).map(escapeHtml).join(' · ');
+    const hierarchy = [customer.channel, customer.gruppe, customer.bezirk]
+        .filter(Boolean).map(escapeHtml).join(' › ');
+    const umsatz = customer.umsatz
+        ? `<b class="popup-umsatz" title="${formatRevenueFull(customer.umsatz)}">${formatRevenueShort(customer.umsatz)}</b>`
+        : '';
+    const metaLine = [hierarchy, umsatz].filter(Boolean).join(' · ');
+    return `<div class="popup popup-customer">
+        <h3>${escapeHtml(customer.name)}${customer.nummer ? `<span class="popup-nr">Nr. ${escapeHtml(customer.nummer)}</span>` : ''}</h3>
+        ${addr ? `<p class="popup-addr">${addr}${customer.geo === 'plz' ? ' <span class="muted small">· 📍 ca. (PLZ-Mitte)</span>' : ''}</p>` : ''}
+        ${metaLine ? `<p class="muted small popup-meta">${metaLine}</p>` : ''}
         ${contactBlockHtml(customer)}
         ${visitBlockHtml(customer)}
-        ${customer.geo === 'plz' ? '<p class="muted small">📍 Position: PLZ-Mittelpunkt (ungefähr)</p>' : ''}
         <div class="popup-actions">
             <button data-action="tour-start" data-id="${escapeHtml(customer.id)}">🚩 Als Start</button>
             <button data-action="tour-dest" data-id="${escapeHtml(customer.id)}" ${isDest ? 'disabled' : ''}>${isDest ? '✓ Ziel' : '🏁 Als Ziel'}</button>
