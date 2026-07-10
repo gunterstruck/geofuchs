@@ -15,7 +15,7 @@ import { printDayPlan, downloadIcs } from '../features/tourExport.js';
 import { copyText, tourText } from '../features/handoff.js';
 import { visitStatus, STATUS_COLORS, STATUS_LABELS } from '../features/visits.js';
 import { loadTours, saveTours } from '../services/storage.js';
-import { getRoadRoute, routingKey } from '../services/routing.js';
+import { getRoadRoute, routingKey, hasRoutingConsent, requestRoutingConsent } from '../services/routing.js';
 import { flyToCustomer, focusPoint, fitTourRoute } from '../features/map.js';
 import { showMapView } from './sidebar.js';
 import { showToast } from './toast.js';
@@ -79,6 +79,9 @@ export function initTourPanel() {
     document.querySelectorAll('#suggest-mode .seg').forEach((btn) => {
         btn.addEventListener('click', () => {
             state.tour.suggestMode = btn.dataset.mode;
+            // Korridor nutzt die Straßenroute (OSRM) – Zustimmung einmalig einholen;
+            // ohne Zustimmung arbeitet der Korridor mit der direkten Verbindung.
+            if (btn.dataset.mode === 'route') requestRoutingConsent();
             updateSuggestModeUi();
             renderSuggestions();
             if (state.tour.mapFocus) emit('tour:changed');
@@ -511,7 +514,9 @@ function requestSuggestionRoadRoute(points) {
 }
 
 function toggleRouteLineMode() {
-    state.tour.routeLineMode = state.tour.routeLineMode === 'road' ? 'air' : 'road';
+    const wantRoad = state.tour.routeLineMode !== 'road';
+    if (wantRoad && !requestRoutingConsent()) return state.tour.routeLineMode;
+    state.tour.routeLineMode = wantRoad ? 'road' : 'air';
     emit('tour:changed');
     return state.tour.routeLineMode;
 }
@@ -666,13 +671,15 @@ function updateSuggestModeUi() {
     });
     document.getElementById('radius-label').textContent = route ? 'Korridor (Abstand zur Route)' : 'Umkreis';
     document.getElementById('suggest-hint').textContent = route
-        ? (suggestionRoadLoading
-            ? 'Straßenroute wird berechnet. Danach erscheinen Kunden im Korridor entlang des tatsächlichen Straßenverlaufs.'
-            : suggestionRoadFailed
-                ? 'Straßenroute derzeit nicht verfügbar. Vorschläge verwenden vorübergehend die direkte Verbindung.'
-                : suggestionRoadPath
-                    ? 'Kunden entlang der berechneten Straßenroute, höchstens so weit neben dem tatsächlichen Straßenverlauf.'
-                    : 'Kunden entlang der Tour. Sobald Start und Ziel feststehen, wird der Straßenverlauf berechnet.')
+        ? (!hasRoutingConsent()
+            ? 'Vorschläge entlang der direkten Verbindung. Für den tatsächlichen Straßenverlauf der Straßenroute (OSRM) zustimmen – siehe Datenschutz.'
+            : suggestionRoadLoading
+                ? 'Straßenroute wird berechnet. Danach erscheinen Kunden im Korridor entlang des tatsächlichen Straßenverlaufs.'
+                : suggestionRoadFailed
+                    ? 'Straßenroute derzeit nicht verfügbar. Vorschläge verwenden vorübergehend die direkte Verbindung.'
+                    : suggestionRoadPath
+                        ? 'Kunden entlang der berechneten Straßenroute, höchstens so weit neben dem tatsächlichen Straßenverlauf.'
+                        : 'Kunden entlang der Tour. Sobald Start und Ziel feststehen, wird der Straßenverlauf berechnet.')
         : 'Kunden im Umkreis des Startpunkts.';
 }
 

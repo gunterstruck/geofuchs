@@ -65,6 +65,7 @@ Beim Import werden die Zeilen geprüft. **Gültige Zeilen werden importiert**, p
 
 - Kundendaten werden **ausschließlich lokal im Browser** gespeichert (IndexedDB) – kein Server, kein Tracking, keine KI.
 - Nur die optionale adressgenaue Verortung sendet die jeweilige Adresse an OpenStreetMap (Nominatim), gedrosselt gemäß deren Nutzungsrichtlinie.
+- Optionale Straßenrouten (Routenlinie und Korridor-Vorschläge) senden **nach ausdrücklicher Zustimmung** die Koordinaten von Start und Tour-Stopps an OSRM (`router.project-osrm.org`) – keine Namen oder sonstigen Kundendaten. Ohne Zustimmung rechnet die App mit der Luftlinie, komplett offline.
 
 ### Schulungsunterlagen
 
