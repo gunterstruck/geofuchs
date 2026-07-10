@@ -33,10 +33,10 @@
             <button id="sidebar-drag" class="sidebar-drag" type="button" aria-label="Bedienpanel verschieben" title="Panel an eine andere Stelle ziehen">
                 <span></span>
             </button>
-            <div class="panel-zoom" aria-label="Panel-Zoom">
-                <button type="button" id="panel-zoom-out" aria-label="Panel verkleinern">−</button>
-                <span id="panel-zoom-label">100%</span>
+            <div class="panel-zoom" aria-label="Panel-Zoom" title="Panelinhalt vergrößern/verkleinern (Doppelklick auf % = 100 %)">
                 <button type="button" id="panel-zoom-in" aria-label="Panel vergrößern">+</button>
+                <span id="panel-zoom-label" role="button" tabindex="0" title="Zurück auf 100 %">100%</span>
+                <button type="button" id="panel-zoom-out" aria-label="Panel verkleinern">−</button>
             </div>
             <div class="mode-switch" role="group" aria-label="Fokus wählen">
                 <button type="button" class="mode-btn active" data-mode="aussendienst">🚗 Außendienst</button>

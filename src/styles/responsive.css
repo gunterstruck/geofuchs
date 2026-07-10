@@ -141,8 +141,10 @@
         display: none;
     }
 
+    /* Zoom-Control bleibt auf dem Handy sichtbar (schwebend, untere Ecke). */
     .panel-zoom {
-        display: none;
+        right: 10px;
+        bottom: 16px;
     }
 
     .mobile-data-reset {

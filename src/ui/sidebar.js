@@ -38,9 +38,9 @@ const SIDEBAR_POS_KEY = 'gf_sidebar_position';
 const PANEL_ZOOM_KEY = 'tf_panel_zoom';
 const SIDEBAR_MIN = 340;
 const SIDEBAR_MAX = 400;
-const PANEL_ZOOM_MIN = 0.85;
-const PANEL_ZOOM_MAX = 1.2;
-const PANEL_ZOOM_STEP = 0.05;
+const PANEL_ZOOM_MIN = 0.8;
+const PANEL_ZOOM_MAX = 1.5;
+const PANEL_ZOOM_STEP = 0.1;
 const DOCK_THRESHOLD = 34;
 
 function hasDataset() {
@@ -78,13 +78,33 @@ function currentPanelZoom() {
     return parseFloat(raw) || 1;
 }
 
+/**
+ * Panel-Inhalt jeder Tab-Sektion in einen .panel-scale-Wrapper legen. Der Zoom
+ * (CSS `zoom`) liegt auf dem Wrapper, während der Scrollcontainer (.tab-panel)
+ * unskaliert bleibt – so skaliert der gesamte Inhalt (Text, Buttons, Abstände)
+ * gleichmäßig und die Scrollhöhe stimmt weiterhin.
+ */
+function wrapPanelContentForZoom() {
+    document.querySelectorAll('.tab-panel').forEach((panel) => {
+        if (panel.querySelector(':scope > .panel-scale')) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'panel-scale';
+        while (panel.firstChild) wrap.appendChild(panel.firstChild);
+        panel.appendChild(wrap);
+    });
+}
+
 function initPanelZoom() {
+    wrapPanelContentForZoom();
     const saved = parseFloat(localStorage.getItem(PANEL_ZOOM_KEY) || '');
     setPanelZoom(Number.isFinite(saved) ? saved : 1);
     document.getElementById('panel-zoom-out')?.addEventListener('click', () => setPanelZoom(currentPanelZoom() - PANEL_ZOOM_STEP, true));
     document.getElementById('panel-zoom-in')?.addEventListener('click', () => setPanelZoom(currentPanelZoom() + PANEL_ZOOM_STEP, true));
+    // Doppelklick/-tipp auf die Prozentanzeige setzt auf 100 % zurück
+    document.getElementById('panel-zoom-label')?.addEventListener('dblclick', () => setPanelZoom(1, true));
+    // Reines Mausrad über dem Panel zoomt den Inhalt (Wunsch: wie die Karte)
     document.getElementById('sidebar')?.addEventListener('wheel', (ev) => {
-        if (isMobileUi() || !ev.ctrlKey) return;
+        if (isMobileUi()) return;
         ev.preventDefault();
         setPanelZoom(currentPanelZoom() + (ev.deltaY < 0 ? PANEL_ZOOM_STEP : -PANEL_ZOOM_STEP), true);
     }, { passive: false });
