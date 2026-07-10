@@ -55,10 +55,13 @@ Tourenoptimierung, Umkreis/Korridor) wird ein **Ein-Klick-Tagesplaner**:
 | 2.2 | **Wochen-Vorschau** | Die 5 nächsten Werktage als Spalten; fällige Kunden automatisch auf Tage verteilt (Kapazität pro Tag einstellbar); Drag & Drop zwischen Tagen. |
 | 2.3 | **Morgen-Startscreen (Mobile)** | App-Start im Außendienst-Modus zeigt Karte + „Plane meinen Tag" + Zähler „X überfällig · Y bald fällig" – ohne Menü-Navigation. |
 | 2.4 | **Besuch abhaken unterwegs** | Stopp als „besucht" markieren aktualisiert `besuche[]` und den Fälligkeitsstatus sofort; nächster Stopp rückt nach. |
+| 2.5 | **Route aufs Handy per QR-Code** | Am Desktop geplante Tour als QR-Code anzeigen (nur die notwendigen Daten: Stopps mit Koordinaten, Name, Telefon, Reihenfolge – komprimiert, Ziel ≤ 1 QR-Code, sonst automatisch mehrteilig). Handy-PWA scannt per Kamera und übernimmt die Tour direkt – **ohne Netzwerk, ohne Datei, ohne Server**. Es wird nie die Kundendatenbank übertragen, nur die Tour. |
 
 **Warum das der WOW ist:** Es verwandelt TourFuchs von „Karte mit Kunden" in einen
 Assistenten, der die eigentliche Arbeit (Priorisieren + Planen) abnimmt – und es ist
-zu ~70 % aus vorhandener Logik komponierbar.
+zu ~70 % aus vorhandener Logik komponierbar. Die QR-Übergabe (2.5) macht den
+Desktop→Handy-Bruch zum Vorführmoment: Bildschirm zeigen, scannen, losfahren –
+Lokal-first in Reinform.
 
 ### Release 3 – „Entscheidungsvorlage" · **WOW-Feature #2** *(~2 Wochen)*
 
@@ -71,8 +74,35 @@ Ergebnis „verpufft" im Dialog.
 | 3.2 | **Ausgewogenheits-Assistent** | Button „Vorschlag: ausgleichen": Greedy-Heuristik schlägt Gebietsverschiebungen vor, die den Kunden-/Umsatz-Faktor Richtung ≤ 1,5 senken – als Simulation, die der Nutzer prüft, editiert, verwirft oder übernimmt. Keine Blackbox: jede vorgeschlagene Verschiebung ist einzeln begründet (Gebiet, Kunden, Umsatz). |
 | 3.3 | **Benannte Simulations-Szenarien** | Simulation als Szenario speichern/laden (IndexedDB), z. B. „Variante Nord" vs. „Variante Süd" vergleichbar. |
 
-### Backlog (bewusst NICHT jetzt)
+### Release 4 – „Tresor" · High-End-Sicherheit *(~3 Wochen, nach Release 3)*
 
+Ziel: Echte Kundendaten dürfen bedenkenlos auf dem privaten Handy liegen.
+Verschlüsselung **at rest** und **in transit** – ohne das Lokal-first-Prinzip zu brechen.
+
+| # | Item | Akzeptanzkriterien |
+|---|---|---|
+| 4.1 | **Lokaler App-Tresor (Data at Rest)** | Optional aktivierbar. Kundendaten in IndexedDB mit AES-256-GCM verschlüsselt; Schlüssel wird aus einer PIN abgeleitet (PBKDF2/Argon2, hohe Iterationszahl) und **nie gespeichert**. Sperrbildschirm beim App-Start und nach Inaktivität. Ohne PIN sind die Daten kryptografisch unlesbar. |
+| 4.2 | **Biometrie-Unlock (Komfortstufe)** | Wo verfügbar (WebAuthn mit PRF-/largeBlob-Erweiterung) FaceID/Fingerabdruck statt PIN. Realistische Grenze: plattformabhängig, v. a. iOS-PWA eingeschränkt – **PIN bleibt der garantierte Weg**, Biometrie ist Zusatz, kein Ersatz. |
+| 4.3 | **Auto-Wipe** | Nach N Fehlversuchen (konfigurierbar, Standard 10) werden die lokalen Daten gelöscht. Ehrliche Einordnung im UI: Abschreckung, kein Hardware-Schutz – der eigentliche Schutz ist die Verschlüsselung aus 4.1. |
+| 4.4 | **Verschlüsselter Export mit QR-Schlüssel (Data in Transit)** | Datei-Export (Excel/JSON) optional AES-256-verschlüsselt; der Schlüssel wird **nicht** mit der Datei transportiert, sondern als QR-Code am Desktop angezeigt (Out-of-Band). Handy: Datei öffnen + QR scannen = lokal entschlüsselt. Datei allein (E-Mail, USB, Cloud) ist wertlos. |
+
+**Abgrenzung zu 2.5:** Die QR-Tour-Übergabe (Release 2) überträgt wenige, bewusst
+ausgewählte Daten direkt Bildschirm→Kamera und braucht keine Verschlüsselung.
+Release 4 sichert den Fall ab, dass die **ganze Datenbank** als Datei den Rechner
+verlässt oder dauerhaft auf dem Gerät liegt.
+
+### Backlog & Vision (bewusst NICHT jetzt)
+
+- **POIs auf der Karte** (Ladestationen, eigene Niederlassungen): nur als Opt-in –
+  externe POI-Abfragen sind eine neue Drittdienst-Verbindung und unterliegen der
+  Offenlegungspflicht (DoD Nr. 3). Eigene Niederlassungen alternativ als lokale
+  Importdatei (kein externer Call) – das zuerst.
+- **KI-Assistent in der App:** kollidiert mit der aktiven Zusage „keine KI-Verarbeitung"
+  auf der Datenschutzseite. Nur denkbar als lokales Modell oder als ausdrückliches
+  Opt-in mit angepasster Datenschutzerklärung. Kein Termin, bewusste Grundsatz-
+  entscheidung nötig, bevor hier irgendetwas gebaut wird.
+- **Connector-Anleitungen** (Export-Leitfäden für CRM-Systeme): reine Dokumentation,
+  geringer Aufwand – wird als Lückenfüller zwischen Releases mitgenommen.
 - Eigener OSRM-/Nominatim-Endpoint bzw. konfigurierbarer Routing-Server (F2) – erst
   relevant, wenn > ~5 regelmäßige Nutzer; bis dahin: Fallback + Opt-in reichen.
 - Refactoring `map.js`/`sidebar.js`/`tourPanel.js` in Untermodule (F7) – opportunistisch
