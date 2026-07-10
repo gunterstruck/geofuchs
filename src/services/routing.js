@@ -7,6 +7,31 @@ import { CONFIG } from '../core/config.js';
 
 const routeCache = new Map();
 const pendingRoutes = new Map();
+const CONSENT_KEY = 'gf_routing_consent';
+
+/**
+ * Straßenrouten sind Opt-in: Es werden Koordinaten von Start/Stopps an den
+ * externen OSRM-Dienst übertragen. Ohne erteilte Zustimmung liefert jede
+ * Routenanfrage null und die App fällt überall sauber auf Luftlinie zurück.
+ */
+export function hasRoutingConsent() {
+    try { return localStorage.getItem(CONSENT_KEY) === 'yes'; } catch { return false; }
+}
+
+export function requestRoutingConsent() {
+    if (hasRoutingConsent()) return true;
+    const granted = confirm(
+        'Straßenrouten berechnet der externe Dienst OSRM (router.project-osrm.org).\n\n'
+        + 'Dabei werden die Koordinaten von Startpunkt und Tour-Stopps an diesen Dienst '
+        + 'übertragen – keine Namen und keine weiteren Kundendaten.\n\n'
+        + 'Ohne Zustimmung verwendet TourFuchs die direkte Verbindung (Luftlinie).\n\n'
+        + 'Straßenrouten jetzt aktivieren?'
+    );
+    if (granted) {
+        try { localStorage.setItem(CONSENT_KEY, 'yes'); } catch { /* Speichern optional */ }
+    }
+    return granted;
+}
 
 function routePoint(point) {
     return {
@@ -29,6 +54,9 @@ export function peekRoadRoute(points) {
 }
 
 export async function getRoadRoute(points) {
+    // Ohne Zustimmung nichts anfragen und nichts cachen (sonst bliebe nach
+    // späterer Zustimmung ein null-Eintrag im Cache hängen).
+    if (!hasRoutingConsent()) return null;
     const key = routingKey(points);
     if (routeCache.has(key)) return routeCache.get(key);
     if (pendingRoutes.has(key)) return pendingRoutes.get(key);
@@ -43,6 +71,7 @@ export async function getRoadRoute(points) {
 }
 
 export async function fetchRoadRoute(points) {
+    if (!hasRoutingConsent()) return null;
     const clean = points.map(routePoint).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
     if (clean.length < 2 || clean.length > CONFIG.routing.maxPoints) return null;
 

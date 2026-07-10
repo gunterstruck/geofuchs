@@ -110,9 +110,40 @@ function cleanPlz(value) {
     return digits.padStart(5, '0').slice(0, 5);
 }
 
-function parseNumber(value) {
+/**
+ * Betrags-/Zahlenspalte robust einlesen. Excel liefert numerische Zellen bereits
+ * als Zahl – die darf nicht wie ein deutsch formatierter String behandelt werden
+ * (sonst wird z. B. 1234.56 zu 123456). Strings können deutsch (1.234,56),
+ * englisch (1,234.56) oder ohne Gruppierung (45000 / 45.5) formatiert sein.
+ */
+export function parseNumber(value) {
     if (value === null || value === undefined || value === '') return null;
-    const n = parseFloat(String(value).replace(/\./g, '').replace(',', '.').replace(/[^\d.\-]/g, ''));
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+
+    let str = String(value).replace(/[^\d.,\-]/g, '');
+    if (!str) return null;
+
+    const lastDot = str.lastIndexOf('.');
+    const lastComma = str.lastIndexOf(',');
+    if (lastDot !== -1 && lastComma !== -1) {
+        // Beide Trennzeichen: das hintere ist das Dezimaltrennzeichen
+        str = lastComma > lastDot
+            ? str.replace(/\./g, '').replace(',', '.')
+            : str.replace(/,/g, '');
+    } else if (lastComma !== -1) {
+        const parts = str.split(',');
+        // Mehrere Kommas in 3er-Gruppen = englische Tausendertrennung, sonst Dezimalkomma
+        str = parts.length > 2 && parts.slice(1).every((p) => p.length === 3)
+            ? parts.join('')
+            : str.replace(/,/g, '.');
+    } else if (lastDot !== -1) {
+        const parts = str.split('.');
+        // Punkte in 3er-Gruppen = deutsche Tausendertrennung (1.234 / 1.234.567),
+        // alles andere (45.5, 12.34) ist ein Dezimalpunkt
+        if (parts.slice(1).every((p) => p.length === 3)) str = parts.join('');
+    }
+
+    const n = parseFloat(str);
     return Number.isFinite(n) ? n : null;
 }
 

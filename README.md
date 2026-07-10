@@ -28,6 +28,8 @@ TourFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 | 🔍 **Zoom-Automatik** | „Automatisch (nach Zoom)": weit herausgezoomt zeigt die Karte Vertriebsgruppen als Flächen (mit Umsatz), mittlerer Zoom die Betriebsbezirke, hineingezoomt die einzelnen Kunden – der Detailgrad wächst mit dem Zoom |
 | 👥 **Filter** | **Betriebsbezirk** ist die führende Pflicht-Ebene. Vertriebsgruppe kann zusätzlich eingeblendet werden; weitere optionale Ebenen lassen sich bei Bedarf ergänzen. Kundenzähler helfen beim schnellen Prüfen der Verteilung |
 | 🚗 **Tour** | Startpunkt = eigener GPS-Standort oder ein Kunde; Vorschläge „Wen könnte ich in der Nähe noch besuchen?“ (Umkreis einstellbar); Tourenoptimierung (kürzeste Strecke, Nearest-Neighbor + 2-Opt); Übergabe an Google Maps zur Navigation |
+| 📆 **Plan-Einstellungen** | Datum, Startzeit und Besuchsdauer (z. B. 45 min) der Tagestour sind einstellbar und fließen in Tagesplan-Druck und Kalender-Termine (.ics für Outlook, ein Termin je Besuch inkl. Fahrzeit) ein |
+| 📲 **QR-Übergabe** | Am Desktop geplante Tour als QR-Code anzeigen, am Handy mit der Kamera scannen und übernehmen – nur die Tour (keine Datenbank), Bildschirm zu Kamera, ohne Netzwerk und ohne Server. Navigation und Kalender-Termine funktionieren direkt aus dem gescannten Code |
 | 🔍 **Suche** | Kunden nach Name, Ort, PLZ oder Kundennummer finden und anfliegen |
 | 📱 **PWA** | Auf Smartphone/Desktop installierbar, App-Shell und Gebietsdaten offline verfügbar, zuletzt gesehene Kartenausschnitte werden gecacht |
 
@@ -65,6 +67,7 @@ Beim Import werden die Zeilen geprüft. **Gültige Zeilen werden importiert**, p
 
 - Kundendaten werden **ausschließlich lokal im Browser** gespeichert (IndexedDB) – kein Server, kein Tracking, keine KI.
 - Nur die optionale adressgenaue Verortung sendet die jeweilige Adresse an OpenStreetMap (Nominatim), gedrosselt gemäß deren Nutzungsrichtlinie.
+- Optionale Straßenrouten (Routenlinie und Korridor-Vorschläge) senden **nach ausdrücklicher Zustimmung** die Koordinaten von Start und Tour-Stopps an OSRM (`router.project-osrm.org`) – keine Namen oder sonstigen Kundendaten. Ohne Zustimmung rechnet die App mit der Luftlinie, komplett offline.
 
 ### Schulungsunterlagen
 

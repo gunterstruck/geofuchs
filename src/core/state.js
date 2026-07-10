@@ -202,6 +202,7 @@ export function datasetSnapshot() {
  */
 export function setCustomers(customers, meta = {}) {
     state.customers = customers;
+    reindexCustomers();
     state.fileName = meta.fileName ?? state.fileName;
     state.importedAt = meta.importedAt ?? new Date().toISOString();
 
@@ -279,8 +280,16 @@ export function mergeCustomersDelta(importedCustomers) {
     return merged;
 }
 
+// Index für O(1)-Zugriff – wichtig für Cockpit/Simulation mit vielen Kunden
+let customersById = new Map();
+
+function reindexCustomers() {
+    customersById = new Map(state.customers.map((c) => [c.id, c]));
+}
+
 export function getCustomer(id) {
-    return state.customers.find((c) => c.id === id);
+    if (customersById.size !== state.customers.length) reindexCustomers();
+    return customersById.get(id) ?? state.customers.find((c) => c.id === id);
 }
 
 /**

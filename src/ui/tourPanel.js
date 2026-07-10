@@ -11,11 +11,14 @@
 import { CONFIG } from '../core/config.js';
 import { state, on, emit, getCustomer, repColor, tourScopedCustomers, customerInTourScope, UNASSIGNED } from '../core/state.js';
 import { suggestNearby, suggestAlongRoute, optimizeOrder, routeDistance, googleMapsLink } from '../features/tour.js';
-import { printDayPlan, downloadIcs } from '../features/tourExport.js';
+import { printDayPlan, downloadIcs, DEFAULT_VISIT_MINUTES } from '../features/tourExport.js';
+import { combinePlanStart, todayInputValue } from '../features/dayPlanner.js';
+import { encodeTourPayload, MAX_QR_STOPS } from '../features/tourShare.js';
+import { initTourQr, openShareDialog } from './tourQr.js';
 import { copyText, tourText } from '../features/handoff.js';
 import { visitStatus, STATUS_COLORS, STATUS_LABELS } from '../features/visits.js';
 import { loadTours, saveTours } from '../services/storage.js';
-import { getRoadRoute, routingKey } from '../services/routing.js';
+import { getRoadRoute, routingKey, hasRoutingConsent, requestRoutingConsent } from '../services/routing.js';
 import { flyToCustomer, focusPoint, fitTourRoute } from '../features/map.js';
 import { showMapView } from './sidebar.js';
 import { showToast } from './toast.js';
@@ -41,6 +44,11 @@ const SWIPE_HIDE_PX = 72;
 export function initTourPanel() {
     document.getElementById('btn-my-location').addEventListener('click', useMyLocation);
     document.getElementById('btn-nearby').addEventListener('click', findNearby);
+
+    // Plan-Einstellungen (Datum/Startzeit/Besuchsdauer) + QR-Übergabe
+    document.getElementById('plan-date').value = todayInputValue();
+    document.getElementById('btn-tour-qr').addEventListener('click', shareTourAsQr);
+    initTourQr();
 
     // Schritt 0: Bezirk wählen (Auswahl klappt danach auf eine schmale Zeile ein)
     const scopeEl = document.getElementById('tour-scope');
@@ -79,6 +87,9 @@ export function initTourPanel() {
     document.querySelectorAll('#suggest-mode .seg').forEach((btn) => {
         btn.addEventListener('click', () => {
             state.tour.suggestMode = btn.dataset.mode;
+            // Korridor nutzt die Straßenroute (OSRM) – Zustimmung einmalig einholen;
+            // ohne Zustimmung arbeitet der Korridor mit der direkten Verbindung.
+            if (btn.dataset.mode === 'route') requestRoutingConsent();
             updateSuggestModeUi();
             renderSuggestions();
             if (state.tour.mapFocus) emit('tour:changed');
@@ -104,15 +115,15 @@ export function initTourPanel() {
     document.getElementById('btn-tour-print').addEventListener('click', () => {
         const eff = effStops();
         if (!state.tour.start || eff.length === 0) return;
-        if (!printDayPlan(state.tour.start, eff, { tourName: currentTourName() })) {
+        if (!printDayPlan(state.tour.start, eff, { tourName: currentTourName(), ...planOptions() })) {
             showToast('Bitte Pop-ups für den Druck erlauben.', 'error');
         }
     });
     document.getElementById('btn-tour-ics').addEventListener('click', () => {
         const eff = effStops();
         if (!state.tour.start || eff.length === 0) return;
-        downloadIcs(state.tour.start, eff, { tourName: currentTourName() });
-        showToast('Kalender-Datei (.ics) erstellt.', 'success');
+        downloadIcs(state.tour.start, eff, { tourName: currentTourName(), ...planOptions() });
+        showToast('Kalender-Datei (.ics) mit Terminen je Besuch erstellt.', 'success');
     });
     document.getElementById('btn-tour-copy').addEventListener('click', async () => {
         const eff = effStops();
@@ -511,7 +522,9 @@ function requestSuggestionRoadRoute(points) {
 }
 
 function toggleRouteLineMode() {
-    state.tour.routeLineMode = state.tour.routeLineMode === 'road' ? 'air' : 'road';
+    const wantRoad = state.tour.routeLineMode !== 'road';
+    if (wantRoad && !requestRoutingConsent()) return state.tour.routeLineMode;
+    state.tour.routeLineMode = wantRoad ? 'road' : 'air';
     emit('tour:changed');
     return state.tour.routeLineMode;
 }
@@ -654,6 +667,7 @@ function renderStops() {
     document.getElementById('btn-tour-print').disabled = !hasRoute;
     document.getElementById('btn-tour-ics').disabled = !hasRoute;
     document.getElementById('btn-tour-copy').disabled = !hasRoute;
+    document.getElementById('btn-tour-qr').disabled = !hasRoute;
     document.getElementById('btn-tour-save').disabled = !hasRoute;
     document.getElementById('btn-tour-clear').disabled = !(state.tour.start || state.tour.destination || stops.length > 0);
 }
@@ -666,13 +680,15 @@ function updateSuggestModeUi() {
     });
     document.getElementById('radius-label').textContent = route ? 'Korridor (Abstand zur Route)' : 'Umkreis';
     document.getElementById('suggest-hint').textContent = route
-        ? (suggestionRoadLoading
-            ? 'Straßenroute wird berechnet. Danach erscheinen Kunden im Korridor entlang des tatsächlichen Straßenverlaufs.'
-            : suggestionRoadFailed
-                ? 'Straßenroute derzeit nicht verfügbar. Vorschläge verwenden vorübergehend die direkte Verbindung.'
-                : suggestionRoadPath
-                    ? 'Kunden entlang der berechneten Straßenroute, höchstens so weit neben dem tatsächlichen Straßenverlauf.'
-                    : 'Kunden entlang der Tour. Sobald Start und Ziel feststehen, wird der Straßenverlauf berechnet.')
+        ? (!hasRoutingConsent()
+            ? 'Vorschläge entlang der direkten Verbindung. Für den tatsächlichen Straßenverlauf der Straßenroute (OSRM) zustimmen – siehe Datenschutz.'
+            : suggestionRoadLoading
+                ? 'Straßenroute wird berechnet. Danach erscheinen Kunden im Korridor entlang des tatsächlichen Straßenverlaufs.'
+                : suggestionRoadFailed
+                    ? 'Straßenroute derzeit nicht verfügbar. Vorschläge verwenden vorübergehend die direkte Verbindung.'
+                    : suggestionRoadPath
+                        ? 'Kunden entlang der berechneten Straßenroute, höchstens so weit neben dem tatsächlichen Straßenverlauf.'
+                        : 'Kunden entlang der Tour. Sobald Start und Ziel feststehen, wird der Straßenverlauf berechnet.')
         : 'Kunden im Umkreis des Startpunkts.';
 }
 
@@ -733,6 +749,42 @@ function renderSuggestions() {
         const c = getCustomer(btn.dataset.fly);
         if (c) flyToCustomer(c);
     }));
+}
+
+/** Datum, Startzeit und Besuchsdauer aus den Plan-Eingaben lesen */
+function planOptions() {
+    const date = document.getElementById('plan-date')?.value;
+    const time = document.getElementById('plan-time')?.value;
+    const visit = Number(document.getElementById('plan-visit-min')?.value);
+    return {
+        startTime: combinePlanStart(date, time),
+        visitMinutes: Number.isFinite(visit) && visit > 0 ? visit : DEFAULT_VISIT_MINUTES
+    };
+}
+
+/** Tour als QR-Code für die Übergabe ans Handy anzeigen */
+function shareTourAsQr() {
+    const eff = effStops();
+    if (!state.tour.start || eff.length === 0) return;
+    const date = document.getElementById('plan-date')?.value;
+    const time = document.getElementById('plan-time')?.value;
+    const payload = encodeTourPayload({
+        start: state.tour.start,
+        stops: eff,
+        tourName: currentTourName(),
+        date,
+        startTime: time,
+        visitMinutes: planOptions().visitMinutes,
+        roundTrip: state.tour.roundTrip
+    });
+    if (!payload) {
+        showToast('Keine verorteten Stopps in der Tour – QR-Übergabe nicht möglich.', 'info');
+        return;
+    }
+    openShareDialog(payload, {
+        stopCount: Math.min(eff.length, MAX_QR_STOPS),
+        skipped: Math.max(0, eff.length - MAX_QR_STOPS)
+    });
 }
 
 function optimizeTour() {

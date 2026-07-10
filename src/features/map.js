@@ -8,6 +8,7 @@ import L from 'leaflet';
 import 'leaflet.markercluster';
 
 import { CONFIG } from '../core/config.js';
+import { formatRevenueShort, formatRevenueFull } from '../core/format.js';
 import { state, on, emit, repColor, attrColor, visibleCustomers, tourScopedCustomers, getCustomer, markDirty, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { getRoadRoute, peekRoadRoute } from '../services/routing.js';
@@ -596,7 +597,7 @@ function regionTooltip(feature) {
         if (!info.change) return `${name} · unverändert · ${total} Kunden`;
         const customers = (info.change.customerIds || []).map((id) => getCustomer(id)).filter(Boolean);
         const revenue = customers.reduce((sum, customer) => sum + (customer.umsatz || 0), 0);
-        return `${name} · ${info.oldValue} → ${info.newValue} · ${customers.length} Kd. · ${Math.round(revenue).toLocaleString('de-DE')} €`;
+        return `${name} · ${info.oldValue} → ${info.newValue} · ${customers.length} Kd. · ${formatRevenueShort(revenue)}`;
     }
 
     if (currentView.paint === 'luecken') {
@@ -632,11 +633,6 @@ function restyleRegions() {
     regionLayer.eachLayer((layer) => layer.setStyle(styleFor(layer.feature)));
 }
 
-/** Gesamtumsatz kompakt und einheitlich in Tausend Euro anzeigen. */
-function fmtRevenueThousands(n) {
-    return `${Math.round(n / 1e3).toLocaleString('de-DE')} T€`;
-}
-
 /**
  * Gebiets-Labels (Name + Umsatzsumme) je Attributwert der Flächenansicht.
  * Anker ist das Gebiet mit den meisten Kunden dieses Werts.
@@ -647,12 +643,13 @@ function renderLabels() {
     if (simulationPreview || !currentView.labels || !currentLevelData) return;
 
     const attr = currentView.paint;
+    const valueOf = (c) => attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
     const revByVal = new Map();
     const revenueValues = new Set();
     // Filter steuern die sichtbaren Flächen, nicht die fachliche Gesamtsumme
     // eines Vertriebsbezirks oder einer Vertriebsgruppe.
     for (const c of state.customers) {
-        const v = attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
+        const v = valueOf(c);
         if (c.umsatz === null || c.umsatz === undefined || c.umsatz === '') continue;
         const revenue = Number(c.umsatz);
         if (!Number.isFinite(revenue)) continue;
@@ -667,11 +664,29 @@ function renderLabels() {
         if (!feature) continue;
         const counts = new Map();
         for (const c of entry.customers) {
-            const v = attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
+            const v = valueOf(c);
             counts.set(v, (counts.get(v) ?? 0) + 1);
         }
         for (const [v, n] of counts) {
             if (!anchor.has(v) || n > anchor.get(v).count) anchor.set(v, { feature, count: n });
+        }
+    }
+    // Werte, deren Kunden gerade ausgefiltert oder im Tour-Fokus ausgeblendet
+    // sind, bekommen trotzdem ein Label – die Labels sind die fachliche
+    // Gesamtsicht, genau wie die Umsatzsumme oben.
+    const missing = new Set([...new Set(state.customers.map(valueOf))]
+        .filter((v) => v !== UNASSIGNED && !anchor.has(v)));
+    if (missing.size > 0) {
+        const rest = state.customers.filter((c) => missing.has(valueOf(c)));
+        const restStats = aggregateByRegion(state.level, currentLevelData, rest);
+        for (const [key, entry] of restStats) {
+            const feature = featureByKey.get(key);
+            if (!feature) continue;
+            const counts = new Map();
+            for (const c of entry.customers) counts.set(valueOf(c), (counts.get(valueOf(c)) ?? 0) + 1);
+            for (const [v, n] of counts) {
+                if (!anchor.has(v) || n > anchor.get(v).count) anchor.set(v, { feature, count: n });
+            }
         }
     }
     // Gebietszuordnungen ohne Kunden ebenfalls beschriften (Anker: das zugeordnete Gebiet)
@@ -690,10 +705,10 @@ function renderLabels() {
         const col = attrColor(attr, val);
         const hasRevenue = revenueValues.has(val);
         const revenue = revByVal.get(val) || 0;
-        const rev = hasRevenue ? fmtRevenueThousands(revenue) : '';
+        const rev = hasRevenue ? formatRevenueShort(revenue) : '';
         const dimension = state.dims[attr]?.label || 'Gebiet';
         const revenueTitle = hasRevenue
-            ? `Gesamtumsatz ${dimension} ${val}: ${Math.round(revenue).toLocaleString('de-DE')} €`
+            ? `Gesamtumsatz ${dimension} ${val}: ${formatRevenueFull(revenue)}`
             : '';
         L.marker(center, {
             interactive: false,
@@ -747,12 +762,12 @@ function regionPopupHtml(feature) {
                 <span class="simulation-arrow">→</span>
                 <div><span>Neu</span><b><i class="dot" style="background:${attrColor(simulationPreview.attr, info.newValue)}"></i>${escapeHtml(info.newValue)}</b></div>
             </div>
-            ${changed ? `<p><b>${customers.length}</b> Kunden · <b>${Math.round(revenue).toLocaleString('de-DE')} €</b> Umsatz</p>` : '<p class="muted small">Für dieses Gebiet ist keine Änderung vorgesehen.</p>'}
+            ${changed ? `<p><b>${customers.length}</b> Kunden · <b title="${formatRevenueFull(revenue)}">${formatRevenueShort(revenue)}</b> Umsatz</p>` : '<p class="muted small">Für dieses Gebiet ist keine Änderung vorgesehen.</p>'}
         </div>`;
     }
     const assign = territoryAssignHtml(feature);
     const revenue = entry?.customers?.reduce((sum, c) => sum + (c.umsatz || 0), 0) || 0;
-    const revenueLine = revenue ? `<p class="region-revenue">Umsatz gesamt: <b>${revenue.toLocaleString('de-DE')} €</b></p>` : '';
+    const revenueLine = revenue ? `<p class="region-revenue">Umsatz gesamt: <b title="${formatRevenueFull(revenue)}">${formatRevenueShort(revenue)}</b></p>` : '';
     const readonly = isMobileMap() ? '<p class="muted small">Mobile Ansicht: Gebiete sind hier nur lesbar. Änderungen bitte am Desktop vornehmen.</p>' : '';
 
     if (!entry || entry.total === 0) {
@@ -858,7 +873,7 @@ export function customerPopupHtml(customer) {
         ${[customer.channel, customer.gruppe, customer.bezirk].some(Boolean)
             ? `<p class="muted small">${[customer.channel, customer.gruppe, customer.bezirk].filter(Boolean).map(escapeHtml).join(' › ')}</p>`
             : ''}
-        ${customer.umsatz ? `<p class="muted">Umsatz: ${customer.umsatz.toLocaleString('de-DE')} €</p>` : ''}
+        ${customer.umsatz ? `<p class="muted" title="${formatRevenueFull(customer.umsatz)}">Umsatz: ${formatRevenueShort(customer.umsatz)}</p>` : ''}
         ${contactBlockHtml(customer)}
         ${visitBlockHtml(customer)}
         ${customer.geo === 'plz' ? '<p class="muted small">📍 Position: PLZ-Mittelpunkt (ungefähr)</p>' : ''}
