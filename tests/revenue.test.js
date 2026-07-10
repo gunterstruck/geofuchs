@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseNumber, detectRevenueScale, parseRows } from '../src/services/excel.js';
+import { parseNumber, detectRevenueScale, parseAmountColumn, parseRows } from '../src/services/excel.js';
 
 describe('detectRevenueScale (Spaltenüberschrift)', () => {
     it('erkennt Tausend-Euro-Überschriften', () => {
@@ -18,6 +18,29 @@ describe('detectRevenueScale (Spaltenüberschrift)', () => {
     });
 });
 
+describe('parseAmountColumn (spaltenweite deutsche Tausendertrennung)', () => {
+    it('interpretiert eine deutsch formatierte Spalte einheitlich (echtes Nutzer-Szenario)', () => {
+        // „350.070" würde einzeln als 350,07 fehlgelesen – spaltenweit korrekt als 350070
+        const raw = ['350.070', '189.245', '278.415', '1.822', '25.588', '562', '0', '984', '2.100'];
+        const { values, format } = parseAmountColumn(raw);
+        expect(format).toBe('de');
+        expect(values).toEqual([350070, 189245, 278415, 1822, 25588, 562, 0, 984, 2100]);
+        expect(values.reduce((a, b) => a + b, 0)).toBe(848786);
+    });
+
+    it('lässt englisch/gemischt formatierte Spalten unangetastet (kein Falsch-Zwang)', () => {
+        const { values, format } = parseAmountColumn(['1,234.56', '2,000.00', '999.50']);
+        expect(format).toBe('auto');
+        expect(values[0]).toBeCloseTo(1234.56, 2);
+        expect(values[1]).toBeCloseTo(2000, 2);
+    });
+
+    it('reine Zahlen ohne Tausenderpunkte bleiben unverändert', () => {
+        const { values } = parseAmountColumn([45000, '48000', '1234.5']);
+        expect(values).toEqual([45000, 48000, 1234.5]);
+    });
+});
+
 describe('parseRows: Umsatz-Skalierung und Summe', () => {
     const base = { name: 'Kunde', plz: 'PLZ', bezirk: 'Bezirk' };
 
@@ -33,6 +56,18 @@ describe('parseRows: Umsatz-Skalierung und Summe', () => {
         const sum = customers.reduce((s, c) => s + c.umsatz, 0);
         expect(sum).toBe(45000 + 1234500 + 104000);
         expect(errors.some((e) => e.Typ === 'Hinweis' && /Tausend Euro/.test(e.Grund))).toBe(true);
+    });
+
+    it('deutsche Tausenderpunkt-Spalte wird korrekt summiert (Bug: zu niedrige Karten-Summe)', () => {
+        const mapping = { ...base, umsatz: 'AE - GJ25' };
+        const rows = [
+            { Kunde: 'A', PLZ: '45136', Bezirk: 'Nord', 'AE - GJ25': '350.070' },
+            { Kunde: 'B', PLZ: '45127', Bezirk: 'Nord', 'AE - GJ25': '1.822' },
+            { Kunde: 'C', PLZ: '50667', Bezirk: 'Süd', 'AE - GJ25': '984' }
+        ];
+        const { customers, errors } = parseRows(rows, mapping);
+        expect(customers.map((c) => c.umsatz)).toEqual([350070, 1822, 984]);
+        expect(errors.some((e) => e.Typ === 'Hinweis' && /Tausendertrennung/.test(e.Grund))).toBe(true);
     });
 
     it('deutsche Schreibweise ohne T€-Header bleibt unverändert', () => {
