@@ -196,6 +196,32 @@
         color: var(--color-text-muted);
         font-size: 0.82rem;
         line-height: 1.35;
+        overflow: hidden;
+        max-height: 160px;
+        transition: opacity 0.35s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease, border-width 0.4s ease;
+    }
+
+    /* Erst kurz sichtbar, dann automatisch weg (gewinnt Platz, ruhigeres Bild) */
+    .mobile-desktop-note.auto-hidden {
+        opacity: 0 !important;
+        max-height: 0 !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        border-width: 0 !important;
+        pointer-events: none;
+    }
+
+    /* Erster Start: Begrüßungs-Panel etwas höher und der Fuchs größer */
+    .sidebar.onboarding {
+        height: min(76dvh, 680px);
+    }
+    .sidebar.onboarding .ob-fox {
+        font-size: 3.4rem;
+    }
+    .sidebar.onboarding .ob-hero {
+        padding-top: 14px;
     }
 
     .sidebar:not(.onboarding) .tabs {

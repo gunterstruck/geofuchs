@@ -27,8 +27,17 @@
 
 /* Geführter Einstieg (Onboarding) */
 .ob-hero { text-align: center; padding: 8px 4px 4px; }
-.ob-fox { font-size: 2.6rem; line-height: 1; }
-.ob-hero h2 { margin: 6px 0 4px; }
+.ob-fox { font-size: 2.8rem; line-height: 1; display: inline-block; transform-origin: 72% 90%; animation: ob-fox-wave 1.5s ease 0.35s 1; }
+@keyframes ob-fox-wave {
+    0%, 100% { transform: rotate(0); }
+    20% { transform: rotate(-13deg); }
+    40% { transform: rotate(10deg); }
+    60% { transform: rotate(-7deg); }
+    80% { transform: rotate(4deg); }
+}
+@media (prefers-reduced-motion: reduce) { .ob-fox { animation: none; } }
+.ob-hero h2 { margin: 6px 0 2px; }
+.ob-greeting { margin: 0 0 4px; color: var(--color-primary-dark, #0f766e); font-weight: 700; }
 .ob-hero p { margin: 0 auto; max-width: 34ch; }
 
 .ob-steps { list-style: none; margin: 18px 0 10px; padding: 0; }
