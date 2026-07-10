@@ -7,9 +7,23 @@
  */
 
 export const TOUR_QR_PREFIX = 'TF1:';
+export const TOUR_HASH_KEY = 't';   // Fragment-Schlüssel: host/…#t=<base64url>
 export const MAX_QR_STOPS = 12;
 
 const round5 = (n) => Math.round(Number(n) * 1e5) / 1e5;
+
+// UTF-8-sicheres base64url (Umlaute in Namen/Adressen) – ohne externe Abhängigkeit.
+function toBase64Url(str) {
+    const bytes = new TextEncoder().encode(str);
+    let bin = '';
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function fromBase64Url(b64) {
+    const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+}
 
 // Achtung: Number(null) wäre 0 – Strings konvertieren, alles andere direkt prüfen
 const isCoord = (v) => Number.isFinite(typeof v === 'string' && v !== '' ? Number(v) : v);
@@ -55,13 +69,48 @@ export function encodeTourPayload({ start, stops, tourName, date, startTime, vis
 }
 
 /**
+ * Baut die App-URL, die als QR-Code angezeigt wird. Die native Handy-Kamera
+ * erkennt sie als Link und öffnet die installierte PWA (Scope „/") bzw. den
+ * Browser – ohne dass die App vorher manuell geöffnet werden muss. Die Tour
+ * steckt im Hash-Fragment (#t=…): Fragmente werden nie an einen Server
+ * gesendet, die Daten bleiben also auf dem Gerät.
+ * @param {string} encoded  Ergebnis von encodeTourPayload (TF1:…)
+ * @param {string} baseUrl  z. B. location.origin + location.pathname
+ */
+export function encodeTourUrl(encoded, baseUrl) {
+    if (!encoded) return null;
+    const base = String(baseUrl || '').replace(/[#?].*$/, '').replace(/\/$/, '');
+    return `${base}/#${TOUR_HASH_KEY}=${toBase64Url(encoded)}`;
+}
+
+/** Tour-Fragment aus einer (Hash-)URL herauslösen, sonst null. */
+export function extractTourFromUrl(text) {
+    const hash = String(text || '');
+    const m = hash.match(new RegExp(`[#&]${TOUR_HASH_KEY}=([A-Za-z0-9\\-_]+)`));
+    if (!m) return null;
+    try {
+        return fromBase64Url(m[1]);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Nimmt QR-Rohtext (App-URL, „TF1:…" oder pures JSON) und liefert die Tour.
  * @returns {{ start, stops, tourName, date, startTime, visitMinutes, roundTrip }|null}
  */
 export function decodeTourPayload(text) {
-    if (typeof text !== 'string' || !text.startsWith(TOUR_QR_PREFIX)) return null;
+    if (typeof text !== 'string' || !text) return null;
+    // 1) App-URL mit Tour im Hash-Fragment
+    let raw = text;
+    if (text.includes(`#${TOUR_HASH_KEY}=`) || text.includes(`&${TOUR_HASH_KEY}=`)) {
+        raw = extractTourFromUrl(text) ?? text;
+    }
+    // 2) Prefix „TF1:" abtrennen, sonst pures JSON zulassen
+    const json = raw.startsWith(TOUR_QR_PREFIX) ? raw.slice(TOUR_QR_PREFIX.length) : raw;
     let payload;
     try {
-        payload = JSON.parse(text.slice(TOUR_QR_PREFIX.length));
+        payload = JSON.parse(json);
     } catch {
         return null;
     }

@@ -147,6 +147,22 @@ export function parseNumber(value) {
     return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Aus der Umsatz-Spaltenüberschrift ableiten, ob die Werte in Tausend Euro
+ * (T€, TEUR, Tsd €, k€) oder Millionen (Mio €) angegeben sind. In deutschen
+ * kaufmännischen Listen steht der Umsatz häufig verkürzt, z. B. „Umsatz T€"
+ * mit Wert 45 statt 45000. Rückgabe ist der Multiplikator (1, 1000, 1_000_000).
+ */
+export function detectRevenueScale(header) {
+    const h = normalizeHeader(header).replace(/\s+/g, ' ');
+    if (/\bmio\b|million/.test(h)) return 1_000_000;
+    // t€/teur/tsd/tausend/k€/keur als eigenständiges Token, um Fehltreffer zu vermeiden
+    if (/t€|k€|\bteur\b|\bkeur\b|\btsd\b|\btsd €|tausend/.test(h)) return 1000;
+    return 1;
+}
+
+const scaleNumber = (n, scale) => (n === null ? null : n * scale);
+
 function parseCoord(value) {
     if (value === null || value === undefined || value === '') return null;
     const n = parseFloat(String(value).replace(',', '.'));
@@ -243,6 +259,16 @@ export function parseRows(rows, mapping) {
 
     const err = (sheetRow, grund, raw, typ = 'Fehler') => errors.push({ Zeile: sheetRow, Typ: typ, Grund: grund, ...raw });
 
+    // Umsatz-Skalierung aus der Spaltenüberschrift (z. B. „Umsatz T€" → ×1000)
+    const umsatzScale = mapping.umsatz ? detectRevenueScale(mapping.umsatz) : 1;
+    if (umsatzScale !== 1) {
+        const einheit = umsatzScale === 1_000_000 ? 'Millionen Euro' : 'Tausend Euro';
+        errors.push({
+            Zeile: '—', Typ: 'Hinweis',
+            Grund: `Umsatzspalte „${mapping.umsatz}" als ${einheit} erkannt – die Werte wurden ×${umsatzScale.toLocaleString('de-DE')} in volle Euro umgerechnet. Bitte kurz prüfen.`
+        });
+    }
+
     rows.forEach((row, index) => {
         const sheetRow = index + 2; // Kopfzeile = Zeile 1
         const get = (key) => (mapping[key] ? String(row[mapping[key]] ?? '').trim() : '');
@@ -311,7 +337,7 @@ export function parseRows(rows, mapping) {
             ansprechpartner: get('ansprechpartner'),
             telefon: get('telefon'),
             email: get('email'),
-            umsatz: parseNumber(mapping.umsatz ? row[mapping.umsatz] : null),
+            umsatz: scaleNumber(parseNumber(mapping.umsatz ? row[mapping.umsatz] : null), umsatzScale),
             rhythmusWochen: parseWeeks(mapping.rhythmusWochen ? row[mapping.rhythmusWochen] : null),
             besuche: letzterBesuch ? [letzterBesuch] : [],
             lat: hasCoords ? lat : null,

@@ -9,7 +9,7 @@
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
 import { state, emit, getCustomer } from '../core/state.js';
-import { decodeTourPayload, matchStopsToCustomers } from '../features/tourShare.js';
+import { decodeTourPayload, matchStopsToCustomers, encodeTourUrl } from '../features/tourShare.js';
 import { googleMapsLink } from '../features/tour.js';
 import { downloadIcs } from '../features/tourExport.js';
 import { combinePlanStart } from '../features/dayPlanner.js';
@@ -55,23 +55,40 @@ export function initTourQr() {
     });
 }
 
-/** Vom Tour-Panel aufgerufen: fertigen Payload-Text als QR anzeigen. */
-export async function openShareDialog(payloadText, { stopCount, skipped = 0 } = {}) {
+/**
+ * Vom Tour-Panel aufgerufen: die Tour als QR-Code (App-URL) anzeigen. Die URL
+ * öffnet beim Scannen mit der normalen Handy-Kamera direkt die PWA/den Browser.
+ * @param {string} encoded  Ergebnis von encodeTourPayload
+ */
+export async function openShareDialog(encoded, { stopCount, skipped = 0 } = {}) {
     const canvas = document.getElementById('qr-share-canvas');
+    const url = encodeTourUrl(encoded, window.location.origin + window.location.pathname);
     try {
-        await QRCode.toCanvas(canvas, payloadText, {
-            errorCorrectionLevel: 'M',
-            width: 380,
-            margin: 2
-        });
+        // ECC „L": maximale Kapazität für die längere URL; Bildschirm→Kamera ist
+        // ein sauberer Kanal, hohe Fehlerkorrektur ist hier nicht nötig.
+        await QRCode.toCanvas(canvas, url, { errorCorrectionLevel: 'L', width: 380, margin: 2 });
     } catch {
-        showToast('QR-Code konnte nicht erzeugt werden – Tour eventuell zu groß. Bitte Stopps reduzieren.', 'error', 6000);
+        showToast('QR-Code konnte nicht erzeugt werden – Tour zu groß. Bitte Stopps reduzieren.', 'error', 6000);
         return;
     }
     document.getElementById('qr-share-info').textContent =
         `${stopCount} Stopp${stopCount === 1 ? '' : 's'} im Code` +
-        (skipped > 0 ? ` · ${skipped} weitere passen nicht hinein` : '');
+        (skipped > 0 ? ` · ${skipped} weitere passen nicht hinein` : '') +
+        ' · mit der Handy-Kamera scannen';
     shareDialog.showModal();
+}
+
+/**
+ * Beim App-Start aufgerufen: liegt eine Tour im URL-Fragment (#t=…), direkt den
+ * Empfangs-Dialog öffnen. So genügt das Scannen des QR-Codes mit der Kamera.
+ * @param {object} payload  bereits dekodierte Tour (aus decodeTourPayload)
+ */
+export function openReceivedFromUrl(payload) {
+    if (!payload) return;
+    received = payload;
+    if (!scanDialog) scanDialog = document.getElementById('qr-scan-dialog');
+    renderReceived();
+    scanDialog.showModal();
 }
 
 function openScanDialog() {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { encodeTourPayload, decodeTourPayload, matchStopsToCustomers, TOUR_QR_PREFIX, MAX_QR_STOPS } from '../src/features/tourShare.js';
+import { encodeTourPayload, decodeTourPayload, matchStopsToCustomers, encodeTourUrl, extractTourFromUrl, TOUR_QR_PREFIX, TOUR_HASH_KEY, MAX_QR_STOPS } from '../src/features/tourShare.js';
 
 const START = { lat: 51.4501234, lng: 7.0123456, label: 'Mein Standort' };
 const STOPS = [
@@ -42,6 +42,37 @@ describe('QR-Payload encode/decode', () => {
         expect(decodeTourPayload(`${TOUR_QR_PREFIX}kein-json`)).toBeNull();
         expect(decodeTourPayload(`${TOUR_QR_PREFIX}{"v":2}`)).toBeNull();
         expect(decodeTourPayload(null)).toBeNull();
+    });
+
+    it('Deep-Link-URL: Roundtrip über das Hash-Fragment (mit Umlauten)', () => {
+        const encoded = encodeTourPayload({
+            start: START, stops: STOPS, tourName: 'Tour Köln Süd/Ost',
+            date: '2026-07-15', startTime: '08:30', visitMinutes: 45
+        });
+        const url = encodeTourUrl(encoded, 'https://tourfuchs.example/app/');
+        expect(url).toContain(`#${TOUR_HASH_KEY}=`);
+        expect(url.startsWith('https://tourfuchs.example/app/#')).toBe(true);
+
+        // native Kamera liefert die volle URL an decodeTourPayload
+        const decoded = decodeTourPayload(url);
+        expect(decoded.tourName).toBe('Tour Köln Süd/Ost');
+        expect(decoded.stops).toHaveLength(2);
+        expect(decoded.stops[0].name).toBe('Autohaus Schmidt');
+
+        // extractTourFromUrl liefert den TF1-Rohtext zurück
+        expect(extractTourFromUrl(url)).toBe(encoded);
+        expect(extractTourFromUrl('https://x.y/#other=1')).toBeNull();
+    });
+
+    it('Deep-Link-URL bleibt für eine volle Tour scanbar (< 2900 Byte)', () => {
+        const many = Array.from({ length: MAX_QR_STOPS }, (_, i) => ({
+            name: `Kunde mit längerem Namen GmbH & Co. KG ${i}`, lat: 51 + i * 0.01, lng: 7 + i * 0.01,
+            strasse: 'Musterstraße 123', plz: '45136', ort: 'Essen', telefon: '0201 1234567', nummer: `K10${i}`
+        }));
+        const encoded = encodeTourPayload({ start: START, stops: many, tourName: 'Volle Tour', date: '2026-07-15', startTime: '08:00', visitMinutes: 45 });
+        const url = encodeTourUrl(encoded, 'https://tourfuchs.example/');
+        // QR im Byte-Modus, ECC L, fasst bis ~2953 Zeichen
+        expect(new TextEncoder().encode(url).length).toBeLessThan(2900);
     });
 
     it('null ohne Start oder ohne verortete Stopps', () => {

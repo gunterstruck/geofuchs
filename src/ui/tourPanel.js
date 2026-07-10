@@ -9,14 +9,14 @@
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, getCustomer, repColor, tourScopedCustomers, customerInTourScope, UNASSIGNED } from '../core/state.js';
+import { state, on, emit, getCustomer, repColor, tourScopedCustomers, customerInTourScope, markDirty, UNASSIGNED } from '../core/state.js';
 import { suggestNearby, suggestAlongRoute, optimizeOrder, routeDistance, googleMapsLink } from '../features/tour.js';
 import { printDayPlan, downloadIcs, DEFAULT_VISIT_MINUTES } from '../features/tourExport.js';
 import { combinePlanStart, todayInputValue } from '../features/dayPlanner.js';
 import { encodeTourPayload, MAX_QR_STOPS } from '../features/tourShare.js';
 import { initTourQr, openShareDialog } from './tourQr.js';
 import { copyText, tourText } from '../features/handoff.js';
-import { visitStatus, STATUS_COLORS, STATUS_LABELS } from '../features/visits.js';
+import { visitStatus, STATUS_COLORS, STATUS_LABELS, markVisitedToday, lastVisit, agoText } from '../features/visits.js';
 import { loadTours, saveTours } from '../services/storage.js';
 import { getRoadRoute, routingKey, hasRoutingConsent, requestRoutingConsent } from '../services/routing.js';
 import { flyToCustomer, focusPoint, fitTourRoute } from '../features/map.js';
@@ -586,21 +586,38 @@ function renderStops() {
             </ol>
         </div>`;
     } else {
-        el.innerHTML = stops.map((c, i) => `
-            <div class="stop-row${autoLastStopIsDestination && i === stops.length - 1 ? ' final-row' : ''}">
+        const today = new Date().toISOString().slice(0, 10);
+        el.innerHTML = stops.map((c, i) => {
+            const status = visitStatus(c);
+            const done = lastVisit(c) === today;
+            const dot = status !== 'none'
+                ? `<span class="stop-status-dot" style="background:${STATUS_COLORS[status]}" title="${STATUS_LABELS[status]}"></span>`
+                : '';
+            return `
+            <div class="stop-row${autoLastStopIsDestination && i === stops.length - 1 ? ' final-row' : ''}${done ? ' stop-visited' : ''}">
                 <span class="stop-num">${i + 1}</span>
                 <span class="stop-name" title="${escapeHtml(c.name)}">
-                    ${escapeHtml(c.name)}
+                    ${dot}${escapeHtml(c.name)}
                     ${autoLastStopIsDestination && i === stops.length - 1 ? '<span class="route-role">Ziel</span>' : ''}
-                    <br><span class="muted small">${escapeHtml(c.plz)} ${escapeHtml(c.ort)}</span>
+                    <br><span class="muted small">${escapeHtml(c.plz)} ${escapeHtml(c.ort)}${done ? ' · heute besucht' : (lastVisit(c) ? ` · zuletzt ${agoText(lastVisit(c))}` : '')}</span>
                 </span>
                 <span class="stop-actions">
+                    <button type="button" class="stop-visit${done ? ' is-done' : ''}" data-visit="${i}" title="${done ? 'Heute besucht' : 'Als heute besucht markieren'}">${done ? '✓' : '✓ Heute'}</button>
                     <button type="button" data-up="${i}" title="Nach oben" ${i === 0 ? 'disabled' : ''}>↑</button>
                     <button type="button" data-down="${i}" title="Nach unten" ${i === stops.length - 1 ? 'disabled' : ''}>↓</button>
                     <button type="button" data-remove="${i}" title="Entfernen">✕</button>
                 </span>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
+
+        el.querySelectorAll('[data-visit]').forEach((btn) => btn.addEventListener('click', () => {
+            const c = stops[parseInt(btn.dataset.visit, 10)];
+            if (!c) return;
+            markVisitedToday(c);
+            markDirty(); // persistieren + Karte/Status neu zeichnen
+            renderPanel();
+            showToast(`Besuch bei ${c.name} für heute eingetragen.`, 'success');
+        }));
 
         el.querySelectorAll('[data-remove]').forEach((btn) => btn.addEventListener('click', () => {
             state.tour.stops.splice(parseInt(btn.dataset.remove, 10), 1);
