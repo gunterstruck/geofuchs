@@ -12,7 +12,7 @@
  */
 
 import { STORIES } from '../features/stories.js';
-import { state, emit } from '../core/state.js';
+import { state, emit, markDirty } from '../core/state.js';
 
 const SEEN_KEY = 'tf_showcase_seen';
 const DISMISS_KEY = 'tf_showcase_dismissed';
@@ -27,6 +27,8 @@ let running = false;
 let aborted = false;
 let activeReject = null;
 let tourSnapshot = null;
+let visitRestore = null;      // { id, besuche } zum Zurücksetzen von „Heute besucht"
+let origConfirm = null;       // Originales window.confirm während patchConfirm
 
 class AbortError extends Error {}
 
@@ -88,6 +90,18 @@ function centerOf(el) {
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 }
 
+// Cursor/Blase/Leiste in die richtige Ebene hängen: Ein modaler <dialog> liegt
+// im Top-Layer und würde die Overlays sonst verdecken. Elemente im offenen
+// Dialog rendern darüber – also die Overlays dorthin verschieben.
+function moveOverlaysInto(layer) {
+    if (!layer || cursorEl?.parentElement === layer) return;
+    layer.append(cursorEl, bubbleEl);
+    if (toolbarEl) layer.append(toolbarEl);
+}
+function layerFor(el) {
+    return (el && el.closest('dialog[open]')) || document.body;
+}
+
 // ---- Cursor-Bewegung / Klick ----
 function placeCursor(x, y) {
     cursorEl.style.setProperty('--sc-x', `${x - 4}px`);
@@ -102,6 +116,7 @@ async function moveTo(x, y) {
 async function moveToEl(sel) {
     const el = await resolveEl(sel);
     if (!el) return null;
+    moveOverlaysInto(layerFor(el));
     el.scrollIntoView({ block: 'center', behavior: prefersReduced ? 'auto' : 'smooth' });
     await sleep(prefersReduced ? 60 : 260);
     const c = centerOf(el);
@@ -154,6 +169,7 @@ async function say(text, sel) {
     const bw = bubbleEl.offsetWidth;
     const bh = bubbleEl.offsetHeight;
     const anchor = sel ? await resolveEl(sel, 800) : null;
+    if (anchor) moveOverlaysInto(layerFor(anchor));
     let x;
     let y;
     if (anchor) {
@@ -238,6 +254,61 @@ const HELPERS = {
         const d = document.getElementById('qr-share-dialog');
         if (d?.open) d.close();
         await sleep(400);
+    },
+    // ---- Story 4: Simulation ----
+    async gotoGebiete() {
+        await clickEl('.mode-btn[data-mode="gebietsplanung"]');
+        await sleep(300);
+        await clickEl('.tab-button[data-tab="gebiete"]');
+        await resolveEl('#btn-cockpit', 3000);
+        await sleep(300);
+    },
+    async openCockpit() {
+        await clickEl('#btn-cockpit');
+        await resolveEl('#cockpit-dialog[open]', 3000);
+        await sleep(600);
+    },
+    async simAssign() {
+        // Alle sichtbaren Gebiete wählen und auf einen Zielbezirk umbuchen
+        await clickEl('#sim-select-all');
+        await sleep(500);
+        const rep = await moveToEl('#sim-rep');
+        if (rep && rep.options.length) {
+            rep.value = rep.options[Math.min(1, rep.options.length - 1)].value;
+            rep.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        await sleep(400);
+        await clickEl('#sim-apply');
+        await sleep(700);
+    },
+    async simToMap() {
+        await clickEl('#cockpit-to-map');
+        await resolveEl('#simulation-map-bar:not([hidden])', 3000);
+        await sleep(700);
+    },
+    async simCycleViews() {
+        for (const v of ['old', 'new', 'changes']) {
+            await clickEl(`[data-simulation-view="${v}"]`);
+            await sleep(1100);
+        }
+    },
+    async simDiscard() {
+        // window.confirm ist während patchConfirm auf „true" gesetzt
+        await clickEl('#simulation-map-discard');
+        await sleep(600);
+    },
+    // ---- Story 5: Chancen & Abhaken ----
+    async chancenOn() {
+        await clickEl('.seg[data-view="chancen"]');
+        await sleep(700);
+    },
+    async checkVisit() {
+        const id = state.tour.stops[0];
+        const c = id && state.customers.find((x) => x.id === id);
+        if (c) visitRestore = { id: c.id, besuche: [...(c.besuche || [])] };
+        const btn = await resolveEl('#tour-stops .stop-visit', 2500);
+        if (btn) await clickEl('#tour-stops .stop-visit');
+        await sleep(500);
     }
 };
 
@@ -276,15 +347,40 @@ function setProgress(i, n) {
 }
 function cleanup(story) {
     hideBubble();
-    if (cursorEl) cursorEl.hidden = true;
-    if (cursorEl) cursorEl.classList.remove('sc-click', 'sc-press');
+    // Overlays zurück in den Body holen (falls sie in einem Dialog hingen)
+    if (cursorEl) { document.body.append(cursorEl, bubbleEl); cursorEl.hidden = true; cursorEl.classList.remove('sc-click', 'sc-press'); }
     shieldEl?.remove(); shieldEl = null;
     toolbarEl?.remove(); toolbarEl = null;
-    // Offene Overlays der Vorführung schließen
+
+    // Simulation gefahrlos verwerfen (auch bei Abbruch) – confirm dabei bejahen
+    const savedConfirm = window.confirm;
+    window.confirm = () => true;
+    try {
+        const bar = document.getElementById('simulation-map-bar');
+        if (bar && !bar.hidden) document.getElementById('simulation-map-discard')?.click();
+        const cockpit = document.getElementById('cockpit-dialog');
+        if (cockpit?.open) { document.getElementById('sim-reset')?.click(); cockpit.close(); }
+    } finally {
+        window.confirm = origConfirm ?? savedConfirm;
+        origConfirm = null;
+    }
+
+    // Weitere Overlays schließen
     const qr = document.getElementById('qr-share-dialog');
     if (qr?.open) qr.close();
     const mp = document.getElementById('mobile-preview');
     if (mp && !mp.hidden) document.getElementById('btn-mobile-preview')?.click();
+
+    // Chancen-Fokus zurücksetzen
+    if (state.ui.opportunityOnly) { state.ui.opportunityOnly = false; emit('customers:changed'); }
+
+    // „Heute besucht" der Vorführung zurücknehmen
+    if (visitRestore) {
+        const c = state.customers.find((x) => x.id === visitRestore.id);
+        if (c) { c.besuche = visitRestore.besuche; markDirty(); }
+        visitRestore = null;
+    }
+
     // Tour-Zustand wiederherstellen
     if (story?.mutatesTour && tourSnapshot) {
         Object.keys(state.tour).forEach((k) => delete state.tour[k]);
@@ -302,6 +398,7 @@ async function play(story) {
     aborted = false;
     ensureDom();
     if (story.mutatesTour) tourSnapshot = JSON.parse(JSON.stringify(state.tour));
+    if (story.patchConfirm) { origConfirm = window.confirm; window.confirm = () => true; }
     showChrome(story);
     try {
         for (let i = 0; i < story.steps.length; i++) {

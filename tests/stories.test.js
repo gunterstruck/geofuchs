@@ -33,7 +33,7 @@ describe('Showcase-Stories: Guardrail', () => {
         }
     });
 
-    it('genau die drei MVP-Stories', () => {
-        expect(STORIES.map((s) => s.id)).toEqual(['excel-karte', 'tour', 'handy-qr']);
+    it('die fünf Stories in fester Reihenfolge', () => {
+        expect(STORIES.map((s) => s.id)).toEqual(['excel-karte', 'tour', 'handy-qr', 'simulation', 'chancen']);
     });
 });
