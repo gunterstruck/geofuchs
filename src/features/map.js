@@ -13,6 +13,7 @@ import { state, on, emit, repColor, attrColor, visibleCustomers, tourScopedCusto
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { getRoadRoute, peekRoadRoute } from '../services/routing.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
+import { revenueWeightedCentroids } from './labelPlacement.js';
 import { suggestNearby, suggestAlongRoute } from './tour.js';
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
 import { copyText, customerText } from './handoff.js';
@@ -657,51 +658,48 @@ function renderLabels() {
         revenueValues.add(v);
     }
 
-    // Anker-Gebiet je Wert (meiste Kunden dieses Werts)
-    const anchor = new Map(); // val -> { feature, count }
-    for (const [key, entry] of regionStats) {
+    // Polygone je Wert sammeln – über ALLE Kunden (filterunabhängig, damit die
+    // Label-Position stabil bleibt und der fachlichen Gesamtsicht entspricht).
+    // Je Polygon Mittelpunkt, Kundenzahl und Umsatz dieses Werts erfassen.
+    const polygonsByValue = new Map(); // val -> [{ lat, lng, count, revenue }]
+    const addPolygon = (val, feature, count, revenue) => {
+        const bbox = feature?._bbox;
+        if (!bbox) return;
+        const [minX, minY, maxX, maxY] = bbox;
+        const list = polygonsByValue.get(val) ?? [];
+        list.push({ lat: (minY + maxY) / 2, lng: (minX + maxX) / 2, count, revenue });
+        polygonsByValue.set(val, list);
+    };
+
+    const allStats = aggregateByRegion(state.level, currentLevelData, state.customers);
+    for (const [key, entry] of allStats) {
         const feature = featureByKey.get(key);
         if (!feature) continue;
-        const counts = new Map();
+        const perVal = new Map(); // val -> { count, revenue }
         for (const c of entry.customers) {
             const v = valueOf(c);
-            counts.set(v, (counts.get(v) ?? 0) + 1);
+            const cur = perVal.get(v) ?? { count: 0, revenue: 0 };
+            cur.count++;
+            const rev = Number(c.umsatz);
+            if (Number.isFinite(rev)) cur.revenue += rev;
+            perVal.set(v, cur);
         }
-        for (const [v, n] of counts) {
-            if (!anchor.has(v) || n > anchor.get(v).count) anchor.set(v, { feature, count: n });
-        }
+        for (const [v, { count, revenue }] of perVal) addPolygon(v, feature, count, revenue);
     }
-    // Werte, deren Kunden gerade ausgefiltert oder im Tour-Fokus ausgeblendet
-    // sind, bekommen trotzdem ein Label – die Labels sind die fachliche
-    // Gesamtsicht, genau wie die Umsatzsumme oben.
-    const missing = new Set([...new Set(state.customers.map(valueOf))]
-        .filter((v) => v !== UNASSIGNED && !anchor.has(v)));
-    if (missing.size > 0) {
-        const rest = state.customers.filter((c) => missing.has(valueOf(c)));
-        const restStats = aggregateByRegion(state.level, currentLevelData, rest);
-        for (const [key, entry] of restStats) {
-            const feature = featureByKey.get(key);
-            if (!feature) continue;
-            const counts = new Map();
-            for (const c of entry.customers) counts.set(valueOf(c), (counts.get(valueOf(c)) ?? 0) + 1);
-            for (const [v, n] of counts) {
-                if (!anchor.has(v) || n > anchor.get(v).count) anchor.set(v, { feature, count: n });
-            }
-        }
-    }
-    // Gebietszuordnungen ohne Kunden ebenfalls beschriften (Anker: das zugeordnete Gebiet)
+
+    // Gebietszuordnungen ohne Kunden beschriften, wenn der Wert sonst kein Label hätte
     for (const [id, terr] of Object.entries(state.territories)) {
         if (!id.startsWith(`${state.level}:`)) continue;
         const v = terr[attr];
-        if (!v || anchor.has(v)) continue;
+        if (!v || polygonsByValue.has(v)) continue;
         const feature = featureByKey.get(id.slice(state.level.length + 1));
-        if (feature) anchor.set(v, { feature, count: 0 });
+        if (feature) addPolygon(v, feature, 0, 0);
     }
 
-    for (const [val, a] of anchor) {
+    const positions = revenueWeightedCentroids(polygonsByValue);
+
+    for (const [val, center] of positions) {
         if (val === UNASSIGNED) continue;
-        const [minX, minY, maxX, maxY] = a.feature._bbox;
-        const center = [(minY + maxY) / 2, (minX + maxX) / 2];
         const col = attrColor(attr, val);
         const hasRevenue = revenueValues.has(val);
         const revenue = revByVal.get(val) || 0;
