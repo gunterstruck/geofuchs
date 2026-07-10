@@ -79,6 +79,50 @@ export const STORIES = [
             { t: 'run', key: 'closeQr' },
             { t: 'say', text: 'Mit der Handy-Kamera scannen – die Tour ist drüben. Kein Server, kein Kabel.', ms: 3200 }
         ]
+    },
+    {
+        id: 'simulation',
+        icon: '🧪',
+        title: 'Was wäre wenn? Gebiete umbauen – ohne Risiko',
+        blurb: 'Testweise umverteilen, Wirkung sofort sehen.',
+        needsData: true,
+        patchConfirm: true,   // „Verwerfen" bestätigt sich in der Vorführung automatisch
+        steps: [
+            { t: 'run', key: 'ensureDemo' },
+            { t: 'run', key: 'gotoGebiete' },
+            { t: 'say', text: 'Das Gebiets-Cockpit: Kennzahlen je Vertriebsbezirk auf einen Blick.', sel: '#btn-cockpit', ms: 2400 },
+            { t: 'run', key: 'openCockpit' },
+            { t: 'say', text: 'Ich buche testweise Gebiete auf einen anderen Bezirk um …', ms: 2400 },
+            { t: 'run', key: 'simAssign' },
+            { t: 'say', text: 'Schau die Kennzahlen: grün rauf, rot runter – sofort sichtbar.', ms: 2800 },
+            { t: 'run', key: 'simToMap' },
+            { t: 'say', text: 'Und auf der Karte: Alt, Neu und nur die Änderungen.', ms: 2200 },
+            { t: 'run', key: 'simCycleViews' },
+            { t: 'say', text: 'Experimentieren erlaubt – echt wird es erst beim „Übernehmen". Ich verwerfe das jetzt.', sel: '#simulation-map-discard', ms: 3400 },
+            { t: 'run', key: 'simDiscard' }
+        ]
+    },
+    {
+        id: 'chancen',
+        icon: '🎯',
+        title: 'Wen besuche ich zuerst?',
+        blurb: 'Fällige Kunden filtern und unterwegs abhaken.',
+        needsData: true,
+        mutatesTour: true,
+        restoresVisit: true,
+        steps: [
+            { t: 'run', key: 'ensureDemo' },
+            { t: 'run', key: 'gotoTour' },
+            { t: 'say', text: '„Chancen" zeigt nur fällige und überfällige Kunden.', sel: '.seg[data-view="chancen"]', ms: 2200 },
+            { t: 'run', key: 'chancenOn' },
+            { t: 'wait', ms: 1400 },
+            { t: 'run', key: 'pickBezirkAll' },
+            { t: 'run', key: 'pickStart' },
+            { t: 'run', key: 'addTwoSuggestions' },
+            { t: 'say', text: 'Und unterwegs einfach abhaken …', sel: '#tour-stops', ms: 1900 },
+            { t: 'run', key: 'checkVisit' },
+            { t: 'say', text: 'Erledigt – der Besuchsstatus springt sofort auf grün.', ms: 2600 }
+        ]
     }
 ];
 
@@ -91,7 +135,9 @@ export const STORIES = [
 export const CRITICAL_SELECTORS = [
     '#btn-demo',
     '.mode-btn[data-mode="aussendienst"]',
+    '.mode-btn[data-mode="gebietsplanung"]',
     '.tab-button[data-tab="tour"]',
+    '.tab-button[data-tab="gebiete"]',
     '#tour-scope',
     '#start-search',
     '#btn-optimize',
@@ -100,5 +146,15 @@ export const CRITICAL_SELECTORS = [
     '#btn-mobile-preview',
     '#btn-tour-qr',
     '#qr-share-dialog',
-    '#mobile-preview'
+    '#mobile-preview',
+    '#btn-cockpit',
+    '#cockpit-dialog',
+    '#cockpit-to-map',
+    '#sim-select-all',
+    '#sim-rep',
+    '#sim-apply',
+    '#simulation-map-bar',
+    '#simulation-map-discard',
+    '[data-simulation-view]',
+    '.seg[data-view="chancen"]'
 ];
