@@ -21,6 +21,7 @@ import { initRegionEditor } from './ui/regionEditor.js';
 import { initSearch } from './ui/search.js';
 import { initToasts } from './ui/toast.js';
 import { initMobilePreview } from './ui/mobilePreview.js';
+import { initShowcase } from './ui/showcase.js';
 import { initPwaUpdates } from './ui/pwaUpdate.js';
 import { initContextHelp } from './ui/contextHelp.js';
 import { fitToCustomers } from './features/map.js';
@@ -130,6 +131,7 @@ async function init() {
     initRegionEditor();
     initSearch();
     initMobilePreview();
+    initShowcase();
     initPwaUpdates();
     initContextHelp();
 
