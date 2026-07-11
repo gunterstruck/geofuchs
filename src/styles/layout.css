@@ -93,6 +93,39 @@
     border-radius: var(--radius-l);
     box-shadow: var(--shadow-2);
 }
+/* Höhe per Griff gezogen: unten verankert, Höhe frei (min/max in JS begrenzt). */
+.sidebar.sheet-sized {
+    top: auto;
+    height: var(--sheet-height);
+}
+.sidebar.sheet-sized.floating-sidebar {
+    height: var(--sheet-height);
+    max-height: none;
+}
+.sheet-resizing .sidebar { transition: none; }
+
+/* Griff oben: Panelhöhe ziehen (Maus + Touch). */
+.sheet-grip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 22px;
+    padding: 7px 0 3px;
+    border: none;
+    background: transparent;
+    cursor: ns-resize;
+    touch-action: none; /* verhindert Scroll-/Zoom-Gesten beim Ziehen */
+    flex-shrink: 0;
+}
+.sheet-grip span {
+    width: 46px;
+    height: 5px;
+    border-radius: var(--radius-pill);
+    background: #cbd5e1;
+    transition: background 0.14s ease, width 0.14s ease;
+}
+.sheet-grip:hover span { background: var(--color-primary); width: 60px; }
+.sheet-resizing .sheet-grip span { background: var(--color-primary); }
 
 .sidebar-drag {
     display: flex;

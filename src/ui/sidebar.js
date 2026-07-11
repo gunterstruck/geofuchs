@@ -28,17 +28,17 @@ function toHexColor(value) {
 
 let geocodeHandle = null;
 let autoRevealTimer = null;
-let mobileSheetExpanded = false;
-let mobileSheetSnap = 'half';
 
 const mobileQuery = window.matchMedia('(max-width: 768px)');
 const MOBILE_DATA_TABS = new Set(['karte', 'tour']);
 const MOBILE_EMPTY_TABS = new Set(['karte', 'daten']);
 const SIDEBAR_WIDTH_KEY = 'gf_sidebar_width';
 const SIDEBAR_POS_KEY = 'gf_sidebar_position';
+const SHEET_HEIGHT_KEY = 'gf_sheet_height';
 const PANEL_ZOOM_KEY = 'tf_panel_zoom';
 const SIDEBAR_MIN = 340;
 const SIDEBAR_MAX = 400;
+const SHEET_MIN_HEIGHT = 140; // reicht für Griff + Tabs
 const PANEL_ZOOM_MIN = 0.8;
 const PANEL_ZOOM_MAX = 1.5;
 const PANEL_ZOOM_STEP = 0.1;
@@ -226,46 +226,94 @@ function applySidebar() {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
     sidebar.classList.toggle('open', state.ui.sidebarOpen);
-    sidebar.classList.toggle('sheet-full', isMobileUi() && mobileSheetSnap === 'full' && state.ui.activeTab === 'tour');
-    sidebar.classList.toggle('sheet-peek', isMobileUi() && (state.ui.activeTab === 'karte' || mobileSheetSnap === 'peek'));
     document.getElementById('sidebar-toggle').setAttribute('aria-expanded', String(state.ui.sidebarOpen));
     const grip = document.getElementById('sheet-grip');
     if (grip) {
-        const full = sidebar.classList.contains('sheet-full');
-        grip.setAttribute('aria-label', full ? 'Tour-Panel verkleinern' : 'Tour-Panel vergrößern');
-        grip.title = full ? 'Tour-Panel verkleinern' : 'Tour-Panel vergrößern';
+        grip.setAttribute('aria-label', 'Panelgröße ändern');
+        grip.title = 'Ziehen: Größe · Klick: ein-/ausklappen';
     }
     scheduleDesktopNoteAutoHide();
 }
 
-function setMobileSheetSnap(snap) {
-    mobileSheetSnap = snap;
-    mobileSheetExpanded = snap === 'full';
-    state.ui.sidebarOpen = snap !== 'peek';
-    applySidebar();
+// ---- Panelhöhe kontinuierlich per Griff ziehen (Maus + Touch) ----
+function topbarPx() {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--topbar-height');
+    return parseInt(v, 10) || 56;
+}
+function sheetMaxHeight() {
+    return Math.max(SHEET_MIN_HEIGHT, Math.round(window.innerHeight - topbarPx() - 8));
+}
+function clampSheetHeight(h) {
+    return Math.max(SHEET_MIN_HEIGHT, Math.min(sheetMaxHeight(), Math.round(h)));
+}
+function setSheetHeight(h, persist = false) {
+    const next = clampSheetHeight(h);
+    document.documentElement.style.setProperty('--sheet-height', `${next}px`);
+    document.getElementById('sidebar')?.classList.add('sheet-sized');
+    if (persist) { try { localStorage.setItem(SHEET_HEIGHT_KEY, String(next)); } catch (e) { /* egal */ } }
+    return next;
+}
+function restoreSheetHeight() {
+    let saved = null;
+    try { saved = localStorage.getItem(SHEET_HEIGHT_KEY); } catch (e) { /* egal */ }
+    if (saved) setSheetHeight(Number(saved));
 }
 
-function initMobileSheetDrag() {
+function toggleSheet() {
+    const sidebar = document.getElementById('sidebar');
+    if (isMobileUi()) {
+        // Klick auf den Griff: ein-/ausklappen (auf „karte" stattdessen Tour öffnen).
+        if (state.ui.activeTab === 'karte') { activateTab('tour'); return; }
+        state.ui.sidebarOpen = !state.ui.sidebarOpen;
+        applySidebar();
+    } else if (sidebar?.classList.contains('sheet-sized')) {
+        // Desktop: Klick setzt auf volle Höhe zurück.
+        sidebar.classList.remove('sheet-sized');
+        document.documentElement.style.removeProperty('--sheet-height');
+        try { localStorage.removeItem(SHEET_HEIGHT_KEY); } catch (e) { /* egal */ }
+    }
+}
+
+function initSheetGripResize() {
     const grip = document.getElementById('sheet-grip');
-    if (!grip) return;
+    const sidebar = document.getElementById('sidebar');
+    if (!grip || !sidebar) return;
     let dragging = false;
+    let moved = false;
     let startY = 0;
+    let startH = 0;
+
     grip.addEventListener('pointerdown', (ev) => {
-        if (!isMobileUi()) return;
         dragging = true;
+        moved = false;
         startY = ev.clientY;
+        startH = sidebar.getBoundingClientRect().height;
+        // Auf dem Handy muss das Blatt beim Ziehen offen sein (translateY 0).
+        if (isMobileUi() && !state.ui.sidebarOpen) { state.ui.sidebarOpen = true; applySidebar(); startH = sidebar.getBoundingClientRect().height; }
         grip.setPointerCapture?.(ev.pointerId);
+        document.body.classList.add('sheet-resizing');
+        ev.preventDefault();
     });
-    grip.addEventListener('pointerup', (ev) => {
+    grip.addEventListener('pointermove', (ev) => {
+        if (!dragging) return;
+        const dy = ev.clientY - startY;
+        if (!moved && Math.abs(dy) > 3) moved = true;
+        if (!moved) return;
+        // Griff sitzt oben: nach oben ziehen (dy<0) => höher, nach unten => niedriger.
+        setSheetHeight(startH - dy);
+    });
+    const finish = () => {
         if (!dragging) return;
         dragging = false;
-        const dy = ev.clientY - startY;
-        const y = ev.clientY / Math.max(1, window.innerHeight);
-        if (dy < -36 || y < 0.34) setMobileSheetSnap('full');
-        else if (dy > 46 || y > 0.72) setMobileSheetSnap('peek');
-        else setMobileSheetSnap('half');
-    });
-    grip.addEventListener('pointercancel', () => { dragging = false; });
+        document.body.classList.remove('sheet-resizing');
+        if (moved) {
+            try { localStorage.setItem(SHEET_HEIGHT_KEY, String(Math.round(sidebar.getBoundingClientRect().height))); } catch (e) { /* egal */ }
+        } else {
+            toggleSheet();
+        }
+    };
+    grip.addEventListener('pointerup', finish);
+    grip.addEventListener('pointercancel', finish);
 }
 
 /**
@@ -313,14 +361,8 @@ function activateTab(tab) {
         p.classList.toggle('active', tab !== 'karte' && p.id === `tab-${tab}`));
 
     if (isMobileUi()) {
-        if (tab === 'karte') {
-            state.ui.sidebarOpen = false;
-            mobileSheetExpanded = false;
-            mobileSheetSnap = 'peek';
-        } else if (tab === 'tour') {
-            state.ui.sidebarOpen = true;
-            if (mobileSheetSnap === 'peek') mobileSheetSnap = 'half';
-        }
+        if (tab === 'karte') state.ui.sidebarOpen = false;
+        else if (tab === 'tour') state.ui.sidebarOpen = true;
         applySidebar();
     }
 }
@@ -441,7 +483,8 @@ export function initSidebar() {
     initPanelZoom();
     initDesktopSidebarResize();
     initDesktopSidebarDrag();
-    initMobileSheetDrag();
+    initSheetGripResize();
+    restoreSheetHeight();
 
     // Fokus-Umschalter
     document.querySelectorAll('.mode-btn').forEach((btn) => {
@@ -473,13 +516,6 @@ export function initSidebar() {
     });
     applySidebar();
 
-    document.getElementById('sheet-grip')?.addEventListener('click', () => {
-        if (!isMobileUi()) return;
-        if (state.ui.activeTab !== 'tour') activateTab('tour');
-        else {
-            setMobileSheetSnap(mobileSheetSnap === 'full' ? 'half' : 'full');
-        }
-    });
 
     mobileQuery.addEventListener('change', () => {
         applyMode(state.ui.mode, false, false);
