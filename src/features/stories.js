@@ -143,6 +143,23 @@ export const STORIES = [
             { t: 'say', text: 'Für den Umzug aufs Handy: eine verschlüsselte Datei plus Schlüssel-QR – getrennt und damit sicher.', sel: '#btn-safe-export', ms: 3000 },
             { t: 'say', text: 'Geht das Gerät verloren, bleiben die Daten unlesbar. Das ist der Tresor.', ms: 2600 }
         ]
+    },
+    {
+        id: 'empfang',
+        icon: '📥',
+        title: 'Verschlüsselte Daten aufs Handy holen',
+        blurb: 'Datei wählen, Schlüssel scannen, fertig.',
+        mobileOnly: true,     // Gegenstück zur Desktop-QR-Story; nur am Handy sinnvoll
+        needsData: true,
+        steps: [
+            { t: 'run', key: 'ensureDemo' },
+            { t: 'run', key: 'openReceive' },
+            { t: 'say', text: 'Am Desktop hast du deine Daten verschlüsselt exportiert – so holst du sie sicher aufs Handy.', ms: 2800 },
+            { t: 'say', text: 'Schritt 1: die verschlüsselte Datei (.tfsafe) wählen, die du dir geschickt hast.', sel: '#safe-step-file', ms: 3000 },
+            { t: 'say', text: 'Schritt 2: den Schlüssel-QR vom Desktop scannen – der Schlüssel reist getrennt von der Datei.', ms: 3000 },
+            { t: 'say', text: 'Zum Schluss legst du eine PIN fest – die Daten liegen sofort verschlüsselt im Tresor.', ms: 2800 },
+            { t: 'run', key: 'closeReceive' }
+        ]
     }
 ];
 
@@ -153,14 +170,19 @@ export const STORIES = [
  * nicht dabei; sie werden per waitFor/Helfer abgesichert.)
  */
 /**
- * Stories für die aktuelle Ansicht. Auf dem Smartphone werden Stories mit
- * `desktopOnly` ausgeblendet – sie zeigen Funktionen, die es dort nicht gibt
- * (Gebietsplanung) oder die dort keinen Sinn ergeben (Tour AN das Handy senden,
- * während man schon am Handy ist).
+ * Stories für die aktuelle Ansicht.
+ * - `desktopOnly` entfällt auf dem Smartphone (Funktionen, die es dort nicht
+ *   gibt – Gebietsplanung – oder die dort sinnlos sind – Tour AN das Handy
+ *   senden, während man schon am Handy ist).
+ * - `mobileOnly` entfällt am Desktop (z. B. Daten AUFS Handy empfangen).
  * @param {{isDesktop?: boolean}} [opts]
  */
 export function visibleStories({ isDesktop = true } = {}) {
-    return STORIES.filter((s) => isDesktop || !s.desktopOnly);
+    return STORIES.filter((s) => {
+        if (s.desktopOnly && !isDesktop) return false;
+        if (s.mobileOnly && isDesktop) return false;
+        return true;
+    });
 }
 
 export const CRITICAL_SELECTORS = [
@@ -191,5 +213,8 @@ export const CRITICAL_SELECTORS = [
     '.tab-button[data-tab="daten"]',
     '#vault-controls',
     '#btn-vault-setup',
-    '#btn-safe-export'
+    '#btn-safe-export',
+    '#btn-safe-receive',
+    '#safe-receive-dialog',
+    '#safe-step-file'
 ];

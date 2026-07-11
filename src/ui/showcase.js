@@ -260,6 +260,21 @@ const HELPERS = {
         if (d?.open) d.close();
         await sleep(400);
     },
+    async openReceive() {
+        // Empfangs-Dialog öffnen (Datei-Schritt; Kamera startet hier noch nicht).
+        // Auf dem Handy liegt der Button in der eingeklappten Daten-Ansicht und
+        // ist für den Geister-Cursor nicht sichtbar erreichbar – dann direkt öffnen.
+        const btn = await resolveEl('#btn-safe-receive', 1000);
+        if (btn) await clickEl('#btn-safe-receive');
+        else (document.getElementById('btn-safe-receive') || document.getElementById('btn-safe-receive-ob'))?.click();
+        await resolveEl('#safe-receive-dialog[open]', 3000);
+        await sleep(500);
+    },
+    async closeReceive() {
+        const d = document.getElementById('safe-receive-dialog');
+        if (d?.open) d.close();
+        await sleep(400);
+    },
     // ---- Story 4: Simulation ----
     async gotoGebiete() {
         await clickEl('.mode-btn[data-mode="gebietsplanung"]');
@@ -373,6 +388,8 @@ function cleanup(story) {
     // Weitere Overlays schließen
     const qr = document.getElementById('qr-share-dialog');
     if (qr?.open) qr.close();
+    const recv = document.getElementById('safe-receive-dialog');
+    if (recv?.open) recv.close();
     const mp = document.getElementById('mobile-preview');
     if (mp && !mp.hidden) document.getElementById('btn-mobile-preview')?.click();
 
