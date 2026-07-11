@@ -246,6 +246,28 @@ export async function changePin(oldPin, newPin) {
     return true;
 }
 
+/**
+ * Neue PIN über den Wiederherstellungscode setzen (ohne alte PIN – die ist ja
+ * vergessen). Entsperrt dabei auch, falls noch gesperrt. Wirft bei falschem Code.
+ */
+export async function resetPinWithRecovery(recoveryCode, newPin) {
+    const meta = readMeta();
+    if (!meta?.wrapRecovery) throw new Error('no-recovery');
+    const raw = await unwrapWith(normalizeRecoveryCode(recoveryCode), meta.recoverySalt, meta.wrapRecovery, meta.iterations);
+    const salt = randomSalt();
+    const kek = await deriveKek(newPin, salt, meta.iterations);
+    meta.salt = toB64(salt);
+    meta.wrapPin = await wrapDek(kek, raw);
+    meta.attempts = 0;
+    writeMeta(meta);
+    if (!dek) {
+        dek = await importDek(raw);
+        scheduleAutoLock();
+        emit('unlocked');
+    }
+    return true;
+}
+
 /** PIN prüfen, ohne Zustand zu ändern (für „Tresor deaktivieren"). Wirft bei falsch. */
 export async function verifyPin(pin) {
     const meta = readMeta();
