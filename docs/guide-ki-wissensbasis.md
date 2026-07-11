@@ -148,7 +148,7 @@ Nominatim (OpenStreetMap) und ist gedrosselt. Nur nach bewusstem Klick.
 
 - Ist der Tresor aktiv, werden die Kundendaten **AES-256-verschlüsselt** lokal gespeichert. Der Schlüssel wird aus der PIN abgeleitet und **nie gespeichert** – ohne PIN sind die Daten unlesbar.
 - **Bei jedem App-Start** (und nach Inaktivität) erscheint der **Sperrbildschirm**; erst nach PIN-Eingabe sind die Daten da.
-- **PIN vergessen?** Auf dem Sperrbildschirm „Wiederherstellungscode nutzen" → den bei der Einrichtung notierten Code eingeben. Ohne PIN **und** ohne Code sind die Daten endgültig verloren (kein Zurücksetzen durch den Betreiber – keine Hintertür).
+- **PIN vergessen?** Auf dem Sperrbildschirm „Wiederherstellungscode nutzen" → den bei der Einrichtung notierten Code eingeben. Die Daten werden entsperrt und du wirst **direkt zur Vergabe einer neuen PIN** geführt (die alte ist ja vergessen; „PIN ändern" verlangt die alte und ist dafür nicht der Weg). Ohne PIN **und** ohne Code sind die Daten endgültig verloren (kein Zurücksetzen durch den Betreiber – keine Hintertür).
 - **Zu viele Fehlversuche** löschen die lokalen Daten (Schutz gegen Ausprobieren).
 - **Face/Touch ID (optional):** Bei aktivem, entsperrtem Tresor → **„👤 Face/Touch ID einrichten"** (verlangt einmalig die PIN). Danach zeigt der Sperrbildschirm **„👤 Mit Face/Touch ID entsperren"**. Die PIN bleibt als Rückfallweg; entfernen mit **„👤 Face/Touch ID entfernen"**. Nur verfügbar, wenn Gerät/Browser einen Plattform-Authenticator mit PRF unterstützen. Biometrie verlässt nie das Gerät.
 - **Auto-Lock-Zeit:** Bei aktivem Tresor unter **„Automatisch sperren nach"** wählbar (1/5/15 min, 1 h oder „Nie/nur manuell").

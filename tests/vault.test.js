@@ -96,6 +96,24 @@ describe('Vault: Recovery & PIN-Wechsel', () => {
         await expect(vault.verifyPin('1234')).resolves.toBe(true);
         await expect(vault.verifyPin('0000')).rejects.toBeTruthy();
     });
+
+    it('resetPinWithRecovery setzt eine neue PIN ohne die alte; Daten bleiben lesbar', async () => {
+        const { recoveryCode } = await vault.setup('1234', OPTS);
+        const stored = await vault.encryptForStore(DATA);
+        vault.lock();
+        // Wie im echten Ablauf: erst per Recovery entsperren, dann neue PIN setzen
+        await vault.unlockWithRecovery(recoveryCode);
+        await vault.resetPinWithRecovery(recoveryCode, '9999');
+        vault.lock();
+        await expect(vault.unlock('1234')).rejects.toMatchObject({ code: 'wrong-pin' }); // alte PIN weg
+        await vault.unlock('9999');                                                       // neue PIN gilt
+        expect(await vault.decryptFromStore(stored)).toEqual(DATA);
+    });
+
+    it('resetPinWithRecovery lehnt einen falschen Code ab', async () => {
+        await vault.setup('1234', OPTS);
+        await expect(vault.resetPinWithRecovery('TFRC-XXXXX-XXXXX-XXXXX-XXXXX', '9999')).rejects.toBeTruthy();
+    });
 });
 
 describe('Vault: Biometrie-Tür (PRF)', () => {

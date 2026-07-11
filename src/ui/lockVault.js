@@ -107,7 +107,8 @@ function wireLockScreen() {
         try {
             await vault.unlockWithRecovery(code);
             await afterUnlock();
-            showToast('Mit Wiederherstellungscode entsperrt. Tipp: PIN neu setzen.', 'info', 6000);
+            // PIN wurde vergessen (deshalb Recovery) -> direkt neue PIN festlegen.
+            openResetPinDialog(code);
         } catch {
             showError('Wiederherstellungscode ungültig.');
         }
@@ -399,6 +400,44 @@ function openChangePinDialog() {
             err.hidden = false;
         }
     });
+    dialog.showModal();
+}
+
+// ---- Neue PIN nach Wiederherstellung ----
+function openResetPinDialog(recoveryCode) {
+    dialog.innerHTML = `
+        <form class="vault-setup" id="vault-reset-form">
+            <div class="vault-fox">🔑➡️🔐</div>
+            <h2>Neue PIN festlegen</h2>
+            <p class="muted small">Du hast dich mit dem <b>Wiederherstellungscode</b> angemeldet. Lege jetzt eine <b>neue PIN</b> fest, mit der du den Tresor künftig entsperrst.</p>
+            <label class="vault-field">Neue PIN (mind. 4 Zeichen)
+                <input id="rp-new" type="password" inputmode="numeric" autocomplete="new-password" required minlength="4"></label>
+            <label class="vault-field">Neue PIN wiederholen
+                <input id="rp-new2" type="password" inputmode="numeric" autocomplete="new-password" required></label>
+            <p id="rp-error" class="vault-error" hidden></p>
+            <div class="vault-actions">
+                <button type="submit" class="primary">Neue PIN speichern</button>
+            </div>
+        </form>`;
+    dialog.querySelector('#vault-reset-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const err = dialog.querySelector('#rp-error');
+        err.hidden = true;
+        const nw = dialog.querySelector('#rp-new').value;
+        const nw2 = dialog.querySelector('#rp-new2').value;
+        if (nw.length < 4) { err.textContent = 'Die neue PIN sollte mindestens 4 Zeichen haben.'; err.hidden = false; return; }
+        if (nw !== nw2) { err.textContent = 'Die PINs stimmen nicht überein.'; err.hidden = false; return; }
+        try {
+            await vault.resetPinWithRecovery(recoveryCode, nw);
+            dialog.close();
+            showToast('Neue PIN gespeichert – ab jetzt damit entsperren.', 'success', 6000);
+        } catch {
+            err.textContent = 'Neue PIN konnte nicht gesetzt werden.';
+            err.hidden = false;
+        }
+    });
+    // Kein Abbrechen-Knopf: ohne alte PIN wäre „PIN ändern" später nicht nutzbar.
+    // Bricht man dennoch ab (Escape), bleibt der Wiederherstellungscode der Weg.
     dialog.showModal();
 }
 
