@@ -12,11 +12,14 @@
  */
 
 import { STORIES, visibleStories } from '../features/stories.js';
-import { state, emit, markDirty } from '../core/state.js';
-import { isEnabled as vaultEnabled } from '../services/vault.js';
+import { state, emit, markDirty, datasetSnapshot } from '../core/state.js';
+import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
+import { saveDataset } from '../services/storage.js';
 import { openSetupDialog } from './lockVault.js';
 import { flyToCustomer, fitToCustomers, closeMapPopups } from '../features/map.js';
 import { showMapView, expandSheetForDemo, restoreSheetAfterDemo } from './sidebar.js';
+
+const ROUTING_CONSENT_KEY = 'gf_routing_consent';
 
 const isMobileView = () => window.matchMedia('(max-width: 768px)').matches;
 
@@ -35,6 +38,7 @@ let activeReject = null;
 let tourSnapshot = null;
 let visitRestore = null;      // { id, besuche } zum Zurücksetzen von „Heute besucht"
 let origConfirm = null;       // Originales window.confirm während patchConfirm
+let priorConsent = undefined; // Routing-Zustimmung vor der Demo (zum Zurücksetzen)
 
 class AbortError extends Error {}
 
@@ -154,6 +158,21 @@ async function typeInto(sel, text) {
     }
     return true;
 }
+// Wert setzen, ohne das Feld zu fokussieren – auf dem Handy poppt so keine
+// Tastatur auf (für PIN-Felder in der Tresor-Demo). Die Ziffern werden sichtbar
+// „getippt", indem der Wert Zeichen für Zeichen wächst.
+async function fillNoFocus(sel, value) {
+    const el = await moveToEl(sel);
+    if (!el) return false;
+    el.value = '';
+    for (const ch of String(value)) {
+        guard();
+        el.value += ch;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        await sleep(prefersReduced ? 0 : 160);
+    }
+    return true;
+}
 async function selectValue(sel, value) {
     const el = await moveToEl(sel);
     if (!el) return false;
@@ -164,7 +183,7 @@ async function selectValue(sel, value) {
 }
 
 // ---- Sprechblase ----
-async function say(text, sel) {
+async function say(text, sel, pos) {
     bubbleEl.textContent = text;
     bubbleEl.hidden = false;
     // vorläufig platzieren, um Maße zu kennen
@@ -184,7 +203,10 @@ async function say(text, sel) {
         y = r.bottom + 12 + bh > window.innerHeight ? r.top - bh - 12 : r.bottom + 12;
     } else {
         x = Math.max(12, Math.min(window.innerWidth - bw - 12, window.innerWidth / 2 - bw / 2));
-        y = Math.max(64, window.innerHeight * 0.16);
+        // pos 'bottom': unter ein zentrales Karten-Popup, damit die Blase es nicht verdeckt.
+        y = pos === 'bottom'
+            ? Math.max(window.innerHeight * 0.5, window.innerHeight - bh - 180)
+            : Math.max(64, window.innerHeight * 0.16);
     }
     bubbleEl.style.left = `${x}px`;
     bubbleEl.style.top = `${Math.max(58, y)}px`;
@@ -282,6 +304,46 @@ const HELPERS = {
         if (d?.open) d.close();
         await sleep(400);
     },
+    // Von Luftlinie auf die echte Straßenroute umschalten (OSRM). Zustimmung für
+    // die Vorführung setzen und danach wieder auf den alten Stand bringen.
+    async showRoadRoute() {
+        if (priorConsent === undefined) {
+            try { priorConsent = localStorage.getItem(ROUTING_CONSENT_KEY); } catch { priorConsent = null; }
+        }
+        try { localStorage.setItem(ROUTING_CONSENT_KEY, 'yes'); } catch { /* egal */ }
+        await clickEl('#btn-route-focus');   // schaltet Luftlinie -> Straße (mapFocus ist bereits aktiv)
+        await sleep(2600);                    // Straßenroute (OSRM) berechnen/zeichnen lassen
+    },
+    // Fertige Tour als QR-Code zeigen (Barcode-Übergabe aufs Handy).
+    async shareTourQr() {
+        await clickEl('.tab-button[data-tab="tour"]');
+        expandSheetForDemo();
+        await sleep(300);
+        const btn = await resolveEl('#btn-tour-qr', 2500);
+        if (btn && !btn.disabled) {
+            await clickEl('#btn-tour-qr');
+            await resolveEl('#qr-share-dialog[open]', 3000);
+            await sleep(700);
+        }
+    },
+    // ---- Tresor: PIN wirklich eingeben und Wiederherstellungscode zeigen ----
+    async typePinDemo() {
+        await fillNoFocus('#setup-pin', '2468');
+        await sleep(400);
+        await fillNoFocus('#setup-pin2', '2468');
+        await sleep(400);
+    },
+    async submitVaultSetup() {
+        await clickEl('#vault-setup-form button[type="submit"]');
+        await resolveEl('#recovery-code', 3000);
+        await sleep(600);
+    },
+    async finishVaultDemo() {
+        const done = document.querySelector('#vault-dialog .vault-done');
+        if (done) { await clickEl('#vault-dialog .vault-done'); }
+        else { const d = document.getElementById('vault-dialog'); if (d?.open) d.close(); }
+        await sleep(400);
+    },
     async openReceive() {
         // Empfangs-Dialog öffnen (Datei-Schritt; Kamera startet hier noch nicht).
         // Auf dem Handy liegt der Button in der eingeklappten Daten-Ansicht und
@@ -371,7 +433,7 @@ const HELPERS = {
 // ---- Schritt-Ausführung ----
 async function runStep(step) {
     switch (step.t) {
-        case 'say': await say(step.text, step.sel); await sleep(step.ms ?? 1800); break;
+        case 'say': await say(step.text, step.sel, step.pos); await sleep(step.ms ?? 1800); break;
         case 'move': await moveToEl(step.sel); break;
         case 'click': await clickEl(step.sel); break;
         case 'type': await typeInto(step.sel, step.text); break;
@@ -449,6 +511,22 @@ function cleanup(story) {
         emit('tour:changed');
     }
     tourSnapshot = null;
+
+    // Routing-Zustimmung auf den Stand vor der Demo zurücksetzen.
+    if (priorConsent !== undefined) {
+        try {
+            if (priorConsent === null) localStorage.removeItem(ROUTING_CONSENT_KEY);
+            else localStorage.setItem(ROUTING_CONSENT_KEY, priorConsent);
+        } catch { /* egal */ }
+        priorConsent = undefined;
+    }
+
+    // In der Tresor-Demo angelegten Tresor wieder abbauen: nichts soll hinterher
+    // gesperrt oder mit der Demo-PIN verschlüsselt sein.
+    if (story?.mutatesVault && vaultEnabled()) {
+        removeVaultMeta();
+        saveDataset(datasetSnapshot()); // wieder im Klartext speichern (kein await nötig)
+    }
 
     // Blatt-Höhe (Handy) auf den Nutzerzustand zurücksetzen und Kartenausschnitt
     // auf die definierte Ausgangslage bringen (nicht dort stehen bleiben, wo die

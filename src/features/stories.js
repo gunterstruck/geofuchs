@@ -27,7 +27,7 @@ export const STORIES = [
             { t: 'wait', ms: 1800 },
             { t: 'say', text: 'Jeder Punkt ein Kunde, jede Farbe ein Vertriebsbezirk.', ms: 2200 },
             { t: 'run', key: 'showOneCustomer' },
-            { t: 'say', text: 'Reinzoomen und einen Kunden antippen – Adresse, Kontakt und Umsatz auf einen Blick.', ms: 3000 }
+            { t: 'say', text: 'Reinzoomen und einen Kunden antippen – Adresse, Kontakt und Umsatz auf einen Blick.', ms: 3200, pos: 'bottom' }
         ]
     },
     {
@@ -49,10 +49,13 @@ export const STORIES = [
             { t: 'click', sel: '#btn-optimize' },
             { t: 'say', text: 'Reihenfolge optimiert – kürzeste Strecke.', ms: 1800 },
             { t: 'click', sel: '#btn-route-focus' },
-            { t: 'wait', ms: 1600 },
-            { t: 'say', text: 'Die Route liegt auf der Karte. Ein Tipp – und Google Maps navigiert.', sel: '#btn-gmaps', ms: 2600 },
-            { t: 'move', sel: '#btn-gmaps' },
-            { t: 'wait', ms: 900 }
+            { t: 'wait', ms: 1500 },
+            { t: 'say', text: 'Die Route liegt auf der Karte – zuerst als Luftlinie.', ms: 2200, pos: 'bottom' },
+            { t: 'run', key: 'showRoadRoute' },
+            { t: 'say', text: 'Ein Tipp – und statt Luftlinie siehst du die echte Straßenroute.', ms: 2800, pos: 'bottom' },
+            { t: 'run', key: 'shareTourQr' },
+            { t: 'say', text: 'Und die fertige Tour per QR-Code aufs Handy – ohne Kabel, ohne Cloud.', sel: '#qr-share-canvas', ms: 3200 },
+            { t: 'run', key: 'closeQr' }
         ]
     },
     {
@@ -134,14 +137,18 @@ export const STORIES = [
         title: 'Deine Daten im Tresor',
         blurb: 'Verschlüsselt, PIN-geschützt, sicher aufs Handy.',
         needsData: true,
+        mutatesVault: true,   // Demo legt einen Tresor an – cleanup baut ihn wieder ab
         steps: [
             { t: 'run', key: 'ensureDemo' },
             { t: 'run', key: 'openVaultSetup' },
-            { t: 'say', text: 'Ein Tipp aufs 🔓-Symbol oben – und du legst eine PIN fest. Ab dann sind deine Daten AES-256-verschlüsselt.', sel: '#setup-pin', ms: 3200 },
-            { t: 'say', text: 'Beim Öffnen der App entsperrst du dann per PIN – oder per Face-/Touch-ID, wenn dein Gerät das kann.', ms: 2800 },
-            { t: 'say', text: 'Für den Umzug aufs neue Handy gibt es die verschlüsselte Datei plus getrennten Schlüssel-QR.', ms: 2800 },
-            { t: 'say', text: 'Geht das Gerät verloren, bleiben die Daten unlesbar. Das ist der Tresor.', ms: 2600 },
-            { t: 'run', key: 'closeVaultSetup' }
+            { t: 'say', text: 'Ein Tipp aufs 🔓-Symbol oben – und du legst eine PIN fest.', sel: '#setup-pin', ms: 2400 },
+            { t: 'run', key: 'typePinDemo' },
+            { t: 'say', text: 'PIN zweimal eingeben – ab dann sind deine Daten AES-256-verschlüsselt.', sel: '#setup-pin2', ms: 2600 },
+            { t: 'run', key: 'submitVaultSetup' },
+            { t: 'say', text: 'Und diesen Wiederherstellungscode gut aufbewahren – damit kommst du auch ohne PIN wieder rein.', sel: '#recovery-code', ms: 3400 },
+            { t: 'say', text: 'Entsperrt wird künftig per PIN – oder per Face-/Touch-ID, wenn dein Gerät das kann.', ms: 2600 },
+            { t: 'say', text: 'Geht das Gerät verloren, bleiben die Daten unlesbar. Das ist der Tresor.', ms: 2400 },
+            { t: 'run', key: 'finishVaultDemo' }
         ]
     },
     {
