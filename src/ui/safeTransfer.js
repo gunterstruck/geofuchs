@@ -114,6 +114,29 @@ function showStep(step) {
     else stopCamera();
 }
 
+/**
+ * Für die Live-Demo: den Schlüssel-Schritt zeigen (Scanner-Bereich, Foto-Fallback
+ * und manuelles Eingabefeld) OHNE die Kamera zu starten – so gibt es keinen
+ * Berechtigungs-Dialog. Die eingesetzten Beispielwerte werden beim nächsten
+ * echten Öffnen wieder zurückgesetzt.
+ */
+export function showKeyStepForDemo() {
+    if (!receiveDialog) receiveDialog = document.getElementById('safe-receive-dialog');
+    if (!receiveDialog) return;
+    if (!receiveDialog.open) receiveDialog.showModal();
+    const meta = document.getElementById('safe-file-meta');
+    if (meta) { meta.innerHTML = '🔒 Verschlüsselte Datei · <b>48 Kunden</b> · erstellt am 04.07.2026, 10:00'; meta.hidden = false; }
+    document.getElementById('safe-step-file').hidden = true;
+    document.getElementById('safe-step-key').hidden = false;
+    const status = document.getElementById('safe-scan-status');
+    if (status) status.textContent = 'Kamera auf den Schlüssel-QR am Desktop richten … (Vorschau)';
+    const details = document.querySelector('#safe-step-key details');
+    if (details) details.open = true;
+    const input = document.getElementById('safe-key-input');
+    if (input) input.value = 'TFK1:a1b2c3d4e5f6:s3hr-l4ngerSchluessel…';
+    // Kamera bewusst NICHT starten (kein getUserMedia in der Demo).
+}
+
 async function onFileChosen(e) {
     const file = e.target.files?.[0];
     e.target.value = '';

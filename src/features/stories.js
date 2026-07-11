@@ -161,10 +161,11 @@ export const STORIES = [
         steps: [
             { t: 'run', key: 'ensureDemo' },
             { t: 'run', key: 'openReceive' },
-            { t: 'say', text: 'Am Desktop hast du deine Daten verschlüsselt exportiert – so holst du sie sicher aufs Handy.', ms: 2800 },
-            { t: 'say', text: 'Schritt 1: die verschlüsselte Datei (.tfsafe) wählen, die du dir geschickt hast.', sel: '#safe-step-file', ms: 3000 },
-            { t: 'say', text: 'Schritt 2: den Schlüssel-QR vom Desktop scannen – der Schlüssel reist getrennt von der Datei.', ms: 3000 },
-            { t: 'say', text: 'Zum Schluss legst du eine PIN fest – die Daten liegen sofort verschlüsselt im Tresor.', ms: 2800 },
+            { t: 'say', text: 'Am Desktop hast du deine Daten verschlüsselt exportiert – so holst du sie sicher aufs Handy.', ms: 2600 },
+            { t: 'say', text: 'Schritt 1: die verschlüsselte Datei (.tfsafe) wählen, die du dir geschickt hast.', sel: '#safe-file-input', ms: 2800 },
+            { t: 'run', key: 'showReceiveKeyStep' },
+            { t: 'say', text: 'Schritt 2: den Schlüssel-QR mit der Kamera scannen – der Schlüssel reist getrennt von der Datei.', sel: '#safe-scan-video', ms: 3000 },
+            { t: 'say', text: '… oder den Schlüssel einfach eintippen. Danach eine PIN festlegen – fertig.', sel: '#safe-key-input', ms: 3200 },
             { t: 'run', key: 'closeReceive' }
         ]
     }
