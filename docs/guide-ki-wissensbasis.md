@@ -140,14 +140,19 @@ sendet die Adresse (Straße, PLZ, Ort – keine Namen, kein Umsatz) an den Diens
 Nominatim (OpenStreetMap) und ist gedrosselt. Nur nach bewusstem Klick.
 
 ### 5.8b Datentresor (Verschlüsselung mit PIN)
-**Klickpfad aktivieren:** Tab „📄 Daten" → Bereich **„🔐 Datentresor"** → **„🔐 Tresor aktivieren (PIN)"** → PIN wählen + wiederholen → **Wiederherstellungscode notieren** (wird nur einmal angezeigt!).
+**Wann wird die PIN vergeben? (Onboarding)**
+- **Beim Import eigener Daten** (Excel/CSV) führt die App direkt zur PIN-Vergabe – eigene Kundendaten sollen verschlüsselt liegen. Die PIN dort festlegen + **Wiederherstellungscode notieren** (wird nur einmal angezeigt!).
+- **Beispieldaten (Demo)** werden **nie** verschlüsselt und verlangen keine PIN. Lädt man die Demo, während ein Tresor aktiv ist, wird dieser (nach Rückfrage) deaktiviert.
+- **„Daten löschen"** deaktiviert auch den Tresor – ohne Daten gibt es nichts zu schützen.
+- **Jederzeit selbst einrichten:** über das **🔓-Symbol oben in der Kopfzeile** (auch auf dem Handy immer erreichbar) oder Tab „📄 Daten" → Bereich **„🔐 Datentresor"** → **„🔐 Tresor aktivieren (PIN)"**.
+
 - Ist der Tresor aktiv, werden die Kundendaten **AES-256-verschlüsselt** lokal gespeichert. Der Schlüssel wird aus der PIN abgeleitet und **nie gespeichert** – ohne PIN sind die Daten unlesbar.
 - **Bei jedem App-Start** (und nach Inaktivität) erscheint der **Sperrbildschirm**; erst nach PIN-Eingabe sind die Daten da.
 - **PIN vergessen?** Auf dem Sperrbildschirm „Wiederherstellungscode nutzen" → den bei der Einrichtung notierten Code eingeben. Ohne PIN **und** ohne Code sind die Daten endgültig verloren (kein Zurücksetzen durch den Betreiber – keine Hintertür).
 - **Zu viele Fehlversuche** löschen die lokalen Daten (Schutz gegen Ausprobieren).
 - **Face/Touch ID (optional):** Bei aktivem, entsperrtem Tresor → **„👤 Face/Touch ID einrichten"** (verlangt einmalig die PIN). Danach zeigt der Sperrbildschirm **„👤 Mit Face/Touch ID entsperren"**. Die PIN bleibt als Rückfallweg; entfernen mit **„👤 Face/Touch ID entfernen"**. Nur verfügbar, wenn Gerät/Browser einen Plattform-Authenticator mit PRF unterstützen. Biometrie verlässt nie das Gerät.
 - **Auto-Lock-Zeit:** Bei aktivem Tresor unter **„Automatisch sperren nach"** wählbar (1/5/15 min, 1 h oder „Nie/nur manuell").
-- Weitere Steuerung (nur bei aktivem Tresor): Topbar-Schloss **„🔓"** oder „🔒 Jetzt sperren", **„PIN ändern"**, **„Tresor deaktivieren"** (verlangt PIN; danach wieder unverschlüsselt).
+- **Topbar-Schloss (Kopfzeile):** ohne Tresor **🔓** = „einrichten"; bei aktivem, entsperrtem Tresor **🔐** = „jetzt sperren". Weitere Steuerung im Tab „Daten": **„PIN ändern"**, **„Tresor deaktivieren"** (verlangt PIN; danach wieder unverschlüsselt).
 - Grenze (ehrlich): schützt verlorenes/gestohlenes Gerät und die Datei – nicht ein bereits entsperrtes, mit Schadsoftware befallenes Gerät.
 
 ### 5.8c Sicherer Umzug (verschlüsselt auf ein anderes Gerät)

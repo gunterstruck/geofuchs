@@ -134,14 +134,12 @@ export const STORIES = [
         needsData: true,
         steps: [
             { t: 'run', key: 'ensureDemo' },
-            { t: 'run', key: 'gotoDaten' },
-            { t: 'say', text: 'Deine Kundendaten kannst du in einen Tresor legen – AES-256-verschlüsselt auf diesem Gerät.', sel: '#vault-controls', ms: 2800 },
-            { t: 'move', sel: '#btn-vault-setup' },
-            { t: 'say', text: 'Einmal eine PIN setzen – ab dann sind die Daten verschlüsselt und beim Öffnen der App gesperrt.', sel: '#btn-vault-setup', ms: 2800 },
-            { t: 'say', text: 'Wenn das Gerät es kann, entsperrst du auch per Face- oder Touch-ID – ganz ohne Tippen.', ms: 2400 },
-            { t: 'move', sel: '#btn-safe-export' },
-            { t: 'say', text: 'Für den Umzug aufs Handy: eine verschlüsselte Datei plus Schlüssel-QR – getrennt und damit sicher.', sel: '#btn-safe-export', ms: 3000 },
-            { t: 'say', text: 'Geht das Gerät verloren, bleiben die Daten unlesbar. Das ist der Tresor.', ms: 2600 }
+            { t: 'run', key: 'openVaultSetup' },
+            { t: 'say', text: 'Ein Tipp aufs 🔓-Symbol oben – und du legst eine PIN fest. Ab dann sind deine Daten AES-256-verschlüsselt.', sel: '#setup-pin', ms: 3200 },
+            { t: 'say', text: 'Beim Öffnen der App entsperrst du dann per PIN – oder per Face-/Touch-ID, wenn dein Gerät das kann.', ms: 2800 },
+            { t: 'say', text: 'Für den Umzug aufs neue Handy gibt es die verschlüsselte Datei plus getrennten Schlüssel-QR.', ms: 2800 },
+            { t: 'say', text: 'Geht das Gerät verloren, bleiben die Daten unlesbar. Das ist der Tresor.', ms: 2600 },
+            { t: 'run', key: 'closeVaultSetup' }
         ]
     },
     {
@@ -212,7 +210,8 @@ export const CRITICAL_SELECTORS = [
     '.seg[data-view="chancen"]',
     '.tab-button[data-tab="daten"]',
     '#vault-controls',
-    '#btn-vault-setup',
+    '#btn-vault-toggle',
+    '#vault-dialog',
     '#btn-safe-export',
     '#btn-safe-receive',
     '#safe-receive-dialog',

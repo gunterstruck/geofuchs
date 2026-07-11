@@ -7,6 +7,7 @@ import { CONFIG } from '../core/config.js';
 import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, filterDimensionDefs, datasetSnapshot } from '../core/state.js';
 import { geocodeExact } from '../services/geocode.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
+import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { STATUS_COLORS, STATUS_LABELS, isOpportunity } from '../features/visits.js';
 import { showToast } from './toast.js';
 
@@ -421,6 +422,9 @@ export function applyMode(mode, userInitiated = true, persist = true) {
 async function clearAllData() {
     if (state.customers.length === 0 && Object.keys(state.territories).length === 0) return;
     if (!confirm('Alle Kundendaten und Gebietszuordnungen aus dem Browser löschen?')) return;
+    // Ohne Daten gibt es nichts zu schützen -> Tresor mit deaktivieren,
+    // sonst bliebe beim nächsten Öffnen ein Sperrbildschirm ohne Inhalt.
+    if (vaultEnabled()) removeVaultMeta();
     await clearDataset();
     state.tour.start = null;
     state.tour.destination = null;
@@ -542,18 +546,7 @@ export function initSidebar() {
         const { exportCustomers } = await import('../services/excel.js');
         exportCustomers(state.customers);
     });
-    document.getElementById('btn-clear').addEventListener('click', async () => {
-        if (state.customers.length === 0 && Object.keys(state.territories).length === 0) return;
-        if (!confirm('Alle Kundendaten und Gebietszuordnungen aus dem Browser löschen?')) return;
-        await clearDataset();
-        state.tour.start = null;
-        state.tour.stops = [];
-        state.fileName = null;
-        state.territories = {};
-        setCustomers([]);
-        emit('tour:changed');
-        showToast('Daten gelöscht.', 'success');
-    });
+    document.getElementById('btn-clear').addEventListener('click', clearAllData);
 
     document.getElementById('btn-mobile-clear-data')?.addEventListener('click', clearAllData);
 
