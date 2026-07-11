@@ -86,6 +86,11 @@
                     <p class="muted small ob-upload-sub only-desktop">Datei auswählen oder einfach auf die Karte ziehen.</p>
                     <p class="muted small ob-upload-sub only-mobile">Schon am PC vorbereitet? Lade deine Liste direkt hier hoch – die Demo brauchst du dann nicht.</p>
 
+                    <!-- Verschlüsselten Umzug von einem anderen Gerät empfangen -->
+                    <div class="ob-or"><span>oder verschlüsselten Umzug</span></div>
+                    <button id="btn-safe-receive-ob" class="ob-upload-btn">📥 Daten von anderem Gerät empfangen</button>
+                    <p class="muted small ob-upload-sub">Umzugsdatei (.tfsafe) vom Desktop wählen und den Schlüssel-QR scannen.</p>
+
                     <!-- Vorbereitungs-Schritte nur am Desktop (am Handy bereitet man selten vor) -->
                     <details class="ob-details only-desktop">
                         <summary>Noch keine passende Liste? So bereitest du sie vor</summary>
@@ -137,6 +142,12 @@
                             <button id="btn-vault-lock" hidden>🔒 Jetzt sperren</button>
                             <button id="btn-vault-changepin" hidden>PIN ändern</button>
                             <button id="btn-vault-disable" class="danger" hidden>Tresor deaktivieren</button>
+                        </div>
+                        <h3>🧳 Sicherer Umzug</h3>
+                        <p class="muted small">Daten verschlüsselt auf ein anderes Gerät bringen: Datei und Schlüssel (QR) reisen getrennt – die Datei ist ohne Schlüssel wertlos.</p>
+                        <div class="button-column">
+                            <button id="btn-safe-export">🧳 Verschlüsselt exportieren (Datei + QR)</button>
+                            <button id="btn-safe-receive">📥 Daten empfangen (Datei + Schlüssel)</button>
                         </div>
                     </div>
                 </div>
@@ -540,6 +551,59 @@
                         <button id="qr-received-ics">📅 Termine als Kalender (.ics)</button>
                     </div>
                     <p id="qr-scan-matchinfo" class="muted small"></p>
+                </div>
+            </div>
+        </dialog>
+
+        <!-- Sicherer Umzug: verschlüsselt exportieren (Desktop) -->
+        <dialog id="safe-export-dialog" aria-label="Verschlüsselt exportieren">
+            <header>
+                <h2>🧳 Verschlüsselt exportieren</h2>
+                <button class="dialog-close" aria-label="Schließen">Schließen</button>
+            </header>
+            <div class="safe-body">
+                <canvas id="safe-export-canvas"></canvas>
+                <p id="safe-export-info" class="muted small"></p>
+                <ol class="safe-steps">
+                    <li>Die heruntergeladene Datei <b>.tfsafe</b> aufs Handy bringen (Mail, Cloud, USB).</li>
+                    <li>In TourFuchs auf dem Handy <b>„Daten empfangen"</b> öffnen, die Datei wählen.</li>
+                    <li>Diesen <b>Schlüssel-QR</b> mit der App scannen – fertig.</li>
+                </ol>
+                <p class="muted small"><b>Wichtig:</b> Schlüssel und Datei getrennt halten. Wer nur die Datei hat, kann nichts entschlüsseln. Der Schlüssel wird nicht übers Netz übertragen.</p>
+                <details class="safe-fallback">
+                    <summary>Schlüssel als Text (falls Scannen nicht klappt)</summary>
+                    <textarea id="safe-export-keytext" rows="2" readonly aria-label="Schlüssel als Text"></textarea>
+                </details>
+                <div class="button-column">
+                    <button id="safe-export-download">💾 Datei erneut herunterladen</button>
+                </div>
+            </div>
+        </dialog>
+
+        <!-- Sicherer Umzug: Daten empfangen (Handy) -->
+        <dialog id="safe-receive-dialog" aria-label="Daten empfangen">
+            <header>
+                <h2>📥 Daten empfangen</h2>
+                <button class="dialog-close" aria-label="Schließen">Schließen</button>
+            </header>
+            <div class="safe-body">
+                <div id="safe-step-file">
+                    <p class="muted small">Schritt 1 von 2: Wähle die verschlüsselte Umzugsdatei (<b>.tfsafe</b>), die du vom Desktop bekommen hast.</p>
+                    <label class="safe-file-pick">📄 Umzugsdatei wählen
+                        <input type="file" id="safe-file-input" accept=".tfsafe,application/json">
+                    </label>
+                </div>
+                <div id="safe-step-key" hidden>
+                    <p id="safe-file-meta" class="muted small" hidden></p>
+                    <p class="muted small">Schritt 2 von 2: Scanne den <b>Schlüssel-QR</b> vom Desktop.</p>
+                    <video id="safe-scan-video" playsinline muted></video>
+                    <p id="safe-scan-status" class="muted small">Kamera auf den Schlüssel-QR am Desktop richten …</p>
+                    <label class="qr-scan-fallback">Kamera klappt nicht? <input type="file" id="safe-scan-photo" accept="image/*" capture="environment"> Foto des QR-Codes wählen</label>
+                    <details class="safe-fallback">
+                        <summary>Schlüssel eintippen/einfügen</summary>
+                        <textarea id="safe-key-input" rows="2" placeholder="TFK1:…" aria-label="Schlüssel eingeben"></textarea>
+                        <button id="safe-key-submit" class="primary">Entschlüsseln</button>
+                    </details>
                 </div>
             </div>
         </dialog>

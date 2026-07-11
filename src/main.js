@@ -15,6 +15,7 @@ import { initSidebar, applyMode, autoRevealIfEmpty } from './ui/sidebar.js';
 import { initImportWizard } from './ui/importWizard.js';
 import { initTourPanel } from './ui/tourPanel.js';
 import { openReceivedFromUrl } from './ui/tourQr.js';
+import { initSafeTransfer } from './ui/safeTransfer.js';
 import { decodeTourPayload, TOUR_HASH_KEY } from './features/tourShare.js';
 import { initCockpit } from './ui/cockpit.js';
 import { initRegionEditor } from './ui/regionEditor.js';
@@ -135,6 +136,7 @@ async function init() {
     initShowcase();
     initPwaUpdates();
     initContextHelp();
+    initSafeTransfer();
 
     on('dataset:dirty', scheduleSave);
 

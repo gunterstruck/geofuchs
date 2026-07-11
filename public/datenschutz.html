@@ -75,6 +75,30 @@ Zugriff auf ein verlorenes oder gestohlenes Gerät sowie auf die gespeicherte Da
 wie jede App – nicht vor Schadsoftware auf einem bereits entsperrten, kompromittierten Gerät schützen.
 </p>
 
+<h2>3b. Sicherer Umzug (verschlüsselter Export &amp; Übergabe an ein anderes Gerät)</h2>
+<p>
+Möchten Sie Ihre Kundendaten auf ein anderes Gerät (z.&nbsp;B. vom Desktop aufs Diensthandy) übertragen,
+erstellt TourFuchs eine <strong>verschlüsselte Umzugsdatei</strong> (<code>.tfsafe</code>). Diese ist mit
+einem <strong>zufälligen 256-Bit-Schlüssel per AES-256-GCM</strong> verschlüsselt; der Schlüssel wird
+getrennt als <strong>QR-Code am Bildschirm</strong> angezeigt.
+</p>
+<ul>
+  <li><strong>Kanaltrennung:</strong> Die Datei darf über einen beliebigen Weg transportiert werden
+      (E-Mail, Cloud, USB) – ohne den Schlüssel ist sie kryptografisch wertlos. Der Schlüssel wandert nur
+      per Bildschirm&nbsp;→&nbsp;Kamera (QR) und wird <strong>bewusst nicht als Link</strong> ausgegeben,
+      damit er nicht in Verlauf, Cache oder Serverprotokollen landet.</li>
+  <li><strong>Keine Serverübertragung:</strong> Weder Datei noch Schlüssel werden an einen Server gesendet;
+      die Verschlüsselung erfolgt lokal über die Web&nbsp;Crypto API.</li>
+  <li><strong>Manipulationsschutz:</strong> Ein falscher oder nicht zur Datei gehörender Schlüssel sowie
+      eine beschädigte Datei werden erkannt und abgewiesen (GCM-Authentifizierung).</li>
+  <li><strong>Schutz am Zielgerät:</strong> Nach dem Empfang werden Sie unmittelbar zur Einrichtung eines
+      Datentresors geführt, damit die importierten Daten sofort verschlüsselt gespeichert werden.</li>
+</ul>
+<p class="muted">
+Verantwortung der Anwender:innen: Bewahren Sie Datei und Schlüssel-QR getrennt auf. Wer beides erlangt,
+kann die Daten entschlüsseln – wie bei jeder Datei mit zugehörigem Passwort.
+</p>
+
 <h2>4. Kartendarstellung</h2>
 <p>
 Die Kartenkacheln werden beim Betrachten von den folgenden Diensten geladen. Dabei können diese
