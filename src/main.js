@@ -22,6 +22,7 @@ import { initSearch } from './ui/search.js';
 import { initToasts } from './ui/toast.js';
 import { initMobilePreview } from './ui/mobilePreview.js';
 import { initShowcase } from './ui/showcase.js';
+import { initVault } from './ui/lockVault.js';
 import { initPwaUpdates } from './ui/pwaUpdate.js';
 import { initContextHelp } from './ui/contextHelp.js';
 import { fitToCustomers } from './features/map.js';
@@ -137,20 +138,26 @@ async function init() {
 
     on('dataset:dirty', scheduleSave);
 
-    try {
-        await restorePersistedState();
-    } catch (error) {
-        console.warn('Gespeicherter Zustand konnte nicht wiederhergestellt werden:', error);
+    // Persistierte Daten laden (bei aktivem Tresor erst nach dem Entsperren).
+    async function bootData() {
+        try {
+            await restorePersistedState();
+        } catch (error) {
+            console.warn('Gespeicherter Zustand konnte nicht wiederhergestellt werden:', error);
+        }
+        // QR-Übergabe: Wurde die App über einen gescannten Tour-Link geöffnet
+        // (host/…#t=…), direkt den Empfangs-Dialog zeigen.
+        handleSharedTourFromUrl();
+        autoRevealIfEmpty();
     }
 
-    // QR-Übergabe: Wurde die App über einen gescannten Tour-Link geöffnet
-    // (host/…#t=…), direkt den Empfangs-Dialog zeigen. Kein manuelles Scannen nötig.
-    handleSharedTourFromUrl();
-    // Falls die (bereits offene) PWA einen neuen Tour-Link erhält
+    // Tresor: Ist er aktiv und gesperrt, zeigt initVault den Sperrbildschirm und
+    // ruft bootData erst nach erfolgreichem Entsperren auf.
+    const lockedAtStart = initVault({ bootData });
+
     window.addEventListener('hashchange', handleSharedTourFromUrl);
 
-    // Ohne Daten: nach der blanken Karte das Menü mit dem Einstieg einblenden (mobil)
-    autoRevealIfEmpty();
+    if (!lockedAtStart) await bootData();
 
     // Info-Dialog
     const infoDialog = document.getElementById('info-dialog');
