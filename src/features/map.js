@@ -1061,6 +1061,10 @@ export function flyToCustomer(customer, openPopup = true) {
     }
 }
 
+export function closeMapPopups() {
+    if (map) map.closePopup();
+}
+
 export function fitToCustomers() {
     const located = markerCustomers().filter((c) => c.lat !== null);
     if (!map || located.length === 0) return;

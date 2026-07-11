@@ -15,7 +15,7 @@ import { STORIES, visibleStories } from '../features/stories.js';
 import { state, emit, markDirty } from '../core/state.js';
 import { isEnabled as vaultEnabled } from '../services/vault.js';
 import { openSetupDialog } from './lockVault.js';
-import { flyToCustomer } from '../features/map.js';
+import { flyToCustomer, fitToCustomers, closeMapPopups } from '../features/map.js';
 import { showMapView } from './sidebar.js';
 
 const isMobileView = () => window.matchMedia('(max-width: 768px)').matches;
@@ -447,6 +447,17 @@ function cleanup(story) {
         emit('tour:changed');
     }
     tourSnapshot = null;
+
+    // Kartenausschnitt auf die definierte Ausgangslage zurücksetzen (nicht dort
+    // stehen bleiben, wo die Vorführung geendet hat).
+    resetView();
+}
+
+// Definierte Ausgangslage des Kartenausschnitts: Popups zu, Gesamtübersicht.
+// So beginnt und endet jede Vorführung gleich – „so wie man startet".
+function resetView() {
+    closeMapPopups();
+    if (state.customers.length > 0) fitToCustomers();
 }
 
 // ---- Ablauf ----
@@ -458,6 +469,7 @@ async function play(story) {
     if (story.mutatesTour) tourSnapshot = JSON.parse(JSON.stringify(state.tour));
     if (story.patchConfirm) { origConfirm = window.confirm; window.confirm = () => true; }
     showChrome(story);
+    resetView();
     try {
         for (let i = 0; i < story.steps.length; i++) {
             guard();
