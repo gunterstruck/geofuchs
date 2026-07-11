@@ -9,6 +9,7 @@
 import * as vault from '../services/vault.js';
 import { state, setCustomers, emit, datasetSnapshot } from '../core/state.js';
 import { saveDataset } from '../services/storage.js';
+import { isPlatformAuthenticatorAvailable, registerBiometric, evaluatePrf } from '../services/biometric.js';
 import { showToast } from './toast.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
@@ -18,6 +19,7 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
 let bootData = null;      // Nachladefunktion (Daten laden) nach dem Entsperren
 let lockEl = null;
 let dialog = null;
+let bioAvailable = false; // Plattform-Authenticator (Face/Touch ID) vorhanden?
 
 export function initVault(options = {}) {
     bootData = options.bootData || (async () => {});
@@ -33,6 +35,13 @@ export function initVault(options = {}) {
 
     renderControls();
 
+    // Biometrie-Verfügbarkeit asynchron prüfen und danach neu rendern.
+    isPlatformAuthenticatorAvailable().then((ok) => {
+        bioAvailable = ok;
+        renderControls();
+        updateBioUnlockButton();
+    }).catch(() => {});
+
     // Beim Start gesperrt? Sperrbildschirm zeigen und Daten erst nach Entsperren laden.
     const gated = vault.isEnabled() && vault.isLocked();
     if (gated) showLockScreen();
@@ -45,10 +54,16 @@ function showLockScreen() {
     lockEl.hidden = false;
     document.getElementById('vault-recovery-form').hidden = true;
     document.getElementById('vault-recovery-link').hidden = !vault.hasRecovery();
+    updateBioUnlockButton();
     hideError();
     const pin = document.getElementById('vault-pin');
     pin.value = '';
     setTimeout(() => pin.focus(), 50);
+}
+
+function updateBioUnlockButton() {
+    const btn = document.getElementById('vault-bio-unlock');
+    if (btn) btn.hidden = !(vault.hasBiometric() && bioAvailable);
 }
 function hideLockScreen() {
     if (lockEl) lockEl.hidden = true;
@@ -91,6 +106,21 @@ function wireLockScreen() {
             showError('Wiederherstellungscode ungültig.');
         }
     });
+    document.getElementById('vault-bio-unlock')?.addEventListener('click', bioUnlock);
+}
+
+async function bioUnlock() {
+    const req = vault.getBiometricRequest();
+    if (!req) return;
+    hideError();
+    try {
+        const prf = await evaluatePrf(req.credentialId, req.salt);
+        await vault.unlockWithBiometric(prf);
+        await afterUnlock();
+    } catch (e) {
+        showError('Biometrisches Entsperren nicht möglich – bitte PIN verwenden.');
+        console.warn(e);
+    }
 }
 
 function handleUnlockError(err) {
@@ -139,23 +169,73 @@ function wireControls() {
     document.getElementById('btn-vault-toggle')?.addEventListener('click', () => vault.lock());
     document.getElementById('btn-vault-changepin')?.addEventListener('click', openChangePinDialog);
     document.getElementById('btn-vault-disable')?.addEventListener('click', disableVault);
+    document.getElementById('btn-vault-bio')?.addEventListener('click', setupBiometric);
+    document.getElementById('btn-vault-bio-off')?.addEventListener('click', removeBiometric);
+    document.getElementById('vault-autolock')?.addEventListener('change', (e) => {
+        const ms = Number(e.target.value);
+        vault.setAutoLockMs(ms);
+        showToast(ms === 0 ? 'Automatisches Sperren ist aus.' : 'Auto-Lock-Zeit gespeichert.', 'info');
+    });
 }
 
 function renderControls() {
     const enabled = vault.isEnabled();
     const unlocked = vault.isUnlocked();
+    const hasBio = vault.hasBiometric();
     const show = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !on; };
     show('btn-vault-setup', !enabled);
     show('btn-vault-lock', enabled && unlocked);
     show('btn-vault-changepin', enabled && unlocked);
     show('btn-vault-disable', enabled && unlocked);
     show('btn-vault-toggle', enabled && unlocked);
+    show('btn-vault-bio', enabled && unlocked && bioAvailable && !hasBio);
+    show('btn-vault-bio-off', enabled && unlocked && hasBio);
+    show('vault-autolock-row', enabled && unlocked);
+    const alSel = document.getElementById('vault-autolock');
+    if (alSel && enabled) alSel.value = String(vault.autoLockMs());
+
+    const toggle = document.getElementById('btn-vault-toggle');
+    if (toggle && enabled && unlocked) toggle.title = 'Tresor entsperrt – tippen zum Sofort-Sperren';
+
     const status = document.getElementById('vault-status');
     if (status) {
         status.textContent = !enabled
             ? 'Aus. Aktiviere den Tresor, damit deine Kundendaten AES-256-verschlüsselt gespeichert und beim Öffnen per PIN entsperrt werden.'
-            : unlocked ? '🔓 Aktiv und entsperrt. Daten sind verschlüsselt gespeichert.' : '🔒 Aktiv und gesperrt.';
+            : unlocked
+                ? `🔓 Aktiv und entsperrt. Daten sind verschlüsselt gespeichert.${hasBio ? ' Face/Touch ID eingerichtet.' : ''}`
+                : '🔒 Aktiv und gesperrt.';
     }
+}
+
+// ---- Biometrie (Face/Touch ID) ----
+async function setupBiometric() {
+    const pin = prompt('Zur Einrichtung von Face/Touch ID bitte die aktuelle PIN eingeben:');
+    if (pin == null) return;
+    try {
+        await vault.verifyPin(pin);
+    } catch {
+        showToast('Falsche PIN – Face/Touch ID nicht eingerichtet.', 'error');
+        return;
+    }
+    try {
+        const { credentialIdB64, prfOutput, salt } = await registerBiometric();
+        await vault.enableBiometric(pin, prfOutput, credentialIdB64, salt);
+        renderControls();
+        showToast('Face/Touch ID eingerichtet – du kannst den Tresor jetzt biometrisch entsperren.', 'success', 6000);
+    } catch (e) {
+        const msg = e?.message === 'prf-unsupported'
+            ? 'Dieses Gerät/dieser Browser unterstützt biometrische Verschlüsselung (PRF) leider nicht.'
+            : 'Face/Touch ID konnte nicht eingerichtet werden.';
+        showToast(msg, 'error', 7000);
+        console.warn(e);
+    }
+}
+
+function removeBiometric() {
+    if (!confirm('Face/Touch ID entfernen? Entsperren geht danach wieder nur per PIN oder Wiederherstellungscode.')) return;
+    vault.disableBiometric();
+    renderControls();
+    showToast('Face/Touch ID entfernt.', 'info');
 }
 
 // ---- Aktivierung ----

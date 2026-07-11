@@ -123,6 +123,24 @@ export const STORIES = [
             { t: 'run', key: 'checkVisit' },
             { t: 'say', text: 'Erledigt – der Besuchsstatus springt sofort auf grün.', ms: 2600 }
         ]
+    },
+    {
+        id: 'tresor',
+        icon: '🔐',
+        title: 'Deine Daten im Tresor',
+        blurb: 'Verschlüsselt, PIN-geschützt, sicher aufs Handy.',
+        needsData: true,
+        steps: [
+            { t: 'run', key: 'ensureDemo' },
+            { t: 'run', key: 'gotoDaten' },
+            { t: 'say', text: 'Deine Kundendaten kannst du in einen Tresor legen – AES-256-verschlüsselt auf diesem Gerät.', sel: '#vault-controls', ms: 2800 },
+            { t: 'move', sel: '#btn-vault-setup' },
+            { t: 'say', text: 'Einmal eine PIN setzen – ab dann sind die Daten verschlüsselt und beim Öffnen der App gesperrt.', sel: '#btn-vault-setup', ms: 2800 },
+            { t: 'say', text: 'Wenn das Gerät es kann, entsperrst du auch per Face- oder Touch-ID – ganz ohne Tippen.', ms: 2400 },
+            { t: 'move', sel: '#btn-safe-export' },
+            { t: 'say', text: 'Für den Umzug aufs Handy: eine verschlüsselte Datei plus Schlüssel-QR – getrennt und damit sicher.', sel: '#btn-safe-export', ms: 3000 },
+            { t: 'say', text: 'Geht das Gerät verloren, bleiben die Daten unlesbar. Das ist der Tresor.', ms: 2600 }
+        ]
     }
 ];
 
@@ -156,5 +174,9 @@ export const CRITICAL_SELECTORS = [
     '#simulation-map-bar',
     '#simulation-map-discard',
     '[data-simulation-view]',
-    '.seg[data-view="chancen"]'
+    '.seg[data-view="chancen"]',
+    '.tab-button[data-tab="daten"]',
+    '#vault-controls',
+    '#btn-vault-setup',
+    '#btn-safe-export'
 ];

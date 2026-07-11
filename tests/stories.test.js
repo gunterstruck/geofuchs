@@ -33,7 +33,7 @@ describe('Showcase-Stories: Guardrail', () => {
         }
     });
 
-    it('die fünf Stories in fester Reihenfolge', () => {
-        expect(STORIES.map((s) => s.id)).toEqual(['excel-karte', 'tour', 'handy-qr', 'simulation', 'chancen']);
+    it('die Stories in fester Reihenfolge', () => {
+        expect(STORIES.map((s) => s.id)).toEqual(['excel-karte', 'tour', 'handy-qr', 'simulation', 'chancen', 'tresor']);
     });
 });
