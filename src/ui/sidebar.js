@@ -163,50 +163,6 @@ function resetSidebarPosition() {
     try { localStorage.removeItem(SIDEBAR_POS_KEY); } catch (e) { /* egal */ }
 }
 
-function initDesktopSidebarDrag() {
-    const handle = document.getElementById('sidebar-drag');
-    const sidebar = document.getElementById('sidebar');
-    if (!handle || !sidebar) return;
-    try {
-        const saved = JSON.parse(localStorage.getItem(SIDEBAR_POS_KEY) || 'null');
-        if (saved) applySidebarPosition(saved);
-    } catch (e) { /* egal */ }
-
-    let dragging = false;
-    let offsetX = 0;
-    let offsetY = 0;
-    handle.addEventListener('pointerdown', (ev) => {
-        if (isMobileUi()) return;
-        const rect = sidebar.getBoundingClientRect();
-        dragging = true;
-        offsetX = ev.clientX - rect.left;
-        offsetY = ev.clientY - rect.top;
-        handle.setPointerCapture?.(ev.pointerId);
-        document.body.classList.add('sidebar-dragging');
-    });
-    handle.addEventListener('pointermove', (ev) => {
-        if (!dragging) return;
-        applySidebarPosition({ left: ev.clientX - offsetX, top: ev.clientY - offsetY });
-    });
-    const stopDrag = () => {
-        if (!dragging) return;
-        dragging = false;
-        document.body.classList.remove('sidebar-dragging');
-        const rect = sidebar.getBoundingClientRect();
-        if (rect.left <= DOCK_THRESHOLD) {
-            resetSidebarPosition();
-            return;
-        }
-        try { localStorage.setItem(SIDEBAR_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top })); } catch (e) { /* egal */ }
-    };
-    handle.addEventListener('pointerup', stopDrag);
-    handle.addEventListener('pointercancel', () => {
-        dragging = false;
-        document.body.classList.remove('sidebar-dragging');
-    });
-    handle.addEventListener('dblclick', resetSidebarPosition);
-}
-
 let desktopNoteHideScheduled = false;
 /**
  * Den Hinweis „Komplexe Gebietsplanung nur am Desktop" nach kurzer Zeit
@@ -229,8 +185,13 @@ function applySidebar() {
     document.getElementById('sidebar-toggle').setAttribute('aria-expanded', String(state.ui.sidebarOpen));
     const grip = document.getElementById('sheet-grip');
     if (grip) {
-        grip.setAttribute('aria-label', 'Panelgröße ändern');
-        grip.title = 'Ziehen: Größe · Klick: ein-/ausklappen';
+        if (isMobileUi()) {
+            grip.setAttribute('aria-label', 'Panelgröße ändern');
+            grip.title = 'Ziehen: Größe · Tippen: ein-/ausklappen';
+        } else {
+            grip.setAttribute('aria-label', 'Panel: Größe ändern oder verschieben');
+            grip.title = 'Ziehen: ↕ Größe, ↔ verschieben · Doppelklick: zurück';
+        }
     }
     scheduleDesktopNoteAutoHide();
 }
@@ -274,46 +235,67 @@ function toggleSheet() {
     }
 }
 
-function initSheetGripResize() {
+/**
+ * Ein Griff für alles: senkrecht ziehen = Höhe ändern, waagerecht ziehen =
+ * Panel verschieben/schweben (nur Desktop), kurzer Klick = ein-/ausklappen bzw.
+ * volle Höhe, Doppelklick = Position zurücksetzen. Die Richtung entscheidet zu
+ * Beginn der Bewegung, was gemeint ist (auf dem Handy immer Höhe).
+ */
+function initSheetGrip() {
     const grip = document.getElementById('sheet-grip');
     const sidebar = document.getElementById('sidebar');
     if (!grip || !sidebar) return;
-    let dragging = false;
-    let moved = false;
-    let startY = 0;
-    let startH = 0;
+
+    // Gemerkte Schwebe-Position wiederherstellen (Desktop).
+    try {
+        const saved = JSON.parse(localStorage.getItem(SIDEBAR_POS_KEY) || 'null');
+        if (saved) applySidebarPosition(saved);
+    } catch (e) { /* egal */ }
+
+    let mode = null;             // 'pending' | 'resize' | 'move'
+    let startX = 0, startY = 0, startH = 0, offsetX = 0, offsetY = 0, moved = false;
 
     grip.addEventListener('pointerdown', (ev) => {
-        dragging = true;
-        moved = false;
-        startY = ev.clientY;
-        startH = sidebar.getBoundingClientRect().height;
+        const rect = sidebar.getBoundingClientRect();
+        startX = ev.clientX; startY = ev.clientY;
+        startH = rect.height;
+        offsetX = ev.clientX - rect.left; offsetY = ev.clientY - rect.top;
+        mode = 'pending'; moved = false;
         // Auf dem Handy muss das Blatt beim Ziehen offen sein (translateY 0).
         if (isMobileUi() && !state.ui.sidebarOpen) { state.ui.sidebarOpen = true; applySidebar(); startH = sidebar.getBoundingClientRect().height; }
         grip.setPointerCapture?.(ev.pointerId);
-        document.body.classList.add('sheet-resizing');
         ev.preventDefault();
     });
     grip.addEventListener('pointermove', (ev) => {
-        if (!dragging) return;
+        if (!mode) return;
+        const dx = ev.clientX - startX;
         const dy = ev.clientY - startY;
-        if (!moved && Math.abs(dy) > 3) moved = true;
-        if (!moved) return;
-        // Griff sitzt oben: nach oben ziehen (dy<0) => höher, nach unten => niedriger.
-        setSheetHeight(startH - dy);
+        if (mode === 'pending') {
+            if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+            moved = true;
+            // Desktop: überwiegend waagerecht -> verschieben, sonst Größe. Handy: immer Größe.
+            mode = (!isMobileUi() && Math.abs(dx) > Math.abs(dy)) ? 'move' : 'resize';
+            document.body.classList.add(mode === 'move' ? 'sidebar-dragging' : 'sheet-resizing');
+        }
+        if (mode === 'resize') setSheetHeight(startH - dy);
+        else if (mode === 'move') applySidebarPosition({ left: ev.clientX - offsetX, top: ev.clientY - offsetY });
     });
     const finish = () => {
-        if (!dragging) return;
-        dragging = false;
-        document.body.classList.remove('sheet-resizing');
-        if (moved) {
+        if (!mode) return;
+        const done = mode; mode = null;
+        document.body.classList.remove('sheet-resizing', 'sidebar-dragging');
+        if (!moved) { toggleSheet(); return; }
+        if (done === 'resize') {
             try { localStorage.setItem(SHEET_HEIGHT_KEY, String(Math.round(sidebar.getBoundingClientRect().height))); } catch (e) { /* egal */ }
-        } else {
-            toggleSheet();
+        } else if (done === 'move') {
+            const rect = sidebar.getBoundingClientRect();
+            if (rect.left <= DOCK_THRESHOLD) resetSidebarPosition();
+            else { try { localStorage.setItem(SIDEBAR_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top })); } catch (e) { /* egal */ } }
         }
     };
     grip.addEventListener('pointerup', finish);
     grip.addEventListener('pointercancel', finish);
+    grip.addEventListener('dblclick', () => { if (!isMobileUi()) resetSidebarPosition(); });
 }
 
 /**
@@ -482,8 +464,7 @@ async function clearAllData() {
 export function initSidebar() {
     initPanelZoom();
     initDesktopSidebarResize();
-    initDesktopSidebarDrag();
-    initSheetGripResize();
+    initSheetGrip();
     restoreSheetHeight();
 
     // Fokus-Umschalter

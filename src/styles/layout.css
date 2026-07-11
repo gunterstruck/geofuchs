@@ -104,7 +104,7 @@
 }
 .sheet-resizing .sidebar { transition: none; }
 
-/* Griff oben: Panelhöhe ziehen (Maus + Touch). */
+/* Ein Griff für alles: Höhe ziehen (↕) und – am Desktop – verschieben (↔). */
 .sheet-grip {
     display: flex;
     align-items: center;
@@ -113,10 +113,12 @@
     padding: 7px 0 3px;
     border: none;
     background: transparent;
-    cursor: ns-resize;
+    cursor: grab;
     touch-action: none; /* verhindert Scroll-/Zoom-Gesten beim Ziehen */
     flex-shrink: 0;
 }
+.sheet-resizing .sheet-grip,
+.sidebar-dragging .sheet-grip { cursor: grabbing; }
 .sheet-grip span {
     width: 46px;
     height: 5px;
@@ -127,30 +129,7 @@
 .sheet-grip:hover span { background: var(--color-primary); width: 60px; }
 .sheet-resizing .sheet-grip span { background: var(--color-primary); }
 
-.sidebar-drag {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 26px;
-    margin: 8px 12px 0;
-    padding: 0;
-    border: 1px dashed transparent;
-    background: transparent;
-    border-radius: var(--radius-pill);
-    cursor: grab;
-}
-.sidebar-drag span {
-    width: 46px;
-    height: 5px;
-    border-radius: var(--radius-pill);
-    background: #cbd5e1;
-}
-.sidebar-drag:hover {
-    border-color: rgba(13, 148, 136, 0.32);
-    background: var(--color-primary-light);
-}
-.sidebar-dragging,
-.sidebar-dragging .sidebar-drag {
+.sidebar-dragging {
     cursor: grabbing;
     user-select: none;
 }
