@@ -261,8 +261,6 @@ function initSheetGrip() {
         startH = rect.height;
         offsetX = ev.clientX - rect.left; offsetY = ev.clientY - rect.top;
         mode = 'pending'; moved = false;
-        // Auf dem Handy muss das Blatt beim Ziehen offen sein (translateY 0).
-        if (isMobileUi() && !state.ui.sidebarOpen) { state.ui.sidebarOpen = true; applySidebar(); startH = sidebar.getBoundingClientRect().height; }
         grip.setPointerCapture?.(ev.pointerId);
         ev.preventDefault();
     });
@@ -276,6 +274,11 @@ function initSheetGrip() {
             // Desktop: überwiegend waagerecht -> verschieben, sonst Größe. Handy: immer Größe.
             mode = (!isMobileUi() && Math.abs(dx) > Math.abs(dy)) ? 'move' : 'resize';
             document.body.classList.add(mode === 'move' ? 'sidebar-dragging' : 'sheet-resizing');
+            // Handy: erst beim tatsächlichen Ziehen das Blatt öffnen (translateY 0).
+            if (mode === 'resize' && isMobileUi() && !state.ui.sidebarOpen) {
+                state.ui.sidebarOpen = true; applySidebar();
+                startH = sidebar.getBoundingClientRect().height;
+            }
         }
         if (mode === 'resize') setSheetHeight(startH - dy);
         else if (mode === 'move') applySidebarPosition({ left: ev.clientX - offsetX, top: ev.clientY - offsetY });
@@ -284,7 +287,8 @@ function initSheetGrip() {
         if (!mode) return;
         const done = mode; mode = null;
         document.body.classList.remove('sheet-resizing', 'sidebar-dragging');
-        if (!moved) { toggleSheet(); return; }
+        // Handy: reiner Tipp macht nichts – das Blatt wird nur durch Ziehen bewegt.
+        if (!moved) { if (!isMobileUi()) toggleSheet(); return; }
         if (done === 'resize') {
             try { localStorage.setItem(SHEET_HEIGHT_KEY, String(Math.round(sidebar.getBoundingClientRect().height))); } catch (e) { /* egal */ }
         } else if (done === 'move') {
