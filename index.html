@@ -140,9 +140,20 @@
                         <div class="button-column">
                             <button id="btn-vault-setup" class="primary">🔐 Tresor aktivieren (PIN)</button>
                             <button id="btn-vault-lock" hidden>🔒 Jetzt sperren</button>
+                            <button id="btn-vault-bio" hidden>👤 Face/Touch ID einrichten</button>
+                            <button id="btn-vault-bio-off" hidden>👤 Face/Touch ID entfernen</button>
                             <button id="btn-vault-changepin" hidden>PIN ändern</button>
                             <button id="btn-vault-disable" class="danger" hidden>Tresor deaktivieren</button>
                         </div>
+                        <label id="vault-autolock-row" class="vault-autolock" hidden>Automatisch sperren nach
+                            <select id="vault-autolock">
+                                <option value="0">Nie (nur manuell)</option>
+                                <option value="60000">1 Minute</option>
+                                <option value="300000">5 Minuten</option>
+                                <option value="900000">15 Minuten</option>
+                                <option value="3600000">1 Stunde</option>
+                            </select>
+                        </label>
                         <h3>🧳 Sicherer Umzug</h3>
                         <p class="muted small">Daten verschlüsselt auf ein anderes Gerät bringen: Datei und Schlüssel (QR) reisen getrennt – die Datei ist ohne Schlüssel wertlos.</p>
                         <div class="button-column">
@@ -507,6 +518,7 @@
                     <input id="vault-pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" class="vault-pin-input" aria-label="PIN">
                     <button type="submit" id="vault-unlock" class="primary">Entsperren</button>
                 </form>
+                <button type="button" id="vault-bio-unlock" class="vault-bio-btn" hidden>👤 Mit Face/Touch ID entsperren</button>
                 <p id="vault-error" class="vault-error" role="alert" hidden></p>
                 <button type="button" id="vault-recovery-link" class="linklike">PIN vergessen? Wiederherstellungscode nutzen</button>
                 <form id="vault-recovery-form" hidden>

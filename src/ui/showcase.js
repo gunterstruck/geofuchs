@@ -222,6 +222,11 @@ const HELPERS = {
         await resolveEl('#tour-scope', 3000);
         await sleep(300);
     },
+    async gotoDaten() {
+        await clickEl('.tab-button[data-tab="daten"]');
+        await resolveEl('#vault-controls', 3000);
+        await sleep(300);
+    },
     async pickBezirkAll() {
         const ok = await selectValue('#tour-bezirk', '__all__');
         if (!ok) { state.tour.bezirk = '__all__'; emit('tour:scope-changed'); emit('tour:changed'); }

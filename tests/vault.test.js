@@ -97,3 +97,69 @@ describe('Vault: Recovery & PIN-Wechsel', () => {
         await expect(vault.verifyPin('0000')).rejects.toBeTruthy();
     });
 });
+
+describe('Vault: Biometrie-Tür (PRF)', () => {
+    // Stellvertreter für den Authenticator-PRF-Ausgang (32 hochentrope Bytes)
+    const prf = new Uint8Array(32).fill(7);
+    const salt = new Uint8Array(32).fill(9);
+    const credId = 'Y3JlZC1pZA=='; // "cred-id" base64
+
+    it('richtet Biometrie ein und entsperrt später ohne PIN', async () => {
+        await vault.setup('1234', OPTS);
+        const stored = await vault.encryptForStore(DATA);
+        expect(vault.hasBiometric()).toBe(false);
+        await vault.enableBiometric('1234', prf, credId, salt);
+        expect(vault.hasBiometric()).toBe(true);
+        expect(vault.getBiometricRequest()).toMatchObject({ credentialId: credId });
+
+        vault.lock();
+        await vault.unlockWithBiometric(prf);
+        expect(vault.isUnlocked()).toBe(true);
+        expect(await vault.decryptFromStore(stored)).toEqual(DATA);
+    });
+
+    it('falscher PRF-Ausgang entsperrt nicht', async () => {
+        await vault.setup('1234', OPTS);
+        await vault.enableBiometric('1234', prf, credId, salt);
+        vault.lock();
+        await expect(vault.unlockWithBiometric(new Uint8Array(32).fill(1))).rejects.toBeTruthy();
+        expect(vault.isUnlocked()).toBe(false);
+    });
+
+    it('Einrichten mit falscher PIN schlägt fehl', async () => {
+        await vault.setup('1234', OPTS);
+        await expect(vault.enableBiometric('0000', prf, credId, salt)).rejects.toBeTruthy();
+        expect(vault.hasBiometric()).toBe(false);
+    });
+
+    it('disableBiometric entfernt die Tür, PIN bleibt', async () => {
+        await vault.setup('1234', OPTS);
+        await vault.enableBiometric('1234', prf, credId, salt);
+        expect(vault.disableBiometric()).toBe(true);
+        expect(vault.hasBiometric()).toBe(false);
+        vault.lock();
+        await expect(vault.unlockWithBiometric(prf)).rejects.toBeTruthy();
+        await vault.unlock('1234');
+        expect(vault.isUnlocked()).toBe(true);
+    });
+
+    it('PIN-Wechsel lässt die Biometrie-Tür weiter funktionieren', async () => {
+        await vault.setup('1234', OPTS);
+        await vault.enableBiometric('1234', prf, credId, salt);
+        await vault.changePin('1234', '5678');
+        vault.lock();
+        // Biometrie umschließt denselben DEK -> unabhängig von der PIN-Änderung
+        await vault.unlockWithBiometric(prf);
+        expect(vault.isUnlocked()).toBe(true);
+    });
+});
+
+describe('Vault: Auto-Lock-Zeit', () => {
+    it('setAutoLockMs ändert die gespeicherte Zeit', async () => {
+        await vault.setup('1234', OPTS);
+        expect(vault.setAutoLockMs(60000)).toBe(true);
+        expect(vault.autoLockMs()).toBe(60000);
+        vault.setAutoLockMs(0);
+        expect(vault.autoLockMs()).toBe(0);
+    });
+});

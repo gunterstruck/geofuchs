@@ -145,6 +145,8 @@ Nominatim (OpenStreetMap) und ist gedrosselt. Nur nach bewusstem Klick.
 - **Bei jedem App-Start** (und nach Inaktivität) erscheint der **Sperrbildschirm**; erst nach PIN-Eingabe sind die Daten da.
 - **PIN vergessen?** Auf dem Sperrbildschirm „Wiederherstellungscode nutzen" → den bei der Einrichtung notierten Code eingeben. Ohne PIN **und** ohne Code sind die Daten endgültig verloren (kein Zurücksetzen durch den Betreiber – keine Hintertür).
 - **Zu viele Fehlversuche** löschen die lokalen Daten (Schutz gegen Ausprobieren).
+- **Face/Touch ID (optional):** Bei aktivem, entsperrtem Tresor → **„👤 Face/Touch ID einrichten"** (verlangt einmalig die PIN). Danach zeigt der Sperrbildschirm **„👤 Mit Face/Touch ID entsperren"**. Die PIN bleibt als Rückfallweg; entfernen mit **„👤 Face/Touch ID entfernen"**. Nur verfügbar, wenn Gerät/Browser einen Plattform-Authenticator mit PRF unterstützen. Biometrie verlässt nie das Gerät.
+- **Auto-Lock-Zeit:** Bei aktivem Tresor unter **„Automatisch sperren nach"** wählbar (1/5/15 min, 1 h oder „Nie/nur manuell").
 - Weitere Steuerung (nur bei aktivem Tresor): Topbar-Schloss **„🔓"** oder „🔒 Jetzt sperren", **„PIN ändern"**, **„Tresor deaktivieren"** (verlangt PIN; danach wieder unverschlüsselt).
 - Grenze (ehrlich): schützt verlorenes/gestohlenes Gerät und die Datei – nicht ein bereits entsperrtes, mit Schadsoftware befallenes Gerät.
 
@@ -426,8 +428,9 @@ trotzdem immer die Gesamtsumme (fachliche Sicht).
 7. Browserwechsel, Gerätewechsel oder Löschen der Browserdaten kann lokale Daten
    entfernen → vorher „💾 Als Excel exportieren".
 8. **Optionaler Datentresor:** Bei Aktivierung sind die lokalen Kundendaten
-   AES-256-verschlüsselt (Schlüssel aus PIN, nie gespeichert); Entsperren per PIN
-   oder Wiederherstellungscode. Details siehe Abschnitt 5.8b.
+   AES-256-verschlüsselt (Schlüssel aus PIN, nie gespeichert); Entsperren per PIN,
+   optional per **Face/Touch ID** (WebAuthn-PRF; Biometrie verlässt nie das Gerät)
+   oder Wiederherstellungscode; Auto-Lock-Zeit einstellbar. Details siehe Abschnitt 5.8b.
 9. **Sicherer Umzug:** Verschlüsselter Export als `.tfsafe`-Datei (AES-256-GCM,
    Zufallsschlüssel) plus Schlüssel als QR-Code. Datei und Schlüssel reisen
    getrennt (Kanaltrennung); nichts geht über das Netz. Ohne Schlüssel ist die

@@ -62,9 +62,15 @@ Iterationszahl) abgeleitet und ausschließlich im flüchtigen Arbeitsspeicher ge
 <strong>nie gespeichert oder übertragen</strong>. Ohne PIN sind die Daten kryptografisch nicht lesbar.
 </p>
 <ul>
-  <li>Bei jedem Öffnen der App und nach Inaktivität ist die PIN erforderlich (Sperrbildschirm).</li>
+  <li>Bei jedem Öffnen der App und nach Inaktivität ist die PIN erforderlich (Sperrbildschirm).
+      Die Zeit bis zum automatischen Sperren ist einstellbar (von „1&nbsp;Minute" bis „nur manuell").</li>
   <li>Optionaler Wiederherstellungscode: Er wird nur bei der Einrichtung angezeigt und liegt allein bei
       Ihnen; es gibt keine Hinterlegung beim Betreiber und keine Hintertür.</li>
+  <li><strong>Optionale Biometrie (Face&nbsp;/&nbsp;Touch&nbsp;ID):</strong> Zusätzlich zur PIN kann per
+      WebAuthn ein Plattform-Authenticator als weitere Entsperr-„Tür" eingerichtet werden. Dabei wird über
+      die PRF-Erweiterung ein geräteinternes Geheimnis abgeleitet, das den Datenschlüssel umschließt.
+      Biometrische Merkmale <strong>verlassen das Gerät nie</strong> und werden von TourFuchs nicht
+      gespeichert oder übertragen; die PIN bleibt als Rückfallweg bestehen.</li>
   <li>Nach mehreren Fehlversuchen werden die lokalen Daten gelöscht (Schutz gegen Ausprobieren).</li>
   <li>Die gesamte Verschlüsselung nutzt ausschließlich die im Browser eingebauten Krypto-Funktionen
       (Web&nbsp;Crypto API); es werden keine Schlüssel oder Daten an Dritte gesendet.</li>

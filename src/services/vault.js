@@ -65,6 +65,12 @@ export function attemptsLeft() {
     return (m.maxAttempts ?? DEFAULT_MAX_ATTEMPTS) - (m.attempts ?? 0);
 }
 export function autoLockMs() { return readMeta()?.autoLockMs ?? DEFAULT_AUTOLOCK_MS; }
+export function hasBiometric() { return Boolean(readMeta()?.bio); }
+/** Angaben, die die WebAuthn-Abfrage zum Entsperren braucht (oder null). */
+export function getBiometricRequest() {
+    const bio = readMeta()?.bio;
+    return bio ? { credentialId: bio.credentialId, salt: bio.salt } : null;
+}
 
 // ---- Einrichtung ----
 export async function setup(pin, { recovery = true, iterations = PBKDF2_ITERATIONS, maxAttempts = DEFAULT_MAX_ATTEMPTS, autoLockMs = DEFAULT_AUTOLOCK_MS } = {}) {
@@ -162,6 +168,68 @@ function scheduleAutoLock() {
 /** Bei Nutzeraktivität aufrufen, um den Auto-Lock zu verschieben. */
 export function noteActivity() {
     if (isUnlocked()) scheduleAutoLock();
+}
+
+/** Auto-Lock-Zeit ändern (ms; 0 = nie automatisch sperren). */
+export function setAutoLockMs(ms) {
+    const meta = readMeta();
+    if (!meta) return false;
+    meta.autoLockMs = Math.max(0, Number(ms) || 0);
+    writeMeta(meta);
+    scheduleAutoLock();
+    return true;
+}
+
+// ---- Biometrie-Tür (WebAuthn PRF) ----
+// Der PRF-Ausgang des Authenticators (Face/Touch ID) ist bereits ein
+// hochentropes 32-Byte-Geheimnis; er wird direkt als Wrapping-Schlüssel (KEK)
+// genutzt, um denselben DEK wie PIN/Recovery zu umschließen (weitere „Tür").
+// Die eigentlichen WebAuthn-Aufrufe liegen im Browser-Service biometric.js;
+// hier bleibt die Logik rein (Bytes rein, Wrap/Unwrap raus) und node-testbar.
+
+/**
+ * Biometrie als zusätzliche Entsperr-Tür einrichten. Verlangt die PIN, um den
+ * rohen DEK zu gewinnen (der DEK selbst ist nicht extrahierbar).
+ * @param {string} pin
+ * @param {Uint8Array} prfOutput  PRF-Ausgang des Authenticators
+ * @param {string} credentialIdB64
+ * @param {Uint8Array} saltBytes  bei der PRF-Abfrage verwendetes Salt (wird gespeichert)
+ */
+export async function enableBiometric(pin, prfOutput, credentialIdB64, saltBytes) {
+    const meta = readMeta();
+    if (!meta) throw new Error('no-vault');
+    const raw = await unwrapWith(pin, meta.salt, meta.wrapPin, meta.iterations); // wirft bei falscher PIN
+    const bioKek = await importDek(prfOutput);
+    meta.bio = {
+        credentialId: credentialIdB64,
+        salt: toB64(saltBytes),
+        wrap: await wrapDek(bioKek, raw)
+    };
+    writeMeta(meta);
+    return true;
+}
+
+/** Mit dem PRF-Ausgang entsperren. Wirft bei falschem Geheimnis (GCM-Tag). */
+export async function unlockWithBiometric(prfOutput) {
+    const meta = readMeta();
+    if (!meta?.bio) throw new Error('no-biometric');
+    const bioKek = await importDek(prfOutput);
+    const raw = await unwrapDek(bioKek, meta.bio.wrap);
+    dek = await importDek(raw);
+    meta.attempts = 0;
+    writeMeta(meta);
+    scheduleAutoLock();
+    emit('unlocked');
+    return true;
+}
+
+/** Biometrie-Tür entfernen (PIN/Recovery bleiben bestehen). */
+export function disableBiometric() {
+    const meta = readMeta();
+    if (!meta?.bio) return false;
+    delete meta.bio;
+    writeMeta(meta);
+    return true;
 }
 
 // ---- PIN wechseln ----
