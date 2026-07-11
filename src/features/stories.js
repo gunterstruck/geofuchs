@@ -24,8 +24,10 @@ export const STORIES = [
         steps: [
             { t: 'say', text: 'Schau: Deine Kundenliste landet mit einem Klick auf der Karte.', ms: 1900 },
             { t: 'run', key: 'excelToMap' },
-            { t: 'wait', ms: 2400 },
-            { t: 'say', text: 'Jeder Punkt ein Kunde, jede Farbe ein Vertriebsbezirk. Fertig!', ms: 2600 }
+            { t: 'wait', ms: 1800 },
+            { t: 'say', text: 'Jeder Punkt ein Kunde, jede Farbe ein Vertriebsbezirk.', ms: 2200 },
+            { t: 'run', key: 'showOneCustomer' },
+            { t: 'say', text: 'Reinzoomen und einen Kunden antippen – Adresse, Kontakt und Umsatz auf einen Blick.', ms: 3000 }
         ]
     },
     {

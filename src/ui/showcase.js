@@ -15,6 +15,10 @@ import { STORIES, visibleStories } from '../features/stories.js';
 import { state, emit, markDirty } from '../core/state.js';
 import { isEnabled as vaultEnabled } from '../services/vault.js';
 import { openSetupDialog } from './lockVault.js';
+import { flyToCustomer } from '../features/map.js';
+import { showMapView } from './sidebar.js';
+
+const isMobileView = () => window.matchMedia('(max-width: 768px)').matches;
 
 const SEEN_KEY = 'tf_showcase_seen';
 const DISMISS_KEY = 'tf_showcase_dismissed';
@@ -217,6 +221,17 @@ const HELPERS = {
             await waitForCustomers();
         }
     },
+    async showOneCustomer() {
+        // Karte in den Vordergrund holen (auf dem Handy das Blatt einklappen),
+        // dann in einen einzelnen Kunden zoomen und seine Infos zeigen.
+        showMapView();
+        await sleep(700);
+        const located = scopedWithCoords();
+        if (located.length === 0) return;
+        const c = located.find((x) => x.umsatz && x.telefon) || located.find((x) => x.umsatz) || located[Math.floor(located.length / 2)];
+        flyToCustomer(c, true);
+        await sleep(2400);
+    },
     async gotoTour() {
         await clickEl('.mode-btn[data-mode="aussendienst"]');
         await sleep(300);
@@ -235,10 +250,13 @@ const HELPERS = {
         await sleep(500);
     },
     async pickStart() {
-        await typeInto('#start-search', 'au');
-        const res = await resolveEl('#start-results .result-row', 2200);
-        if (res) { await clickEl('#start-results .result-row'); await sleep(500); return; }
-        // Fallback: Startpunkt direkt setzen
+        // Auf dem Handy NICHT ins Suchfeld tippen – das würde die Bildschirm-
+        // tastatur öffnen und das halbe Panel verdecken. Dort Start direkt setzen.
+        if (!isMobileView()) {
+            await typeInto('#start-search', 'au');
+            const res = await resolveEl('#start-results .result-row', 2200);
+            if (res) { await clickEl('#start-results .result-row'); await sleep(500); return; }
+        }
         const c = scopedWithCoords()[0];
         if (c) {
             state.tour.start = { lat: c.lat, lng: c.lng, label: c.name, customerId: c.id };
