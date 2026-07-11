@@ -89,8 +89,7 @@
 
 /* Mobile-Produktmodus: Karte + Tour statt Analyse-Cockpit */
 .mobile-map-tab,
-.mobile-desktop-note,
-.sheet-grip {
+.mobile-desktop-note {
     display: none;
 }
 
@@ -124,7 +123,7 @@
         right: 0;
         bottom: 0;
         width: 100%;
-        height: var(--mobile-sheet-half);
+        height: var(--sheet-height, var(--mobile-sheet-half));
         border-right: none;
         border-top: 1px solid var(--color-border);
         border-radius: var(--radius-l) var(--radius-l) 0 0;
@@ -132,6 +131,8 @@
         transform: translateY(calc(100% - var(--mobile-sheet-peek)));
         transition: transform 0.24s ease, height 0.24s ease;
     }
+    /* Während des Ziehens keine Transition, damit das Blatt dem Finger folgt. */
+    .sheet-resizing .sidebar { transition: none; }
 
     .sidebar-resize {
         display: none;
@@ -155,30 +156,10 @@
         transform: translateY(0);
     }
 
-    .sidebar.sheet-full {
-        height: calc(100dvh - var(--topbar-height));
-    }
-
-    .sidebar.sheet-peek {
-        transform: translateY(calc(100% - var(--mobile-sheet-peek)));
-    }
-
+    /* Auf dem Handy etwas breitere Grifffläche für den Finger. */
     .sheet-grip {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 26px;
-        padding: 8px 0 4px;
-        border: none;
-        background: transparent;
-        cursor: ns-resize;
-    }
-
-    .sheet-grip span {
-        width: 42px;
-        height: 5px;
-        border-radius: 999px;
-        background: #cbd5e1;
+        min-height: 30px;
+        padding: 9px 0 5px;
     }
 
     .sidebar:not(.onboarding) .mode-switch,
@@ -239,12 +220,12 @@
         font-size: 0.92rem;
     }
 
-    .sidebar.sheet-peek .mobile-desktop-note,
-    .sidebar.sheet-peek .tab-panel {
+    .sidebar:not(.open) .mobile-desktop-note,
+    .sidebar:not(.open) .tab-panel {
         display: none !important;
     }
 
-    .sidebar.sheet-peek .tabs {
+    .sidebar:not(.open) .tabs {
         border-top: 1px solid var(--color-border);
     }
 
