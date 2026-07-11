@@ -7,7 +7,7 @@
  */
 
 import * as vault from '../services/vault.js';
-import { state, setCustomers, emit, datasetSnapshot } from '../core/state.js';
+import { state, setCustomers, emit, on, datasetSnapshot } from '../core/state.js';
 import { saveDataset } from '../services/storage.js';
 import { isPlatformAuthenticatorAvailable, registerBiometric, evaluatePrf } from '../services/biometric.js';
 import { showToast } from './toast.js';
@@ -32,6 +32,12 @@ export function initVault(options = {}) {
 
     vault.onVault('locked', onLocked);
     vault.onVault('wiped', onWiped);
+    vault.onVault('disabled', renderControls);
+
+    // Topbar-Schloss soll erscheinen, sobald Daten da sind (Einrichten anbieten).
+    on('customers:changed', renderControls);
+    // Eigene Daten importiert -> zum Verschlüsseln führen (Demo nicht).
+    on('data:imported', onDataImported);
 
     renderControls();
 
@@ -166,7 +172,11 @@ function onWiped() {
 function wireControls() {
     document.getElementById('btn-vault-setup')?.addEventListener('click', () => openSetupDialog());
     document.getElementById('btn-vault-lock')?.addEventListener('click', () => vault.lock());
-    document.getElementById('btn-vault-toggle')?.addEventListener('click', () => vault.lock());
+    // Topbar-Schloss: ohne Tresor -> Einrichten anbieten; mit Tresor -> sperren.
+    document.getElementById('btn-vault-toggle')?.addEventListener('click', () => {
+        if (!vault.isEnabled()) openSetupDialog();
+        else vault.lock();
+    });
     document.getElementById('btn-vault-changepin')?.addEventListener('click', openChangePinDialog);
     document.getElementById('btn-vault-disable')?.addEventListener('click', disableVault);
     document.getElementById('btn-vault-bio')?.addEventListener('click', setupBiometric);
@@ -178,6 +188,8 @@ function wireControls() {
     });
 }
 
+function dataPresent() { return (state.customers?.length || 0) > 0; }
+
 function renderControls() {
     const enabled = vault.isEnabled();
     const unlocked = vault.isUnlocked();
@@ -187,15 +199,29 @@ function renderControls() {
     show('btn-vault-lock', enabled && unlocked);
     show('btn-vault-changepin', enabled && unlocked);
     show('btn-vault-disable', enabled && unlocked);
-    show('btn-vault-toggle', enabled && unlocked);
     show('btn-vault-bio', enabled && unlocked && bioAvailable && !hasBio);
     show('btn-vault-bio-off', enabled && unlocked && hasBio);
     show('vault-autolock-row', enabled && unlocked);
     const alSel = document.getElementById('vault-autolock');
     if (alSel && enabled) alSel.value = String(vault.autoLockMs());
 
+    // Topbar-Schloss ist der stets erreichbare Sicherheits-Einstieg (auch am Handy,
+    // wo die Daten-Ansicht im eingeklappten Blatt liegt): ohne Tresor „einrichten",
+    // mit Tresor „sperren".
     const toggle = document.getElementById('btn-vault-toggle');
-    if (toggle && enabled && unlocked) toggle.title = 'Tresor entsperrt – tippen zum Sofort-Sperren';
+    if (toggle) {
+        const showToggle = (enabled && unlocked) || (!enabled && dataPresent());
+        toggle.hidden = !showToggle;
+        if (!enabled) {
+            toggle.textContent = '🔓';
+            toggle.title = 'Daten sind unverschlüsselt – tippen, um den Tresor mit PIN einzurichten';
+            toggle.setAttribute('aria-label', 'Datentresor einrichten');
+        } else {
+            toggle.textContent = '🔐';
+            toggle.title = 'Tresor entsperrt – tippen zum Sofort-Sperren';
+            toggle.setAttribute('aria-label', 'Tresor sperren');
+        }
+    }
 
     const status = document.getElementById('vault-status');
     if (status) {
@@ -205,6 +231,23 @@ function renderControls() {
                 ? `🔓 Aktiv und entsperrt. Daten sind verschlüsselt gespeichert.${hasBio ? ' Face/Touch ID eingerichtet.' : ''}`
                 : '🔒 Aktiv und gesperrt.';
     }
+}
+
+// Nach einem Import EIGENER Daten (nicht Demo): zum Verschlüsseln führen.
+function onDataImported(payload) {
+    if (vault.isEnabled()) return;            // schon ein Tresor -> Daten werden bereits verschlüsselt gespeichert
+    if (!dataPresent()) return;
+    const count = payload?.count;
+    openSetupDialog({
+        forced: true,
+        title: 'Eigene Daten schützen',
+        intro: `Du hast${count ? ` ${count}` : ''} eigene Kundendaten geladen. Lege jetzt eine PIN fest, damit sie <b>AES-256-verschlüsselt</b> auf diesem Gerät gespeichert und beim Öffnen der App entsperrt werden.`,
+        onDone: () => showToast('Deine Daten sind jetzt im Tresor – verschlüsselt gespeichert.', 'success', 6000),
+        onDismiss: async () => {
+            await saveDataset(datasetSnapshot());
+            showToast('Ohne Tresor bleiben die Daten unverschlüsselt. Du kannst ihn jederzeit über das 🔓-Symbol oben einrichten.', 'info', 8000);
+        }
+    });
 }
 
 // ---- Biometrie (Face/Touch ID) ----

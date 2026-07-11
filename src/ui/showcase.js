@@ -13,6 +13,8 @@
 
 import { STORIES, visibleStories } from '../features/stories.js';
 import { state, emit, markDirty } from '../core/state.js';
+import { isEnabled as vaultEnabled } from '../services/vault.js';
+import { openSetupDialog } from './lockVault.js';
 
 const SEEN_KEY = 'tf_showcase_seen';
 const DISMISS_KEY = 'tf_showcase_dismissed';
@@ -275,6 +277,20 @@ const HELPERS = {
         if (d?.open) d.close();
         await sleep(400);
     },
+    async openVaultSetup() {
+        // Nur wenn noch kein Tresor aktiv ist (sonst würde ein Klick sperren).
+        if (vaultEnabled()) return;
+        // Topbar-Schloss ist auch auf dem Handy sichtbar; sonst Dialog direkt öffnen.
+        if (await resolveEl('#btn-vault-toggle', 1000)) await clickEl('#btn-vault-toggle');
+        else openSetupDialog();
+        await resolveEl('#vault-dialog[open]', 3000);
+        await sleep(500);
+    },
+    async closeVaultSetup() {
+        const d = document.getElementById('vault-dialog');
+        if (d?.open) d.close();
+        await sleep(400);
+    },
     // ---- Story 4: Simulation ----
     async gotoGebiete() {
         await clickEl('.mode-btn[data-mode="gebietsplanung"]');
@@ -390,6 +406,8 @@ function cleanup(story) {
     if (qr?.open) qr.close();
     const recv = document.getElementById('safe-receive-dialog');
     if (recv?.open) recv.close();
+    const vd = document.getElementById('vault-dialog');
+    if (vd?.open) vd.close();
     const mp = document.getElementById('mobile-preview');
     if (mp && !mp.hidden) document.getElementById('btn-mobile-preview')?.click();
 

@@ -93,6 +93,16 @@ export async function clearDataset() {
     await removeFromCache(KEYS.dataset);
 }
 
+/** Gibt es überhaupt einen gespeicherten Datensatz? (unabhängig von Ver-/Entschlüsselung) */
+export async function hasStoredDataset() {
+    try {
+        const raw = await loadFromCache(KEYS.dataset);
+        return raw != null;
+    } catch {
+        return false;
+    }
+}
+
 // ---- Geocode-Cache (Nominatim-Ergebnisse) ----
 
 export async function loadGeocodeCache() {

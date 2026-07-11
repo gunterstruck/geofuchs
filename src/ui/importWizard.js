@@ -9,6 +9,7 @@ import { geocodeByPlz } from '../services/geocode.js';
 import { state, setCustomers, mergeCustomersDelta, emit, datasetSnapshot, setTerritory } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { saveDataset } from '../services/storage.js';
+import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { showToast } from './toast.js';
 import { fitToCustomers } from '../features/map.js';
 
@@ -216,6 +217,14 @@ async function confirmImport() {
 
     lastErrors = errors;
     showImportResult({ customerCount: customers.length, contactCount: contactRows.length, areaCount, skipped, errors });
+
+    // Eigene Kundendaten importiert -> zum Verschlüsseln führen (nach dem
+    // Ergebnis-Dialog, falls dieser wegen Fehlern offen ist).
+    if (customers.length > 0) {
+        const offerVault = () => emit('data:imported', { count: customers.length });
+        if (resultDialog?.open) resultDialog.addEventListener('close', offerVault, { once: true });
+        else offerVault();
+    }
 }
 
 /**
@@ -296,6 +305,12 @@ function showImportResult({ customerCount, contactCount = 0, areaCount, skipped,
 }
 
 async function loadDemo() {
+    // Beispieldaten sind nicht schützenswert: ein evtl. aktiver Tresor wird
+    // deaktiviert, damit die Demo unverschlüsselt und ohne PIN-Sperre läuft.
+    if (vaultEnabled()) {
+        if (!confirm('Die Beispieldaten ersetzen deine aktuellen Daten und deaktivieren den Datentresor (die PIN wird entfernt). Fortfahren?')) return;
+        removeVaultMeta();
+    }
     const { demoCustomers } = await excel();
     await applyCustomers(await demoCustomers(), 'Demo-Daten');
     emit('demo:loaded');

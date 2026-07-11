@@ -8,7 +8,8 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 
 import { CONFIG } from './core/config.js';
 import { state, on, emit, setCustomers, datasetSnapshot } from './core/state.js';
-import { loadDataset, saveDataset, loadSettings } from './services/storage.js';
+import { loadDataset, saveDataset, loadSettings, hasStoredDataset } from './services/storage.js';
+import { isEnabled as vaultEnabled, isLocked as vaultLocked, removeVaultMeta } from './services/vault.js';
 import { geocodeByPlz } from './services/geocode.js';
 import { initMap } from './features/map.js';
 import { initSidebar, applyMode, autoRevealIfEmpty } from './ui/sidebar.js';
@@ -151,6 +152,14 @@ async function init() {
         // (host/…#t=…), direkt den Empfangs-Dialog zeigen.
         handleSharedTourFromUrl();
         autoRevealIfEmpty();
+    }
+
+    // Migration/Konsistenz: Ein verwaister Tresor (aktiv, aber gar kein
+    // gespeicherter Datensatz – z. B. nach „Daten löschen" einer Altversion)
+    // würde sonst einen leeren Sperrbildschirm zeigen. Da nichts zu schützen
+    // ist, wird er gefahrlos deaktiviert (nur wenn wirklich kein Datensatz da ist).
+    if (vaultEnabled() && vaultLocked() && !(await hasStoredDataset())) {
+        removeVaultMeta();
     }
 
     // Tresor: Ist er aktiv und gesperrt, zeigt initVault den Sperrbildschirm und
