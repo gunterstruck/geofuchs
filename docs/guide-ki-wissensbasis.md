@@ -139,6 +139,15 @@ Standard ist die Offline-Verortung über PLZ-Koordinaten. Diese optionale Funkti
 sendet die Adresse (Straße, PLZ, Ort – keine Namen, kein Umsatz) an den Dienst
 Nominatim (OpenStreetMap) und ist gedrosselt. Nur nach bewusstem Klick.
 
+### 5.8b Datentresor (Verschlüsselung mit PIN)
+**Klickpfad aktivieren:** Tab „📄 Daten" → Bereich **„🔐 Datentresor"** → **„🔐 Tresor aktivieren (PIN)"** → PIN wählen + wiederholen → **Wiederherstellungscode notieren** (wird nur einmal angezeigt!).
+- Ist der Tresor aktiv, werden die Kundendaten **AES-256-verschlüsselt** lokal gespeichert. Der Schlüssel wird aus der PIN abgeleitet und **nie gespeichert** – ohne PIN sind die Daten unlesbar.
+- **Bei jedem App-Start** (und nach Inaktivität) erscheint der **Sperrbildschirm**; erst nach PIN-Eingabe sind die Daten da.
+- **PIN vergessen?** Auf dem Sperrbildschirm „Wiederherstellungscode nutzen" → den bei der Einrichtung notierten Code eingeben. Ohne PIN **und** ohne Code sind die Daten endgültig verloren (kein Zurücksetzen durch den Betreiber – keine Hintertür).
+- **Zu viele Fehlversuche** löschen die lokalen Daten (Schutz gegen Ausprobieren).
+- Weitere Steuerung (nur bei aktivem Tresor): Topbar-Schloss **„🔓"** oder „🔒 Jetzt sperren", **„PIN ändern"**, **„Tresor deaktivieren"** (verlangt PIN; danach wieder unverschlüsselt).
+- Grenze (ehrlich): schützt verlorenes/gestohlenes Gerät und die Datei – nicht ein bereits entsperrtes, mit Schadsoftware befallenes Gerät.
+
 ### 5.8 Export und Löschen
 - **„💾 Als Excel exportieren"** – kompletter Datenbestand als Excel-Datei.
   Vor größeren Änderungen oder dem Löschen immer empfehlen!
@@ -409,6 +418,9 @@ trotzdem immer die Gesamtsumme (fachliche Sicht).
 6. **QR-Übergabe** überträgt nichts über das Netz (Bildschirm → Kamera).
 7. Browserwechsel, Gerätewechsel oder Löschen der Browserdaten kann lokale Daten
    entfernen → vorher „💾 Als Excel exportieren".
+8. **Optionaler Datentresor:** Bei Aktivierung sind die lokalen Kundendaten
+   AES-256-verschlüsselt (Schlüssel aus PIN, nie gespeichert); Entsperren per PIN
+   oder Wiederherstellungscode. Details siehe Abschnitt 5.8b.
 
 ---
 

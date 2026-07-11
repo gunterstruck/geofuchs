@@ -22,6 +22,7 @@
                 <div id="search-results" class="search-results"></div>
             </div>
             <button id="btn-mobile-preview" class="icon-button" aria-label="Mobile-Vorschau" title="Mobile-Ansicht zeigen (Demo)">📱</button>
+            <button id="btn-vault-toggle" class="icon-button" hidden aria-label="Tresor sperren" title="Tresor jetzt sperren">🔓</button>
             <button id="btn-info" class="icon-button" aria-label="Info & Impressum">ⓘ</button>
         </header>
 
@@ -125,6 +126,17 @@
                             <div id="geocode-progress" class="muted small" style="display:none"></div>
                             <button id="btn-export">💾 Als Excel exportieren</button>
                             <button id="btn-clear" class="danger">🗑 Daten löschen</button>
+                        </div>
+                    </div>
+
+                    <div id="vault-controls" class="vault-controls">
+                        <h3>🔐 Datentresor</h3>
+                        <p id="vault-status" class="muted small"></p>
+                        <div class="button-column">
+                            <button id="btn-vault-setup" class="primary">🔐 Tresor aktivieren (PIN)</button>
+                            <button id="btn-vault-lock" hidden>🔒 Jetzt sperren</button>
+                            <button id="btn-vault-changepin" hidden>PIN ändern</button>
+                            <button id="btn-vault-disable" class="danger" hidden>Tresor deaktivieren</button>
                         </div>
                     </div>
                 </div>
@@ -472,6 +484,29 @@
         </dialog>
 
         <dialog id="showcase-dialog" aria-label="Funktionen entdecken"></dialog>
+
+        <!-- Tresor: Vollbild-Sperre beim Start / nach Auto-Lock -->
+        <div id="vault-lock" class="vault-lock" hidden>
+            <div class="vault-card">
+                <div class="vault-fox">🦊</div>
+                <div class="vault-badge">🔐</div>
+                <h2>TourFuchs ist gesperrt</h2>
+                <p class="muted">Bitte PIN eingeben, um deine verschlüsselten Daten zu entsperren.</p>
+                <form id="vault-unlock-form">
+                    <input id="vault-pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" class="vault-pin-input" aria-label="PIN">
+                    <button type="submit" id="vault-unlock" class="primary">Entsperren</button>
+                </form>
+                <p id="vault-error" class="vault-error" role="alert" hidden></p>
+                <button type="button" id="vault-recovery-link" class="linklike">PIN vergessen? Wiederherstellungscode nutzen</button>
+                <form id="vault-recovery-form" hidden>
+                    <input id="vault-recovery" type="text" placeholder="TFRC-XXXXX-XXXXX-XXXXX-XXXXX" class="vault-pin-input" autocomplete="off" aria-label="Wiederherstellungscode">
+                    <button type="submit" class="primary">Mit Code entsperren</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tresor: generischer Dialog (Aktivieren / PIN ändern / Recovery-Anzeige) -->
+        <dialog id="vault-dialog" class="vault-dialog" aria-label="Datentresor"></dialog>
 
         <dialog id="qr-share-dialog">
             <header>

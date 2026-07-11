@@ -53,6 +53,28 @@ Betreiber übertragen. Sie können sie jederzeit über die Funktion „Daten lö
 oder über das Löschen der Browserdaten entfernen.
 </p>
 
+<h2>3a. Optionaler Datentresor (Verschlüsselung, Data at Rest)</h2>
+<p>
+Sie können einen <strong>Datentresor</strong> aktivieren. Ist er aktiv, werden die lokal gespeicherten
+Kundendaten mit <strong>AES-256-GCM</strong> verschlüsselt in der IndexedDB abgelegt. Der Datenschlüssel
+wird über eine von Ihnen gewählte <strong>PIN</strong> (Schlüsselableitung PBKDF2-SHA-256, hohe
+Iterationszahl) abgeleitet und ausschließlich im flüchtigen Arbeitsspeicher gehalten – er wird
+<strong>nie gespeichert oder übertragen</strong>. Ohne PIN sind die Daten kryptografisch nicht lesbar.
+</p>
+<ul>
+  <li>Bei jedem Öffnen der App und nach Inaktivität ist die PIN erforderlich (Sperrbildschirm).</li>
+  <li>Optionaler Wiederherstellungscode: Er wird nur bei der Einrichtung angezeigt und liegt allein bei
+      Ihnen; es gibt keine Hinterlegung beim Betreiber und keine Hintertür.</li>
+  <li>Nach mehreren Fehlversuchen werden die lokalen Daten gelöscht (Schutz gegen Ausprobieren).</li>
+  <li>Die gesamte Verschlüsselung nutzt ausschließlich die im Browser eingebauten Krypto-Funktionen
+      (Web&nbsp;Crypto API); es werden keine Schlüssel oder Daten an Dritte gesendet.</li>
+</ul>
+<p class="muted">
+Ehrliche Einordnung (Stand der Technik, Art. 32 DSGVO): Der Tresor schützt zuverlässig gegen den
+Zugriff auf ein verlorenes oder gestohlenes Gerät sowie auf die gespeicherte Datei. Er kann jedoch –
+wie jede App – nicht vor Schadsoftware auf einem bereits entsperrten, kompromittierten Gerät schützen.
+</p>
+
 <h2>4. Kartendarstellung</h2>
 <p>
 Die Kartenkacheln werden beim Betrachten von den folgenden Diensten geladen. Dabei können diese

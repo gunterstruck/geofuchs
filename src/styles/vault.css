@@ -1,0 +1,124 @@
+/* ===== Datentresor ===== */
+
+.vault-controls {
+    margin-top: 16px;
+    padding: 14px;
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 12px;
+    background: var(--color-surface-2, #f8fafc);
+}
+.vault-controls h3 { margin: 0 0 6px; font-size: 1rem; }
+.vault-controls .button-column { margin-top: 10px; }
+
+/* Vollbild-Sperre */
+.vault-lock {
+    position: fixed;
+    inset: 0;
+    z-index: 200000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: linear-gradient(160deg, #0f766e, #0f172a);
+}
+.vault-lock[hidden] { display: none; }   /* Klassenregel darf hidden nicht überstimmen */
+.vault-card {
+    width: min(420px, 100%);
+    background: var(--color-surface, #fff);
+    border-radius: 18px;
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+    position: relative;
+}
+.vault-fox { font-size: 2.8rem; line-height: 1; }
+.vault-badge {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform: translateX(10px);
+    font-size: 1.3rem;
+}
+.vault-card h2 { margin: 8px 0 4px; font-size: 1.3rem; }
+.vault-card .muted { margin: 0 auto 14px; max-width: 34ch; }
+
+.vault-pin-input {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 1.2rem;
+    text-align: center;
+    letter-spacing: 0.14em;
+    border: 1px solid var(--color-border, #cbd5e1);
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+#vault-unlock-form, #vault-recovery-form { display: block; }
+#vault-recovery-form[hidden] { display: none; }   /* erst nach Klick auf den Link */
+#vault-unlock, #vault-recovery-form button { width: 100%; min-height: 46px; font-weight: 700; font-size: 1rem; }
+#vault-recovery-form { margin-top: 12px; }
+#vault-recovery { letter-spacing: 0.08em; font-size: 0.95rem; }
+
+.vault-error {
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    margin: 4px 0 8px;
+}
+#vault-recovery-link {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 0.86rem;
+    color: var(--color-primary-dark, #0f766e);
+}
+
+/* Tresor-Dialog (Aktivieren / PIN ändern / Recovery) */
+.vault-dialog {
+    border: none;
+    border-radius: 16px;
+    padding: 0;
+    max-width: min(440px, 94vw);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.34);
+}
+.vault-dialog::backdrop { background: rgba(15, 23, 42, 0.55); }
+.vault-setup { padding: 22px; text-align: center; }
+.vault-setup h2 { margin: 8px 0 6px; font-size: 1.2rem; }
+.vault-setup .muted { text-align: left; }
+.vault-field {
+    display: block;
+    text-align: left;
+    font-size: 0.85rem;
+    color: var(--color-text-muted, #64748b);
+    margin: 12px 0 0;
+}
+.vault-field input {
+    width: 100%;
+    margin-top: 4px;
+    padding: 10px 12px;
+    font-size: 1.05rem;
+    border: 1px solid var(--color-border, #cbd5e1);
+    border-radius: 10px;
+}
+.vault-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 18px;
+}
+.vault-actions .primary { min-height: 42px; padding: 8px 18px; font-weight: 700; }
+.vault-recovery-code {
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--color-primary-dark, #0f766e);
+    background: var(--color-primary-light, #f0fdfa);
+    border: 1px dashed var(--color-primary, #0d9488);
+    border-radius: 12px;
+    padding: 14px;
+    margin: 14px 0;
+    word-break: break-all;
+    user-select: all;
+}

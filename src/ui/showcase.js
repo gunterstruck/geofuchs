@@ -471,6 +471,10 @@ export function initShowcase() {
     // Erststart am Desktop: Angebot einmal automatisch einblenden
     const isDesktop = window.matchMedia('(min-width: 769px)').matches;
     if (isDesktop && !isDismissed()) {
-        setTimeout(() => { if (!running && !dialog.open) openPanel(); }, 1600);
+        setTimeout(() => {
+            const lock = document.getElementById('vault-lock');
+            const locked = lock && !lock.hidden;
+            if (!running && !dialog.open && !locked) openPanel();
+        }, 1600);
     }
 }
