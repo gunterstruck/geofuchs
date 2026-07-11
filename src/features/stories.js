@@ -58,6 +58,7 @@ export const STORIES = [
         icon: '📲',
         title: 'Aufs Handy – ohne Kabel, ohne Cloud',
         blurb: 'Tour per QR-Code an dein Smartphone.',
+        desktopOnly: true,   // Übergabe Desktop -> Handy; auf dem Handy selbst sinnlos
         needsData: true,
         mutatesTour: true,
         steps: [
@@ -85,6 +86,7 @@ export const STORIES = [
         icon: '🧪',
         title: 'Was wäre wenn? Gebiete umbauen – ohne Risiko',
         blurb: 'Testweise umverteilen, Wirkung sofort sehen.',
+        desktopOnly: true,   // Gebietsplanung/Cockpit gibt es nur auf dem Desktop
         needsData: true,
         patchConfirm: true,   // „Verwerfen" bestätigt sich in der Vorführung automatisch
         steps: [
@@ -150,6 +152,17 @@ export const STORIES = [
  * unbemerkt. (Dynamisch gerenderte Elemente wie #tour-bezirk sind bewusst
  * nicht dabei; sie werden per waitFor/Helfer abgesichert.)
  */
+/**
+ * Stories für die aktuelle Ansicht. Auf dem Smartphone werden Stories mit
+ * `desktopOnly` ausgeblendet – sie zeigen Funktionen, die es dort nicht gibt
+ * (Gebietsplanung) oder die dort keinen Sinn ergeben (Tour AN das Handy senden,
+ * während man schon am Handy ist).
+ * @param {{isDesktop?: boolean}} [opts]
+ */
+export function visibleStories({ isDesktop = true } = {}) {
+    return STORIES.filter((s) => isDesktop || !s.desktopOnly);
+}
+
 export const CRITICAL_SELECTORS = [
     '#btn-demo',
     '.mode-btn[data-mode="aussendienst"]',

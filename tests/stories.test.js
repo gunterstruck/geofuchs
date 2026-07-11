@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { STORIES, CRITICAL_SELECTORS } from '../src/features/stories.js';
+import { STORIES, CRITICAL_SELECTORS, visibleStories } from '../src/features/stories.js';
 
 const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
 const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -35,5 +35,17 @@ describe('Showcase-Stories: Guardrail', () => {
 
     it('die Stories in fester Reihenfolge', () => {
         expect(STORIES.map((s) => s.id)).toEqual(['excel-karte', 'tour', 'handy-qr', 'simulation', 'chancen', 'tresor']);
+    });
+
+    it('am Desktop sind alle Stories sichtbar', () => {
+        expect(visibleStories({ isDesktop: true }).map((s) => s.id))
+            .toEqual(['excel-karte', 'tour', 'handy-qr', 'simulation', 'chancen', 'tresor']);
+    });
+
+    it('am Smartphone entfallen die desktop-only Stories (QR-Übergabe, Gebiets-Simulation)', () => {
+        const ids = visibleStories({ isDesktop: false }).map((s) => s.id);
+        expect(ids).toEqual(['excel-karte', 'tour', 'chancen', 'tresor']);
+        expect(ids).not.toContain('handy-qr');
+        expect(ids).not.toContain('simulation');
     });
 });

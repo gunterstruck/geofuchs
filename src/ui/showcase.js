@@ -11,7 +11,7 @@
  * am Ende wieder her. ESC / „Abbrechen" bricht jederzeit sauber ab.
  */
 
-import { STORIES } from '../features/stories.js';
+import { STORIES, visibleStories } from '../features/stories.js';
 import { state, emit, markDirty } from '../core/state.js';
 
 const SEEN_KEY = 'tf_showcase_seen';
@@ -423,7 +423,8 @@ async function play(story) {
 // ---- Intro-Panel ----
 function buildPanel() {
     const seen = new Set(seenIds());
-    const tiles = STORIES.map((s) => `
+    const isDesktop = window.matchMedia('(min-width: 769px)').matches;
+    const tiles = visibleStories({ isDesktop }).map((s) => `
         <button type="button" class="sc-tile" data-story="${s.id}">
             <span class="sc-tile-icon">${s.icon}</span>
             <span class="sc-tile-body"><b>${s.title}</b><span>${s.blurb}</span></span>
