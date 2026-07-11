@@ -148,6 +148,13 @@ Nominatim (OpenStreetMap) und ist gedrosselt. Nur nach bewusstem Klick.
 - Weitere Steuerung (nur bei aktivem Tresor): Topbar-Schloss **„🔓"** oder „🔒 Jetzt sperren", **„PIN ändern"**, **„Tresor deaktivieren"** (verlangt PIN; danach wieder unverschlüsselt).
 - Grenze (ehrlich): schützt verlorenes/gestohlenes Gerät und die Datei – nicht ein bereits entsperrtes, mit Schadsoftware befallenes Gerät.
 
+### 5.8c Sicherer Umzug (verschlüsselt auf ein anderes Gerät)
+Damit bringt man den kompletten Kundenbestand verschlüsselt von einem Gerät auf ein anderes (z. B. Desktop → Diensthandy). **Datei und Schlüssel reisen getrennt** – das ist der Sicherheitskern.
+- **Senden (Desktop):** Tab „📄 Daten" → Bereich **„🧳 Sicherer Umzug"** → **„🧳 Verschlüsselt exportieren (Datei + QR)"**. Es wird eine verschlüsselte Datei **`.tfsafe`** heruntergeladen und ein **Schlüssel-QR** am Bildschirm angezeigt.
+- **Empfangen (Handy):** Tab „📄 Daten" → **„📥 Daten empfangen"** (auch im Start-/Leerzustand als **„📥 Daten von anderem Gerät empfangen"** verfügbar). Schritt 1: die `.tfsafe`-Datei wählen. Schritt 2: den **Schlüssel-QR** scannen (oder als Text einfügen). Danach wird man **direkt zum Tresor-Setup geführt**, damit die Daten sofort geschützt sind.
+- **Warum sicher:** Die Datei ist AES-256-GCM-verschlüsselt und ohne Schlüssel wertlos; der Schlüssel geht nur per Bildschirm→Kamera, nie übers Netz und **nicht als Link**. Ein falscher/fremder Schlüssel oder eine beschädigte Datei werden erkannt und abgewiesen.
+- **Wichtig für Anwender:** Datei und Schlüssel-QR **getrennt** aufbewahren. Wer beides hat, kann entschlüsseln.
+
 ### 5.8 Export und Löschen
 - **„💾 Als Excel exportieren"** – kompletter Datenbestand als Excel-Datei.
   Vor größeren Änderungen oder dem Löschen immer empfehlen!
@@ -421,6 +428,10 @@ trotzdem immer die Gesamtsumme (fachliche Sicht).
 8. **Optionaler Datentresor:** Bei Aktivierung sind die lokalen Kundendaten
    AES-256-verschlüsselt (Schlüssel aus PIN, nie gespeichert); Entsperren per PIN
    oder Wiederherstellungscode. Details siehe Abschnitt 5.8b.
+9. **Sicherer Umzug:** Verschlüsselter Export als `.tfsafe`-Datei (AES-256-GCM,
+   Zufallsschlüssel) plus Schlüssel als QR-Code. Datei und Schlüssel reisen
+   getrennt (Kanaltrennung); nichts geht über das Netz. Ohne Schlüssel ist die
+   Datei wertlos. Details siehe Abschnitt 5.8c.
 
 ---
 

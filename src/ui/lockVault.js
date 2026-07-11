@@ -134,7 +134,7 @@ function onWiped() {
 
 // ---- Steuerung im Daten-Tab + Topbar ----
 function wireControls() {
-    document.getElementById('btn-vault-setup')?.addEventListener('click', openSetupDialog);
+    document.getElementById('btn-vault-setup')?.addEventListener('click', () => openSetupDialog());
     document.getElementById('btn-vault-lock')?.addEventListener('click', () => vault.lock());
     document.getElementById('btn-vault-toggle')?.addEventListener('click', () => vault.lock());
     document.getElementById('btn-vault-changepin')?.addEventListener('click', openChangePinDialog);
@@ -159,23 +159,34 @@ function renderControls() {
 }
 
 // ---- Aktivierung ----
-function openSetupDialog() {
+/**
+ * Tresor-Aktivierung anzeigen. Ohne Optionen der normale Button-Flow; mit
+ * `forced: true` (z. B. nach einem verschlüsselten Import) ohne Abbrechen,
+ * mit passendem Text und optionalen Callbacks.
+ * @param {{forced?:boolean, title?:string, intro?:string, onDone?:Function, onDismiss?:Function}} [opts]
+ */
+export function openSetupDialog(opts = {}) {
+    const forced = opts.forced === true;
+    const title = opts.title || 'Datentresor aktivieren';
+    const intro = opts.intro || 'Deine Kundendaten werden ab dann <b>AES-256-verschlüsselt</b> auf diesem Gerät gespeichert und beim Öffnen per PIN entsperrt. Wähle eine PIN, die du dir merkst – ohne sie sind die Daten nicht wiederherstellbar (außer per Wiederherstellungscode).';
+    let done = false;
+
     dialog.innerHTML = `
         <form method="dialog" class="vault-setup" id="vault-setup-form">
             <div class="vault-fox">🦊🔐</div>
-            <h2>Datentresor aktivieren</h2>
-            <p class="muted small">Deine Kundendaten werden ab dann <b>AES-256-verschlüsselt</b> auf diesem Gerät gespeichert und beim Öffnen per PIN entsperrt. Wähle eine PIN, die du dir merkst – ohne sie sind die Daten nicht wiederherstellbar (außer per Wiederherstellungscode).</p>
+            <h2>${escapeHtml(title)}</h2>
+            <p class="muted small">${intro}</p>
             <label class="vault-field">PIN (mind. 4 Zeichen)
                 <input id="setup-pin" type="password" inputmode="numeric" autocomplete="new-password" required minlength="4"></label>
             <label class="vault-field">PIN wiederholen
                 <input id="setup-pin2" type="password" inputmode="numeric" autocomplete="new-password" required></label>
             <p id="setup-error" class="vault-error" hidden></p>
             <div class="vault-actions">
-                <button type="button" class="vault-cancel">Abbrechen</button>
+                ${forced ? '' : '<button type="button" class="vault-cancel">Abbrechen</button>'}
                 <button type="submit" class="primary">Tresor aktivieren</button>
             </div>
         </form>`;
-    dialog.querySelector('.vault-cancel').addEventListener('click', () => dialog.close());
+    dialog.querySelector('.vault-cancel')?.addEventListener('click', () => dialog.close());
     dialog.querySelector('#vault-setup-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const pin = dialog.querySelector('#setup-pin').value;
@@ -190,17 +201,23 @@ function openSetupDialog() {
             await saveDataset(datasetSnapshot());
             emit('dataset:dirty');
             renderControls();
-            showRecoveryCode(recoveryCode);
+            done = true;
+            showRecoveryCode(recoveryCode, opts.onDone);
         } catch (e2) {
             err.textContent = 'Aktivierung fehlgeschlagen.';
             err.hidden = false;
             console.warn(e2);
         }
     });
+    // Abbruch (Escape/Backdrop) im erzwungenen Modus meldet zurück, damit der
+    // Aufrufer die Daten notfalls im Klartext speichern und warnen kann.
+    dialog.addEventListener('close', () => {
+        if (!done && forced && typeof opts.onDismiss === 'function') opts.onDismiss();
+    }, { once: true });
     dialog.showModal();
 }
 
-function showRecoveryCode(code) {
+function showRecoveryCode(code, onDone) {
     dialog.innerHTML = `
         <div class="vault-setup">
             <div class="vault-fox">🔑</div>
@@ -217,7 +234,8 @@ function showRecoveryCode(code) {
     });
     dialog.querySelector('.vault-done').addEventListener('click', () => {
         dialog.close();
-        showToast('Tresor aktiviert – deine Daten sind jetzt verschlüsselt.', 'success', 6000);
+        if (typeof onDone === 'function') onDone();
+        else showToast('Tresor aktiviert – deine Daten sind jetzt verschlüsselt.', 'success', 6000);
     });
 }
 
