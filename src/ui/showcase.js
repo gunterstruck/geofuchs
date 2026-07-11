@@ -18,6 +18,7 @@ import { saveDataset } from '../services/storage.js';
 import { openSetupDialog } from './lockVault.js';
 import { flyToCustomer, fitToCustomers, closeMapPopups } from '../features/map.js';
 import { showMapView, expandSheetForDemo, restoreSheetAfterDemo } from './sidebar.js';
+import { showKeyStepForDemo } from './safeTransfer.js';
 
 const ROUTING_CONSENT_KEY = 'gf_routing_consent';
 
@@ -39,6 +40,7 @@ let tourSnapshot = null;
 let visitRestore = null;      // { id, besuche } zum Zurücksetzen von „Heute besucht"
 let origConfirm = null;       // Originales window.confirm während patchConfirm
 let priorConsent = undefined; // Routing-Zustimmung vor der Demo (zum Zurücksetzen)
+let demoVaultCreated = false; // hat DIESE Demo den Tresor angelegt? (nur dann abbauen)
 
 class AbortError extends Error {}
 
@@ -334,8 +336,12 @@ const HELPERS = {
         await sleep(400);
     },
     async submitVaultSetup() {
+        // Nur wirklich anlegen, wenn noch KEIN Tresor existiert – sonst würde ein
+        // bestehender (echter) Tresor überschrieben. Bei vorhandenem Tresor wird
+        // nur die Eingabe-UI gezeigt, ohne etwas anzulegen.
+        if (vaultEnabled()) { await sleep(500); return; }
         await clickEl('#vault-setup-form button[type="submit"]');
-        await resolveEl('#recovery-code', 3000);
+        if (await resolveEl('#recovery-code', 3000)) demoVaultCreated = true;
         await sleep(600);
     },
     async finishVaultDemo() {
@@ -354,18 +360,23 @@ const HELPERS = {
         await resolveEl('#safe-receive-dialog[open]', 3000);
         await sleep(500);
     },
+    async showReceiveKeyStep() {
+        // Schritt 2 zeigen: Scanner-Bereich + manuelles Schlüsselfeld (ohne Kamera).
+        showKeyStepForDemo();
+        await sleep(800);
+    },
     async closeReceive() {
         const d = document.getElementById('safe-receive-dialog');
         if (d?.open) d.close();
         await sleep(400);
     },
     async openVaultSetup() {
-        // Nur wenn noch kein Tresor aktiv ist (sonst würde ein Klick sperren).
-        if (vaultEnabled()) return;
-        // Topbar-Schloss ist auch auf dem Handy sichtbar; sonst Dialog direkt öffnen.
-        if (await resolveEl('#btn-vault-toggle', 1000)) await clickEl('#btn-vault-toggle');
-        else openSetupDialog();
-        await resolveEl('#vault-dialog[open]', 3000);
+        demoVaultCreated = false;
+        // Setup-Formular garantiert öffnen (unabhängig von Tresor-Status/Topbar) –
+        // sonst wäre das PIN-Modal in der Demo evtl. nicht sichtbar. Angelegt wird
+        // erst beim Absenden, und nur wenn noch kein Tresor existiert.
+        openSetupDialog();
+        await resolveEl('#setup-pin', 3000);
         await sleep(500);
     },
     async closeVaultSetup() {
@@ -521,12 +532,13 @@ function cleanup(story) {
         priorConsent = undefined;
     }
 
-    // In der Tresor-Demo angelegten Tresor wieder abbauen: nichts soll hinterher
-    // gesperrt oder mit der Demo-PIN verschlüsselt sein.
-    if (story?.mutatesVault && vaultEnabled()) {
+    // Nur einen von DIESER Demo angelegten Tresor wieder abbauen – ein bereits
+    // vorhandener (echter) Tresor bleibt unangetastet.
+    if (story?.mutatesVault && demoVaultCreated && vaultEnabled()) {
         removeVaultMeta();
         saveDataset(datasetSnapshot()); // wieder im Klartext speichern (kein await nötig)
     }
+    demoVaultCreated = false;
 
     // Blatt-Höhe (Handy) auf den Nutzerzustand zurücksetzen und Kartenausschnitt
     // auf die definierte Ausgangslage bringen (nicht dort stehen bleiben, wo die
