@@ -16,7 +16,7 @@ import { state, emit, markDirty } from '../core/state.js';
 import { isEnabled as vaultEnabled } from '../services/vault.js';
 import { openSetupDialog } from './lockVault.js';
 import { flyToCustomer, fitToCustomers, closeMapPopups } from '../features/map.js';
-import { showMapView } from './sidebar.js';
+import { showMapView, expandSheetForDemo, restoreSheetAfterDemo } from './sidebar.js';
 
 const isMobileView = () => window.matchMedia('(max-width: 768px)').matches;
 
@@ -236,8 +236,10 @@ const HELPERS = {
         await clickEl('.mode-btn[data-mode="aussendienst"]');
         await sleep(300);
         await clickEl('.tab-button[data-tab="tour"]');
+        // Auf dem Handy das Blatt weit aufziehen, damit man die Bedienung sieht.
+        expandSheetForDemo();
         await resolveEl('#tour-scope', 3000);
-        await sleep(300);
+        await sleep(400);
     },
     async gotoDaten() {
         await clickEl('.tab-button[data-tab="daten"]');
@@ -448,8 +450,10 @@ function cleanup(story) {
     }
     tourSnapshot = null;
 
-    // Kartenausschnitt auf die definierte Ausgangslage zurücksetzen (nicht dort
-    // stehen bleiben, wo die Vorführung geendet hat).
+    // Blatt-Höhe (Handy) auf den Nutzerzustand zurücksetzen und Kartenausschnitt
+    // auf die definierte Ausgangslage bringen (nicht dort stehen bleiben, wo die
+    // Vorführung geendet hat).
+    restoreSheetAfterDemo();
     resetView();
 }
 

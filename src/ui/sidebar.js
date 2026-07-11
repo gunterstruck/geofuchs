@@ -220,6 +220,31 @@ function restoreSheetHeight() {
     if (saved) setSheetHeight(Number(saved));
 }
 
+/**
+ * Für die Live-Demos: das Blatt auf dem Handy weit aufziehen, damit die
+ * Bedienelemente (Bezirk, Startpunkt, Vorschläge …) sichtbar sind, während der
+ * Geister-Cursor sie bedient. Die gewählte Höhe wird NICHT gespeichert.
+ */
+export function expandSheetForDemo() {
+    if (!isMobileUi()) return;
+    state.ui.sidebarOpen = true;
+    setSheetHeight(Math.round(sheetMaxHeight() * 0.92));
+    applySidebar();
+}
+
+/** Nach einer Demo den vom Nutzer gewählten Blatt-Zustand wiederherstellen. */
+export function restoreSheetAfterDemo() {
+    if (!isMobileUi()) return;
+    let saved = null;
+    try { saved = localStorage.getItem(SHEET_HEIGHT_KEY); } catch (e) { /* egal */ }
+    if (saved) {
+        setSheetHeight(Number(saved));
+    } else {
+        document.getElementById('sidebar')?.classList.remove('sheet-sized');
+        document.documentElement.style.removeProperty('--sheet-height');
+    }
+}
+
 function toggleSheet() {
     const sidebar = document.getElementById('sidebar');
     if (isMobileUi()) {
