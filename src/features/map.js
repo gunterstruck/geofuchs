@@ -186,6 +186,8 @@ export function initMap(containerId) {
     map.on('zoomend', () => {
         if (state.colorMode === 'auto') applyView();
     });
+    // Für den „In der Nähe"-Begleiter: nach jeder Karten-Bewegung neu berechnen.
+    map.on('moveend', () => emit('map:moved'));
 
     // Buttons in Popups (Event-Delegation)
     map.on('popupopen', (e) => {

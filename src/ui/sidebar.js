@@ -402,7 +402,8 @@ function activateTab(tab) {
     document.querySelectorAll('.tab-button').forEach((b) =>
         b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.tab-panel').forEach((p) =>
-        p.classList.toggle('active', tab !== 'karte' && p.id === `tab-${tab}`));
+        p.classList.toggle('active', p.id === `tab-${tab}`));
+    emit('tab:changed', tab);
 
     if (isMobileUi()) {
         if (tab === 'karte') state.ui.sidebarOpen = false;
