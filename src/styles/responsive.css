@@ -113,8 +113,41 @@
 
 @media (max-width: 768px) {
     :root {
-        --mobile-sheet-peek: 132px;
+        /* Nur der Griff schaut im Ruhezustand heraus – Basis/Profi und Tabs
+           „hängen" jetzt oben, das Blatt ist reine Inhaltsfläche auf Abruf. */
+        --mobile-sheet-peek: 46px;
         --mobile-sheet-half: min(68dvh, 620px);
+    }
+
+    /* Fixer Kopf-Streifen unter der Topbar: Ansichtstiefe + Tabs immer sichtbar. */
+    .mobile-topnav {
+        display: block;
+        position: absolute;
+        top: var(--topbar-height);
+        left: 0;
+        right: 0;
+        z-index: 1040;
+        background: var(--color-surface);
+        border-bottom: 1px solid var(--color-border);
+        box-shadow: var(--shadow-1);
+        padding-bottom: 6px;
+    }
+    /* Während des Onboardings (keine Daten) nur Willkommen + Demo zeigen. */
+    body.app-onboarding .mobile-topnav { display: none; }
+
+    .mobile-topnav .depth-switch { margin: 8px 10px 6px; }
+
+    .mobile-topnav .tabs {
+        grid-auto-flow: initial;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        border-bottom: none;
+        padding: 0 10px;
+        background: transparent;
+    }
+    .mobile-topnav .mobile-map-tab { display: block; }
+    .mobile-topnav .tab-button {
+        min-height: 44px;
+        font-size: 0.92rem;
     }
 
     .sidebar {
@@ -158,9 +191,16 @@
 
     /* Auf dem Handy etwas breitere Grifffläche für den Finger. */
     .sheet-grip {
-        min-height: 30px;
-        padding: 9px 0 5px;
+        min-height: 32px;
+        padding: 10px 0 6px;
     }
+    /* Grüner, gut sichtbarer Griff: lädt zum kontinuierlichen Aufziehen ein. */
+    .sheet-grip span {
+        background: var(--color-primary);
+        width: 56px;
+        height: 6px;
+    }
+    .sheet-resizing .sheet-grip span { background: var(--color-primary); }
 
     .sidebar:not(.onboarding) .mode-switch,
     .sidebar:not(.onboarding) .mode-hint {

@@ -61,8 +61,12 @@ stellen danach die vorherige Stufe wieder her.
 - **„🚗 Außendienst"** – Alltag: Karte, Tour, Kunden. Tabs: „📄 Daten", „Filter", „Tour".
 - **„🗺️ Gebietsplanung"** – Analyse: Flächen, Cockpit, Simulation. Tabs: „📄 Daten", „Filter", „🗺️ Gebiete".
 
-Auf dem Smartphone gibt es zusätzlich den Tab **„Karte"**; das Tour-Panel liegt als
-Bottom Sheet über der Karte (minimiert / halb / voll, per Wischen).
+Auf dem Smartphone sitzen **„🌱 Basis / 🛠️ Profi"** und die Tabs **„Karte" / „Tour"**
+in einem festen Streifen **ganz oben** (direkt unter der Suchleiste), damit sie
+immer sichtbar bleiben. Darunter füllt die Karte den Bildschirm; das Tour-Panel
+liegt als Bottom-Sheet über der Karte und wird am **grünen Griff** kontinuierlich
+mit dem Finger aufgezogen. Ein Tipp auf **„Tour"** öffnet das Sheet, **„Karte"**
+schließt es wieder.
 
 Wenn ein Nutzer eine Schaltfläche nicht findet, zuerst prüfen: richtige
 Ansichtstiefe (**Profi** blendet die Werkzeuge ein), richtiger Fokus-Modus,
