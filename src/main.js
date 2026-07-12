@@ -21,6 +21,7 @@ import { decodeTourPayload, TOUR_HASH_KEY } from './features/tourShare.js';
 import { initCockpit } from './ui/cockpit.js';
 import { initRegionEditor } from './ui/regionEditor.js';
 import { initSearch } from './ui/search.js';
+import { initNearby } from './ui/nearby.js';
 import { initToasts } from './ui/toast.js';
 import { initMobilePreview } from './ui/mobilePreview.js';
 import { initShowcase } from './ui/showcase.js';
@@ -133,6 +134,7 @@ async function init() {
     initCockpit();
     initRegionEditor();
     initSearch();
+    initNearby();
     initMobilePreview();
     initShowcase();
     initPwaUpdates();

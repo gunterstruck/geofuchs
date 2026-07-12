@@ -68,6 +68,14 @@ liegt als Bottom-Sheet über der Karte und wird am **grünen Griff** kontinuierl
 mit dem Finger aufgezogen. Ein Tipp auf **„Tour"** öffnet das Sheet, **„Karte"**
 schließt es wieder.
 
+Zieht man das Blatt im **Karte**-Tab auf, erscheint der Begleiter **„In der Nähe"**:
+die nächstgelegenen Kunden – bezogen auf die **Kartenmitte** oder den **GPS-Standort**
+(Umschalter im Kopf) – mit Entfernung und Umsatz. Ein Tipp auf eine Zeile fliegt zum
+Kunden (Karte in den Vordergrund, Popup öffnet); **➕** hängt ihn an die Tour. In
+**Basis** schlicht (Name, Ort, Entfernung, Umsatz); in **Profi** zusätzlich
+Status-Punkt (fällig/überfällig) und „davon X fällig". Die Liste aktualisiert sich
+beim Verschieben der Karte.
+
 Wenn ein Nutzer eine Schaltfläche nicht findet, zuerst prüfen: richtige
 Ansichtstiefe (**Profi** blendet die Werkzeuge ein), richtiger Fokus-Modus,
 richtiger Tab.

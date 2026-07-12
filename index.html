@@ -212,6 +212,20 @@
                 <div id="team-filters"></div>
             </section>
 
+            <!-- Tab: Karte – „In der Nähe"-Begleiter (mobil, wenn das Blatt aufgezogen ist) -->
+            <section id="tab-karte" class="tab-panel karte-companion">
+                <div class="near-head">
+                    <b class="near-title">In der Nähe</b>
+                    <div class="near-origin seg-toggle" role="group" aria-label="Bezugspunkt für die Umkreissuche">
+                        <button type="button" class="seg active" data-near-origin="map">🗺️ Kartenmitte</button>
+                        <button type="button" class="seg" data-near-origin="gps">📍 Standort</button>
+                    </div>
+                </div>
+                <p class="near-stats muted small"></p>
+                <ul class="near-list"></ul>
+                <p class="near-empty muted small" hidden>Keine verorteten Kunden in der Nähe.</p>
+            </section>
+
             <!-- Tab: Tour -->
             <section id="tab-tour" class="tab-panel">
                 <h2>Besuchsplaner</h2>
