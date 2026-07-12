@@ -143,9 +143,9 @@
         pointer-events: auto;
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 4px;
-        margin: 0 10px 6px;
-        padding: 3px;
+        gap: 3px;
+        margin: 0 10px 5px;
+        padding: 2px;
         background: rgba(255, 255, 255, 0.72);
         -webkit-backdrop-filter: blur(9px);
         backdrop-filter: blur(9px);
@@ -155,15 +155,16 @@
     }
     .mobile-topnav .mobile-map-tab { display: block; }
 
-    /* Segmente in beiden Reihen gleich: inaktiv gedämpft, aktiv grün gefüllt. */
+    /* Segmente in beiden Reihen gleich: inaktiv gedämpft, aktiv grün gefüllt.
+       Bewusst ~20 % kompakter als zuvor. */
     .mobile-topnav .depth-switch .seg,
     .mobile-topnav .tab-button {
         border: none;
         border-radius: var(--radius-pill);
         background: transparent;
-        padding: 9px 6px;
-        min-height: 42px;
-        font-size: 0.92rem;
+        padding: 7px 5px;
+        min-height: 34px;
+        font-size: 0.76rem;
         font-weight: 700;
         color: var(--color-text-muted);
         white-space: nowrap;

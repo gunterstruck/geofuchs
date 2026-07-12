@@ -239,6 +239,10 @@ Dort außerdem:
 - **„Ganze Fläche zuweisen"** – Dropdown „Vertriebsbezirk" ordnet die komplette
   Fläche zu (auch ohne Kunden).
 Auf dem Smartphone sind Gebiete nur lesbar (Hinweis in der App); Änderungen am Desktop.
+Das Gebiets-Modal ist mobil kompakt gehalten (Kundenzahl und Gesamtumsatz in einer
+Zeile). **Ziehen im Modal** – bei Kunden- wie bei Gebiets-Popups – **schwenkt die
+Karte** (das Popup bleibt an seinem Punkt); Buttons und die Kundenliste bleiben
+dabei bedienbar. Zum Schließen „Schließen" tippen oder auf die freie Karte tippen.
 
 ---
 
