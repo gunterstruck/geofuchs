@@ -776,23 +776,36 @@ function regionPopupHtml(feature) {
             ${assign}
         </div>`;
     }
+    const profi = state.ui.depth === 'profi';
+    // Je Vertriebsbezirk Kundenzahl UND Umsatz in diesem Gebiet erfassen.
     const bezirke = new Map();
     for (const c of entry.customers) {
         const value = String(c.bezirk ?? '').trim() || UNASSIGNED;
-        bezirke.set(value, (bezirke.get(value) ?? 0) + 1);
+        const d = bezirke.get(value) ?? { count: 0, revenue: 0 };
+        d.count += 1;
+        d.revenue += (c.umsatz || 0);
+        bezirke.set(value, d);
     }
-    const districtRows = [...bezirke.entries()].sort((a, b) => b[1] - a[1]).map(([bezirk, count]) => `
-        <li><span class="dot" style="background:${attrColor('bezirk', bezirk)}"></span>${escapeHtml(bezirk)}<b>${count}</b></li>
+    // Überschriftenzeile: macht klar, dass die Zahlen Kundenanzahl und Umsatz sind.
+    const districtHead = `
+        <li class="rep-head"><span class="dot" style="visibility:hidden"></span><span class="rl-name">Vertriebsbezirk</span><span class="rl-count">Kunden</span><span class="rl-rev">Umsatz</span></li>`;
+    const districtRows = [...bezirke.entries()].sort((a, b) => b[1].count - a[1].count).map(([bezirk, d]) => `
+        <li><span class="dot" style="background:${attrColor('bezirk', bezirk)}"></span><span class="rl-name">${escapeHtml(bezirk)}</span><b class="rl-count">${d.count}</b><b class="rl-rev" title="${formatRevenueFull(d.revenue)}">${formatRevenueShort(d.revenue)}</b></li>
     `).join('');
-    const list = entry.customers.slice(0, 8).map((c) => `<li class="mini">${escapeHtml(c.name)}${c.ort ? ` <span class="muted">(${escapeHtml(c.ort)})</span>` : ''}</li>`).join('');
-    const more = entry.customers.length > 8 ? `<li class="mini muted">… und ${entry.customers.length - 8} weitere</li>` : '';
+    // Kundennamen sind Profi-Detail; in Basis bleibt das Gebiets-Modal aufgeräumt.
+    let custList = '';
+    if (profi) {
+        const list = entry.customers.slice(0, 8).map((c) => `<li class="mini">${escapeHtml(c.name)}${c.ort ? ` <span class="muted">(${escapeHtml(c.ort)})</span>` : ''}</li>`).join('');
+        const more = entry.customers.length > 8 ? `<li class="mini muted">… und ${entry.customers.length - 8} weitere</li>` : '';
+        custList = `<ul class="cust-list">${list}${more}</ul>`;
+    }
     return `<div class="popup">
         <h3>${escapeHtml(name)}</h3>
         <p><b>${entry.total}</b> Kunde${entry.total === 1 ? '' : 'n'}</p>
         ${revenueLine}
         ${readonly}
-        <ul class="rep-list">${districtRows}</ul>
-        <ul class="cust-list">${list}${more}</ul>
+        <ul class="rep-list">${districtHead}${districtRows}</ul>
+        ${custList}
         ${assign}
     </div>`;
 }

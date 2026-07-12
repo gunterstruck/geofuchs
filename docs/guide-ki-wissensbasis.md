@@ -227,7 +227,11 @@ Umsatz-Label; mittlerer Zoom → Betriebsbezirke; nah herangezoomt → einzelne 
 - Anzeige-Regel überall in der App: ab 10.000 € kompakt in T€, exakter Betrag im Tooltip.
 
 ### 6.6 Gebiets-Popup (Desktop)
-Klick auf eine Fläche zeigt Kundenzahl, Bezirksverteilung und „Umsatz gesamt".
+Klick auf eine Fläche zeigt Kundenzahl, „Umsatz gesamt" und die Verteilung je
+**Vertriebsbezirk** als Tabelle mit Überschrift **„Vertriebsbezirk · Kunden ·
+Umsatz"** (Kundenzahl und Umsatz des jeweiligen Bezirks in genau diesem
+Landkreis/PLZ-Gebiet). Die namentliche **Kundenliste** darunter erscheint nur im
+**Profi-Modus** – in Basis bleibt das Modal aufgeräumt.
 Dort außerdem:
 - **„✏️ Kunden dieses Gebiets umordnen …"** – öffnet den Gebiets-Editor: Kunden des
   Gebiets mit Checkboxen filtern und einem anderen Betriebsbezirk/einer Gruppe

@@ -129,8 +129,30 @@
     color: var(--color-primary-dark);
 }
 .popup .rep-list { list-style: none; padding: 0; margin: 6px 0; }
-.popup .rep-list li { display: flex; align-items: center; gap: 4px; font-size: 0.85rem; padding: 1px 0; }
-.popup .rep-list b { margin-left: auto; }
+/* Vier Spalten: Farbpunkt · Bezirksname · Kundenzahl · Umsatz */
+.popup .rep-list li {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 4px 8px;
+    font-size: 0.85rem;
+    padding: 1px 0;
+}
+.popup .rep-list .rl-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.popup .rep-list .rl-count { text-align: right; min-width: 2.6em; font-variant-numeric: tabular-nums; }
+.popup .rep-list .rl-rev { text-align: right; min-width: 4.2em; font-variant-numeric: tabular-nums; }
+/* Überschriftenzeile: kleiner, gedämpft, mit Trennlinie darunter */
+.popup .rep-list .rep-head {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 3px;
+    margin-bottom: 2px;
+}
+.popup .rep-list .rep-head .rl-count,
+.popup .rep-list .rep-head .rl-rev { font-weight: 700; }
 .popup .cust-list { list-style: none; padding: 6px 0 0; margin: 6px 0 0; border-top: 1px solid var(--color-border); max-height: 140px; overflow-y: auto; }
 .popup .cust-list .mini { font-size: 0.8rem; padding: 1px 0; }
 .popup-actions { display: flex; gap: 6px; margin-top: 8px; }
