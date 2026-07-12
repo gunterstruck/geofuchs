@@ -89,8 +89,7 @@
 
 /* Mobile-Produktmodus: Karte + Tour statt Analyse-Cockpit */
 .mobile-map-tab,
-.mobile-desktop-note,
-.sheet-grip {
+.mobile-desktop-note {
     display: none;
 }
 
@@ -114,9 +113,71 @@
 
 @media (max-width: 768px) {
     :root {
-        --mobile-sheet-peek: 132px;
+        /* Nur der Griff schaut im Ruhezustand heraus – Basis/Profi und Tabs
+           „hängen" jetzt oben, das Blatt ist reine Inhaltsfläche auf Abruf. */
+        --mobile-sheet-peek: 46px;
         --mobile-sheet-half: min(68dvh, 620px);
     }
+
+    /* Fixer Kopf-Streifen unter der Topbar: Ansichtstiefe + Tabs immer sichtbar.
+       Hintergrund transparent, damit die Karte durchscheint – nur die beiden
+       Segment-Pillen „schweben" darüber. */
+    .mobile-topnav {
+        display: block;
+        position: absolute;
+        top: var(--topbar-height);
+        left: 0;
+        right: 0;
+        z-index: 1040;
+        background: transparent;
+        padding: 8px 0 2px;
+        pointer-events: none; /* Lücken lassen die Karte darunter durch */
+    }
+    /* Während des Onboardings (keine Daten) nur Willkommen + Demo zeigen. */
+    body.app-onboarding .mobile-topnav { display: none; }
+
+    /* Beide Reihen identischer Stil: schwebende, leicht durchscheinende
+       Segment-Pille (wie Basis/Profi). */
+    .mobile-topnav .depth-switch,
+    .mobile-topnav .tabs {
+        pointer-events: auto;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 3px;
+        margin: 0 10px 5px;
+        padding: 2px;
+        background: rgba(255, 255, 255, 0.72);
+        -webkit-backdrop-filter: blur(9px);
+        backdrop-filter: blur(9px);
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: var(--radius-pill);
+        box-shadow: var(--shadow-1);
+    }
+    .mobile-topnav .mobile-map-tab { display: block; }
+
+    /* Segmente in beiden Reihen gleich: inaktiv gedämpft, aktiv grün gefüllt.
+       Bewusst ~20 % kompakter als zuvor. */
+    .mobile-topnav .depth-switch .seg,
+    .mobile-topnav .tab-button {
+        border: none;
+        border-radius: var(--radius-pill);
+        background: transparent;
+        padding: 7px 5px;
+        min-height: 34px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: var(--color-text-muted);
+        white-space: nowrap;
+    }
+    .mobile-topnav .depth-switch .seg.active,
+    .mobile-topnav .tab-button.active {
+        background: var(--color-primary);
+        color: #fff;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+    }
+    /* Passende Icons für Karte/Tour (nur im mobilen Streifen). */
+    .mobile-topnav .tab-button[data-tab="karte"]::before { content: "🗺️ "; }
+    .mobile-topnav .tab-button[data-tab="tour"]::before { content: "🧭 "; }
 
     .sidebar {
         top: auto;
@@ -124,7 +185,7 @@
         right: 0;
         bottom: 0;
         width: 100%;
-        height: var(--mobile-sheet-half);
+        height: var(--sheet-height, var(--mobile-sheet-half));
         border-right: none;
         border-top: 1px solid var(--color-border);
         border-radius: var(--radius-l) var(--radius-l) 0 0;
@@ -132,6 +193,8 @@
         transform: translateY(calc(100% - var(--mobile-sheet-peek)));
         transition: transform 0.24s ease, height 0.24s ease;
     }
+    /* Während des Ziehens keine Transition, damit das Blatt dem Finger folgt. */
+    .sheet-resizing .sidebar { transition: none; }
 
     .sidebar-resize {
         display: none;
@@ -141,8 +204,10 @@
         display: none;
     }
 
+    /* Zoom-Control bleibt auf dem Handy sichtbar (schwebend, untere Ecke). */
     .panel-zoom {
-        display: none;
+        right: 10px;
+        bottom: 16px;
     }
 
     .mobile-data-reset {
@@ -153,31 +218,18 @@
         transform: translateY(0);
     }
 
-    .sidebar.sheet-full {
-        height: calc(100dvh - var(--topbar-height));
-    }
-
-    .sidebar.sheet-peek {
-        transform: translateY(calc(100% - var(--mobile-sheet-peek)));
-    }
-
+    /* Auf dem Handy etwas breitere Grifffläche für den Finger. */
     .sheet-grip {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 26px;
-        padding: 8px 0 4px;
-        border: none;
-        background: transparent;
-        cursor: ns-resize;
+        min-height: 32px;
+        padding: 10px 0 6px;
     }
-
+    /* Grüner, gut sichtbarer Griff: lädt zum kontinuierlichen Aufziehen ein. */
     .sheet-grip span {
-        width: 42px;
-        height: 5px;
-        border-radius: 999px;
-        background: #cbd5e1;
+        background: var(--color-primary);
+        width: 56px;
+        height: 6px;
     }
+    .sheet-resizing .sheet-grip span { background: var(--color-primary); }
 
     .sidebar:not(.onboarding) .mode-switch,
     .sidebar:not(.onboarding) .mode-hint {
@@ -194,6 +246,32 @@
         color: var(--color-text-muted);
         font-size: 0.82rem;
         line-height: 1.35;
+        overflow: hidden;
+        max-height: 160px;
+        transition: opacity 0.35s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease, border-width 0.4s ease;
+    }
+
+    /* Erst kurz sichtbar, dann automatisch weg (gewinnt Platz, ruhigeres Bild) */
+    .mobile-desktop-note.auto-hidden {
+        opacity: 0 !important;
+        max-height: 0 !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        border-width: 0 !important;
+        pointer-events: none;
+    }
+
+    /* Erster Start: Begrüßungs-Panel etwas höher und der Fuchs größer */
+    .sidebar.onboarding {
+        height: min(76dvh, 680px);
+    }
+    .sidebar.onboarding .ob-fox {
+        font-size: 3.4rem;
+    }
+    .sidebar.onboarding .ob-hero {
+        padding-top: 14px;
     }
 
     .sidebar:not(.onboarding) .tabs {
@@ -211,12 +289,12 @@
         font-size: 0.92rem;
     }
 
-    .sidebar.sheet-peek .mobile-desktop-note,
-    .sidebar.sheet-peek .tab-panel {
+    .sidebar:not(.open) .mobile-desktop-note,
+    .sidebar:not(.open) .tab-panel {
         display: none !important;
     }
 
-    .sidebar.sheet-peek .tabs {
+    .sidebar:not(.open) .tabs {
         border-top: 1px solid var(--color-border);
     }
 

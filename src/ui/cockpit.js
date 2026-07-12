@@ -14,6 +14,7 @@
  */
 
 import { CONFIG } from '../core/config.js';
+import { formatRevenueShort, formatRevenueFull } from '../core/format.js';
 import { state, emit, on, attrColor, setCustomers, setTerritory, getTerritory, getCustomer, DIMENSIONS, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { regionMembership } from '../features/territory.js';
@@ -89,7 +90,7 @@ function scopedCustomers() {
 }
 
 function formatRevenue(value) {
-    return `${Math.round(value || 0).toLocaleString('de-DE')} €`;
+    return formatRevenueShort(value);
 }
 
 function resetSimulationState() {
@@ -472,12 +473,12 @@ function renderTable() {
         toggle.textContent = showAllKpis ? 'Top & Flop' : 'Alle anzeigen';
     }
 
-    const fmtEur = (n) => n ? `${Math.round(n).toLocaleString('de-DE')} €` : '–';
+    const fmtEur = (n) => n ? `<span title="${formatRevenueFull(n)}">${formatRevenueShort(n)}</span>` : '–';
     const delta = (now, before, suffix = '') => {
         const d = now - before;
         if (!hasSim || d === 0) return '';
         const cls = d > 0 ? 'up' : 'down';
-        return ` <span class="delta ${cls}">${d > 0 ? '+' : ''}${suffix === '€' ? Math.round(d).toLocaleString('de-DE') + ' €' : d}${suffix && suffix !== '€' ? suffix : ''}</span>`;
+        return ` <span class="delta ${cls}">${d > 0 ? '+' : ''}${suffix === '€' ? formatRevenueShort(d) : d}${suffix && suffix !== '€' ? suffix : ''}</span>`;
     };
 
     document.getElementById('cockpit-rows').innerHTML = keys.map((key) => {
@@ -498,7 +499,7 @@ function renderTable() {
         </tr>`;
     }).join('');
 
-    renderFairness(sim, allKeys, fmtEur);
+    renderFairness(sim, allKeys);
 }
 
 /**
@@ -506,7 +507,7 @@ function renderTable() {
  * (Vertriebsbezirk bzw. Gruppe) verteilt? Zeigt jeweils größte/kleinste Einheit und
  * den Faktor dazwischen; „ausgewogen" bis Faktor 1,5.
  */
-function renderFairness(sim, allKeys, fmtEur) {
+function renderFairness(sim, allKeys) {
     const summaryEl = document.getElementById('cockpit-summary');
     const units = allKeys.filter((k) => k !== UNASSIGNED)
         .map((k) => ({ key: k, count: sim.get(k)?.count ?? 0, umsatz: sim.get(k)?.umsatz ?? 0 }))
@@ -528,8 +529,8 @@ function renderFairness(sim, allKeys, fmtEur) {
         const rMin = byRev[0], rMax = byRev[byRev.length - 1];
         top = rMax;
         weak = rMin;
-        topValue = fmtEur(rMax.umsatz);
-        weakValue = fmtEur(rMin.umsatz);
+        topValue = formatRevenueShort(rMax.umsatz);
+        weakValue = formatRevenueShort(rMin.umsatz);
     }
 
     summaryEl.innerHTML = `<div class="cockpit-kpi-cards">
@@ -541,13 +542,13 @@ function renderFairness(sim, allKeys, fmtEur) {
         </div>
         <div class="cockpit-kpi-card">
             <span class="kpi-icon">↑</span>
-            <span class="kpi-label">Top-Bezirk</span>
+            <span class="kpi-label">Top – ${escapeHtml(attrLabel(assignAttr))}</span>
             <b class="kpi-value">${escapeHtml(topValue)}</b>
             <small class="kpi-subline">${escapeHtml(top.key)}</small>
         </div>
         <div class="cockpit-kpi-card">
             <span class="kpi-icon">↓</span>
-            <span class="kpi-label">Schwächster Bezirk</span>
+            <span class="kpi-label">Flop – ${escapeHtml(attrLabel(assignAttr))}</span>
             <b class="kpi-value">${escapeHtml(weakValue)}</b>
             <small class="kpi-subline">${escapeHtml(weak.key)}</small>
         </div>

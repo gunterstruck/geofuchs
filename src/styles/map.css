@@ -103,17 +103,15 @@
     font-weight: 700;
     font-size: 0.82rem;
 }
-.popup-drag-handle {
-    display: none;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    border-radius: 50%;
-    font-weight: 800;
-    cursor: grab;
-}
 .popup h3 { margin: 0 0 4px; font-size: 1rem; color: var(--color-text); text-transform: none; letter-spacing: 0; }
 .popup p { margin: 3px 0; font-size: 0.86rem; }
+
+/* Kompakter Kunden-Popup-Kopf */
+.popup-customer h3 { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+.popup-nr { font-size: 0.72rem; font-weight: 600; color: var(--color-text-muted, #64748b); }
+.popup-customer .popup-addr { margin: 2px 0; }
+.popup-customer .popup-meta { margin: 2px 0 4px; }
+.popup-umsatz { color: var(--color-primary-dark, #0f766e); white-space: nowrap; }
 .region-revenue {
     display: inline-block;
     padding: 4px 9px;
@@ -121,9 +119,40 @@
     background: var(--color-primary-light);
     color: var(--color-primary-dark);
 }
+/* Kompaktes Gebiets-Modal: Kundenzahl + Umsatz in einer Zeile, enge Abstände.
+   (Mindestbreite kommt über die Leaflet-Option minWidth, damit die Namen in der
+   Tabelle nicht abgeschnitten werden.) */
+.popup-region h3 { margin-bottom: 2px; }
+.popup-region .region-summary { margin: 2px 0 4px; }
+.popup-region .region-summary .popup-umsatz { font-weight: 700; }
+.popup-region .region-readonly { margin: 0 0 6px; font-size: 0.74rem; line-height: 1.3; }
+.popup-region .rep-list { margin: 4px 0 0; }
+.popup-region .rep-list li { padding: 2px 0; }
 .popup .rep-list { list-style: none; padding: 0; margin: 6px 0; }
-.popup .rep-list li { display: flex; align-items: center; gap: 4px; font-size: 0.85rem; padding: 1px 0; }
-.popup .rep-list b { margin-left: auto; }
+/* Vier Spalten: Farbpunkt · Bezirksname · Kundenzahl · Umsatz */
+.popup .rep-list li {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 4px 8px;
+    font-size: 0.85rem;
+    padding: 1px 0;
+}
+.popup .rep-list .rl-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.popup .rep-list .rl-count { text-align: right; min-width: 2.6em; font-variant-numeric: tabular-nums; }
+.popup .rep-list .rl-rev { text-align: right; min-width: 4.2em; font-variant-numeric: tabular-nums; }
+/* Überschriftenzeile: kleiner, gedämpft, mit Trennlinie darunter */
+.popup .rep-list .rep-head {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 3px;
+    margin-bottom: 2px;
+}
+.popup .rep-list .rep-head .rl-count,
+.popup .rep-list .rep-head .rl-rev { font-weight: 700; }
 .popup .cust-list { list-style: none; padding: 6px 0 0; margin: 6px 0 0; border-top: 1px solid var(--color-border); max-height: 140px; overflow-y: auto; }
 .popup .cust-list .mini { font-size: 0.8rem; padding: 1px 0; }
 .popup-actions { display: flex; gap: 6px; margin-top: 8px; }
@@ -184,12 +213,6 @@
 .terr-row select { flex: 1; min-width: 0; font-size: 0.8rem; padding: 3px 6px; }
 
 .leaflet-container { font-family: var(--font); }
-.draggable-popup {
-    will-change: transform;
-}
-.draggable-popup.dragging {
-    box-shadow: 0 12px 34px rgba(15, 23, 42, 0.22);
-}
 .leaflet-control-zoom a,
 .leaflet-bar,
 .leaflet-bar a:first-child,
@@ -217,7 +240,8 @@
         height: 17px;
     }
     .leaflet-popup-content {
-        max-height: min(48dvh, 360px);
+        margin: 10px 12px;
+        max-height: min(52dvh, 380px);
     }
     .leaflet-popup-content-wrapper {
         max-width: calc(100vw - 28px);
@@ -227,15 +251,19 @@
         top: 0;
         z-index: 2;
         background: linear-gradient(var(--color-surface, #fff) 70%, rgba(255, 255, 255, 0));
-        padding-bottom: 4px;
+        margin: -2px 0 3px;
+        padding-bottom: 3px;
     }
-    .popup-drag-handle {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        touch-action: none;
-    }
-    .popup-drag-handle:active {
-        cursor: grabbing;
-    }
+    /* Kompakter Kopf auf dem Handy: weniger Zeilenabstand, kein Scrollen nötig */
+    .popup h3 { font-size: 0.98rem; margin: 0 0 2px; }
+    .popup p { margin: 2px 0; }
+    .popup .contact-links { margin: 5px 0 3px; }
+    .popup .visit-block { margin: 6px 0 4px; padding: 7px 8px; }
+    .popup .visit-line { margin: 0 0 5px; }
+    .popup-actions { margin-top: 6px; }
+    /* Ziehen im Modal schwenkt die Karte: der Content-Wrapper fängt Touch-Gesten
+       ab (touch-action: none), die scrollbare Kundenliste behält ihr Scrollen. */
+    .pan-map-popup { touch-action: none; }
+    .pan-map-popup .cust-list { touch-action: pan-y; }
 }
+body.popup-panning .leaflet-popup-content-wrapper { cursor: grabbing; }

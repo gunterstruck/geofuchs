@@ -110,10 +110,94 @@ function cleanPlz(value) {
     return digits.padStart(5, '0').slice(0, 5);
 }
 
-function parseNumber(value) {
+/**
+ * Betrags-/Zahlenspalte robust einlesen. Excel liefert numerische Zellen bereits
+ * als Zahl – die darf nicht wie ein deutsch formatierter String behandelt werden
+ * (sonst wird z. B. 1234.56 zu 123456). Strings können deutsch (1.234,56),
+ * englisch (1,234.56) oder ohne Gruppierung (45000 / 45.5) formatiert sein.
+ */
+export function parseNumber(value) {
     if (value === null || value === undefined || value === '') return null;
-    const n = parseFloat(String(value).replace(/\./g, '').replace(',', '.').replace(/[^\d.\-]/g, ''));
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+
+    let str = String(value).replace(/[^\d.,\-]/g, '');
+    if (!str) return null;
+
+    const lastDot = str.lastIndexOf('.');
+    const lastComma = str.lastIndexOf(',');
+    if (lastDot !== -1 && lastComma !== -1) {
+        // Beide Trennzeichen: das hintere ist das Dezimaltrennzeichen
+        str = lastComma > lastDot
+            ? str.replace(/\./g, '').replace(',', '.')
+            : str.replace(/,/g, '');
+    } else if (lastComma !== -1) {
+        const parts = str.split(',');
+        // Mehrere Kommas in 3er-Gruppen = englische Tausendertrennung, sonst Dezimalkomma
+        str = parts.length > 2 && parts.slice(1).every((p) => p.length === 3)
+            ? parts.join('')
+            : str.replace(/,/g, '.');
+    } else if (lastDot !== -1) {
+        const parts = str.split('.');
+        // Punkte in 3er-Gruppen = deutsche Tausendertrennung (1.234 / 1.234.567),
+        // alles andere (45.5, 12.34) ist ein Dezimalpunkt
+        if (parts.slice(1).every((p) => p.length === 3)) str = parts.join('');
+    }
+
+    const n = parseFloat(str);
     return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Aus der Umsatz-Spaltenüberschrift ableiten, ob die Werte in Tausend Euro
+ * (T€, TEUR, Tsd €, k€) oder Millionen (Mio €) angegeben sind. In deutschen
+ * kaufmännischen Listen steht der Umsatz häufig verkürzt, z. B. „Umsatz T€"
+ * mit Wert 45 statt 45000. Rückgabe ist der Multiplikator (1, 1000, 1_000_000).
+ */
+export function detectRevenueScale(header) {
+    const h = normalizeHeader(header).replace(/\s+/g, ' ');
+    if (/\bmio\b|million/.test(h)) return 1_000_000;
+    // t€/teur/tsd/tausend/k€/keur als eigenständiges Token, um Fehltreffer zu vermeiden
+    if (/t€|k€|\bteur\b|\bkeur\b|\btsd\b|\btsd €|tausend/.test(h)) return 1000;
+    return 1;
+}
+
+const scaleNumber = (n, scale) => (n === null ? null : n * scale);
+
+/** Deutsche Schreibweise erzwingen: Punkte = Tausender, Komma = Dezimal. */
+function parseGermanAmount(value) {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    const cleaned = String(value).replace(/[^\d.,\-]/g, '').replace(/\./g, '').replace(',', '.');
+    if (!cleaned || cleaned === '-') return null;
+    const n = parseFloat(cleaned);
+    return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Betragsspalte spaltenweit einlesen. Zahlformate sind pro Wert oft mehrdeutig
+ * (deutsch „350.070" vs. englisch „350.07"), aber innerhalb einer Spalte
+ * einheitlich. Enthält die Spalte eindeutige deutsche Tausenderpunkte
+ * (z. B. „189.245", „1.822") und keine englische Tausendertrennung mit Komma,
+ * wird die GANZE Spalte deutsch interpretiert – das verhindert, dass einzelne
+ * Werte wie „350.070" fälschlich zu 350,07 (1000× zu klein) werden.
+ * @returns {{ values: (number|null)[], format: 'de'|'auto' }}
+ */
+export function parseAmountColumn(rawValues) {
+    let deThousands = 0;
+    let enThousands = 0;
+    let hasComma = 0;
+    for (const raw of rawValues) {
+        const s = raw === null || raw === undefined ? '' : String(raw).trim();
+        if (!s) continue;
+        if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) deThousands++;           // 189.245 / 1.234.567
+        if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) enThousands++;      // 1,234 / 1,234.56
+        if (s.includes(',')) hasComma++;
+    }
+    const forceGerman = deThousands > 0 && enThousands === 0 && hasComma === 0;
+    return {
+        values: rawValues.map((v) => (forceGerman ? parseGermanAmount(v) : parseNumber(v))),
+        format: forceGerman ? 'de' : 'auto'
+    };
 }
 
 function parseCoord(value) {
@@ -212,6 +296,27 @@ export function parseRows(rows, mapping) {
 
     const err = (sheetRow, grund, raw, typ = 'Fehler') => errors.push({ Zeile: sheetRow, Typ: typ, Grund: grund, ...raw });
 
+    // Umsatz spaltenweit einlesen (einheitliches Zahlformat) + optionale
+    // Skalierung aus der Überschrift (z. B. „Umsatz T€" → ×1000).
+    const umsatzScale = mapping.umsatz ? detectRevenueScale(mapping.umsatz) : 1;
+    const umsatzColumn = mapping.umsatz
+        ? parseAmountColumn(rows.map((r) => r[mapping.umsatz]))
+        : { values: [], format: 'auto' };
+    const umsatzByRow = umsatzColumn.values.map((n) => scaleNumber(n, umsatzScale));
+    if (mapping.umsatz) {
+        const total = umsatzByRow.reduce((sum, n) => sum + (n || 0), 0);
+        const hinweise = [];
+        if (umsatzColumn.format === 'de') hinweise.push('deutsche Tausendertrennung (Punkt) erkannt');
+        if (umsatzScale !== 1) hinweise.push(`Einheit ${umsatzScale === 1_000_000 ? 'Millionen' : 'Tausend'} Euro (×${umsatzScale.toLocaleString('de-DE')})`);
+        // Immer die erkannte Gesamtsumme melden – so lässt sich sofort prüfen,
+        // ob die Umsätze korrekt eingelesen wurden.
+        const format = hinweise.length ? `${hinweise.join(', ')}. ` : '';
+        errors.push({
+            Zeile: '—', Typ: 'Hinweis',
+            Grund: `Umsatzspalte „${mapping.umsatz}": ${format}erkannte Gesamtsumme ${Math.round(total).toLocaleString('de-DE')} €. Bitte prüfen, ob das plausibel ist.`
+        });
+    }
+
     rows.forEach((row, index) => {
         const sheetRow = index + 2; // Kopfzeile = Zeile 1
         const get = (key) => (mapping[key] ? String(row[mapping[key]] ?? '').trim() : '');
@@ -280,7 +385,7 @@ export function parseRows(rows, mapping) {
             ansprechpartner: get('ansprechpartner'),
             telefon: get('telefon'),
             email: get('email'),
-            umsatz: parseNumber(mapping.umsatz ? row[mapping.umsatz] : null),
+            umsatz: umsatzByRow[index] ?? null,
             rhythmusWochen: parseWeeks(mapping.rhythmusWochen ? row[mapping.rhythmusWochen] : null),
             besuche: letzterBesuch ? [letzterBesuch] : [],
             lat: hasCoords ? lat : null,

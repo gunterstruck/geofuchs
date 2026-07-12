@@ -8,10 +8,12 @@ import L from 'leaflet';
 import 'leaflet.markercluster';
 
 import { CONFIG } from '../core/config.js';
+import { formatRevenueShort, formatRevenueFull } from '../core/format.js';
 import { state, on, emit, repColor, attrColor, visibleCustomers, tourScopedCustomers, getCustomer, markDirty, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { getRoadRoute, peekRoadRoute } from '../services/routing.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
+import { revenueWeightedCentroids } from './labelPlacement.js';
 import { suggestNearby, suggestAlongRoute } from './tour.js';
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
 import { copyText, customerText } from './handoff.js';
@@ -59,7 +61,9 @@ function popupOptions(extra = {}) {
         maxWidth: mobile ? Math.min(330, window.innerWidth - 28) : 320,
         maxHeight: mobile ? Math.max(260, Math.floor(window.innerHeight * 0.56)) : 380,
         autoPan: true,
-        keepInView: true,
+        // false: das Popup darf beim Karten-Schwenk aus dem Bild wandern, damit man
+        // die Umgebung sehen kann (Ziehen im Modal schwenkt die Karte).
+        keepInView: false,
         autoPanPaddingTopLeft: L.point(18, mobile ? 76 : 82),
         autoPanPaddingBottomRight: L.point(18, mobile ? 190 : 44),
         ...extra
@@ -71,7 +75,6 @@ function decoratePopup(popupEl) {
     if (!popup || popup.querySelector('.popup-toolbar')) return;
     popup.insertAdjacentHTML('afterbegin', `
         <div class="popup-toolbar">
-            <button type="button" class="popup-drag-handle" aria-label="Popup verschieben" title="Popup verschieben">↔</button>
             <button type="button" class="popup-close-btn" data-popup-close>Schließen</button>
         </div>
     `);
@@ -115,40 +118,37 @@ function drawColoredRoute(latLngs, { dashed = false, tooltip = '' } = {}) {
     }
 }
 
-function makePopupDraggable(popupEl) {
-    if (!popupEl || !isMobileMap() || popupEl.dataset.draggablePopup === '1') return;
-    popupEl.dataset.draggablePopup = '1';
+// Handy: Ziehen im Modal schwenkt die ganze Karte – genau wie das Ziehen auf der
+// Karte selbst. Das Popup ist an seinen Geo-Punkt gebunden und wandert dabei mit.
+// Bedienelemente (Buttons, Selects, scrollbare Kundenliste) starten keinen Schwenk.
+function makePopupPanMap(popupEl) {
+    if (!popupEl || !isMobileMap() || popupEl.dataset.panMap === '1') return;
+    popupEl.dataset.panMap = '1';
     const wrapper = popupEl.querySelector('.leaflet-popup-content-wrapper');
-    const handle = popupEl.querySelector('.popup-drag-handle');
-    if (!wrapper || !handle) return;
-    wrapper.classList.add('draggable-popup');
+    if (!wrapper) return;
+    wrapper.classList.add('pan-map-popup');
 
-    let startX = 0, startY = 0, tx = 0, ty = 0, dragging = false;
-    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-
-    handle.addEventListener('pointerdown', (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        dragging = true;
-        startX = ev.clientX - tx;
-        startY = ev.clientY - ty;
-        handle.setPointerCapture?.(ev.pointerId);
-        wrapper.classList.add('dragging');
+    let lastX = 0, lastY = 0, startX = 0, startY = 0, armed = false, panning = false;
+    wrapper.addEventListener('pointerdown', (ev) => {
+        if (ev.target.closest('button, select, a, input, textarea, label, .cust-list')) return;
+        armed = true; panning = false;
+        startX = lastX = ev.clientX; startY = lastY = ev.clientY;
     });
-    handle.addEventListener('pointermove', (ev) => {
-        if (!dragging) return;
+    wrapper.addEventListener('pointermove', (ev) => {
+        if (!armed) return;
+        if (!panning) {
+            if (Math.abs(ev.clientX - startX) < 5 && Math.abs(ev.clientY - startY) < 5) return;
+            panning = true;
+            wrapper.setPointerCapture?.(ev.pointerId);
+            document.body.classList.add('popup-panning');
+        }
         ev.preventDefault();
-        ev.stopPropagation();
-        tx = clamp(ev.clientX - startX, -window.innerWidth * 0.42, window.innerWidth * 0.42);
-        ty = clamp(ev.clientY - startY, -window.innerHeight * 0.28, window.innerHeight * 0.28);
-        wrapper.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+        map.panBy([lastX - ev.clientX, lastY - ev.clientY], { animate: false });
+        lastX = ev.clientX; lastY = ev.clientY;
     });
-    const endDrag = () => {
-        dragging = false;
-        wrapper.classList.remove('dragging');
-    };
-    handle.addEventListener('pointerup', endDrag);
-    handle.addEventListener('pointercancel', endDrag);
+    const end = () => { armed = false; panning = false; document.body.classList.remove('popup-panning'); };
+    wrapper.addEventListener('pointerup', end);
+    wrapper.addEventListener('pointercancel', end);
 }
 
 export function initMap(containerId) {
@@ -189,13 +189,15 @@ export function initMap(containerId) {
     map.on('zoomend', () => {
         if (state.colorMode === 'auto') applyView();
     });
+    // Für den „In der Nähe"-Begleiter: nach jeder Karten-Bewegung neu berechnen.
+    map.on('moveend', () => emit('map:moved'));
 
     // Buttons in Popups (Event-Delegation)
     map.on('popupopen', (e) => {
         const el = e.popup.getElement();
         if (!el) return;
         decoratePopup(el);
-        makePopupDraggable(el);
+        makePopupPanMap(el);
         el.querySelector('[data-popup-close]')?.addEventListener('click', () => map.closePopup());
         el.querySelectorAll('[data-action]:not([data-action="edit-region"])').forEach((btn) => {
             btn.addEventListener('click', () => {
@@ -399,7 +401,9 @@ export async function setLevel(level) {
             layer.on('mouseout', function () {
                 this.setStyle(styleFor(feature));
             });
-            layer.bindPopup(() => regionPopupHtml(feature), popupOptions({ maxWidth: 320 }));
+            // minWidth: sichert genug Breite für die Bezirks-/Umsatz-Tabelle, damit
+            // die Namen trotz kompaktem Kopf nicht abgeschnitten werden.
+            layer.bindPopup(() => regionPopupHtml(feature), popupOptions({ maxWidth: 320, minWidth: isMobileMap() ? 264 : 250 }));
             layer.bindTooltip(() => regionTooltip(feature), { sticky: true, direction: 'top' });
         }
     }).addTo(map);
@@ -599,7 +603,7 @@ function regionTooltip(feature) {
         if (!info.change) return `${name} · unverändert · ${total} Kunden`;
         const customers = (info.change.customerIds || []).map((id) => getCustomer(id)).filter(Boolean);
         const revenue = customers.reduce((sum, customer) => sum + (customer.umsatz || 0), 0);
-        return `${name} · ${info.oldValue} → ${info.newValue} · ${customers.length} Kd. · ${Math.round(revenue).toLocaleString('de-DE')} €`;
+        return `${name} · ${info.oldValue} → ${info.newValue} · ${customers.length} Kd. · ${formatRevenueShort(revenue)}`;
     }
 
     if (currentView.paint === 'luecken') {
@@ -635,11 +639,6 @@ function restyleRegions() {
     regionLayer.eachLayer((layer) => layer.setStyle(styleFor(layer.feature)));
 }
 
-/** Gesamtumsatz kompakt und einheitlich in Tausend Euro anzeigen. */
-function fmtRevenueThousands(n) {
-    return `${Math.round(n / 1e3).toLocaleString('de-DE')} T€`;
-}
-
 /**
  * Gebiets-Labels (Name + Umsatzsumme) je Attributwert der Flächenansicht.
  * Anker ist das Gebiet mit den meisten Kunden dieses Werts.
@@ -650,12 +649,13 @@ function renderLabels() {
     if (simulationPreview || !currentView.labels || !currentLevelData) return;
 
     const attr = currentView.paint;
+    const valueOf = (c) => attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
     const revByVal = new Map();
     const revenueValues = new Set();
     // Filter steuern die sichtbaren Flächen, nicht die fachliche Gesamtsumme
     // eines Vertriebsbezirks oder einer Vertriebsgruppe.
     for (const c of state.customers) {
-        const v = attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
+        const v = valueOf(c);
         if (c.umsatz === null || c.umsatz === undefined || c.umsatz === '') continue;
         const revenue = Number(c.umsatz);
         if (!Number.isFinite(revenue)) continue;
@@ -663,40 +663,55 @@ function renderLabels() {
         revenueValues.add(v);
     }
 
-    // Anker-Gebiet je Wert (meiste Kunden dieses Werts)
-    const anchor = new Map(); // val -> { feature, count }
-    for (const [key, entry] of regionStats) {
+    // Polygone je Wert sammeln – über ALLE Kunden (filterunabhängig, damit die
+    // Label-Position stabil bleibt und der fachlichen Gesamtsicht entspricht).
+    // Je Polygon Mittelpunkt, Kundenzahl und Umsatz dieses Werts erfassen.
+    const polygonsByValue = new Map(); // val -> [{ lat, lng, count, revenue }]
+    const addPolygon = (val, feature, count, revenue) => {
+        const bbox = feature?._bbox;
+        if (!bbox) return;
+        const [minX, minY, maxX, maxY] = bbox;
+        const list = polygonsByValue.get(val) ?? [];
+        list.push({ lat: (minY + maxY) / 2, lng: (minX + maxX) / 2, count, revenue });
+        polygonsByValue.set(val, list);
+    };
+
+    const allStats = aggregateByRegion(state.level, currentLevelData, state.customers);
+    for (const [key, entry] of allStats) {
         const feature = featureByKey.get(key);
         if (!feature) continue;
-        const counts = new Map();
+        const perVal = new Map(); // val -> { count, revenue }
         for (const c of entry.customers) {
-            const v = attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
-            counts.set(v, (counts.get(v) ?? 0) + 1);
+            const v = valueOf(c);
+            const cur = perVal.get(v) ?? { count: 0, revenue: 0 };
+            cur.count++;
+            const rev = Number(c.umsatz);
+            if (Number.isFinite(rev)) cur.revenue += rev;
+            perVal.set(v, cur);
         }
-        for (const [v, n] of counts) {
-            if (!anchor.has(v) || n > anchor.get(v).count) anchor.set(v, { feature, count: n });
-        }
+        for (const [v, { count, revenue }] of perVal) addPolygon(v, feature, count, revenue);
     }
-    // Gebietszuordnungen ohne Kunden ebenfalls beschriften (Anker: das zugeordnete Gebiet)
+
+    // Gebietszuordnungen ohne Kunden beschriften, wenn der Wert sonst kein Label hätte
     for (const [id, terr] of Object.entries(state.territories)) {
         if (!id.startsWith(`${state.level}:`)) continue;
         const v = terr[attr];
-        if (!v || anchor.has(v)) continue;
+        if (!v || polygonsByValue.has(v)) continue;
         const feature = featureByKey.get(id.slice(state.level.length + 1));
-        if (feature) anchor.set(v, { feature, count: 0 });
+        if (feature) addPolygon(v, feature, 0, 0);
     }
 
-    for (const [val, a] of anchor) {
+    const positions = revenueWeightedCentroids(polygonsByValue);
+
+    for (const [val, center] of positions) {
         if (val === UNASSIGNED) continue;
-        const [minX, minY, maxX, maxY] = a.feature._bbox;
-        const center = [(minY + maxY) / 2, (minX + maxX) / 2];
         const col = attrColor(attr, val);
         const hasRevenue = revenueValues.has(val);
         const revenue = revByVal.get(val) || 0;
-        const rev = hasRevenue ? fmtRevenueThousands(revenue) : '';
+        const rev = hasRevenue ? formatRevenueShort(revenue) : '';
         const dimension = state.dims[attr]?.label || 'Gebiet';
         const revenueTitle = hasRevenue
-            ? `Gesamtumsatz ${dimension} ${val}: ${Math.round(revenue).toLocaleString('de-DE')} €`
+            ? `Gesamtumsatz ${dimension} ${val}: ${formatRevenueFull(revenue)}`
             : '';
         L.marker(center, {
             interactive: false,
@@ -750,39 +765,52 @@ function regionPopupHtml(feature) {
                 <span class="simulation-arrow">→</span>
                 <div><span>Neu</span><b><i class="dot" style="background:${attrColor(simulationPreview.attr, info.newValue)}"></i>${escapeHtml(info.newValue)}</b></div>
             </div>
-            ${changed ? `<p><b>${customers.length}</b> Kunden · <b>${Math.round(revenue).toLocaleString('de-DE')} €</b> Umsatz</p>` : '<p class="muted small">Für dieses Gebiet ist keine Änderung vorgesehen.</p>'}
+            ${changed ? `<p><b>${customers.length}</b> Kunden · <b title="${formatRevenueFull(revenue)}">${formatRevenueShort(revenue)}</b> Umsatz</p>` : '<p class="muted small">Für dieses Gebiet ist keine Änderung vorgesehen.</p>'}
         </div>`;
     }
     const assign = territoryAssignHtml(feature);
     const revenue = entry?.customers?.reduce((sum, c) => sum + (c.umsatz || 0), 0) || 0;
-    const revenueLine = revenue ? `<p class="region-revenue">Umsatz gesamt: <b>${revenue.toLocaleString('de-DE')} €</b></p>` : '';
-    const readonly = isMobileMap() ? '<p class="muted small">Mobile Ansicht: Gebiete sind hier nur lesbar. Änderungen bitte am Desktop vornehmen.</p>' : '';
+    const readonly = isMobileMap() ? '<p class="muted small region-readonly">Nur lesbar – Änderungen am Desktop.</p>' : '';
 
     if (!entry || entry.total === 0) {
-        return `<div class="popup">
+        return `<div class="popup popup-region">
             <h3>${escapeHtml(name)}</h3>
             <p class="muted">Keine (sichtbaren) Kunden in diesem Gebiet.</p>
             ${readonly}
             ${assign}
         </div>`;
     }
+    const profi = state.ui.depth === 'profi';
+    // Je Vertriebsbezirk Kundenzahl UND Umsatz in diesem Gebiet erfassen.
     const bezirke = new Map();
     for (const c of entry.customers) {
         const value = String(c.bezirk ?? '').trim() || UNASSIGNED;
-        bezirke.set(value, (bezirke.get(value) ?? 0) + 1);
+        const d = bezirke.get(value) ?? { count: 0, revenue: 0 };
+        d.count += 1;
+        d.revenue += (c.umsatz || 0);
+        bezirke.set(value, d);
     }
-    const districtRows = [...bezirke.entries()].sort((a, b) => b[1] - a[1]).map(([bezirk, count]) => `
-        <li><span class="dot" style="background:${attrColor('bezirk', bezirk)}"></span>${escapeHtml(bezirk)}<b>${count}</b></li>
+    // Überschriftenzeile: macht klar, dass die Zahlen Kundenanzahl und Umsatz sind.
+    const districtHead = `
+        <li class="rep-head"><span class="dot" style="visibility:hidden"></span><span class="rl-name">Vertriebsbezirk</span><span class="rl-count">Kunden</span><span class="rl-rev">Umsatz</span></li>`;
+    const districtRows = [...bezirke.entries()].sort((a, b) => b[1].count - a[1].count).map(([bezirk, d]) => `
+        <li><span class="dot" style="background:${attrColor('bezirk', bezirk)}"></span><span class="rl-name">${escapeHtml(bezirk)}</span><b class="rl-count">${d.count}</b><b class="rl-rev" title="${formatRevenueFull(d.revenue)}">${formatRevenueShort(d.revenue)}</b></li>
     `).join('');
-    const list = entry.customers.slice(0, 8).map((c) => `<li class="mini">${escapeHtml(c.name)}${c.ort ? ` <span class="muted">(${escapeHtml(c.ort)})</span>` : ''}</li>`).join('');
-    const more = entry.customers.length > 8 ? `<li class="mini muted">… und ${entry.customers.length - 8} weitere</li>` : '';
-    return `<div class="popup">
+    // Kundennamen sind Profi-Detail; in Basis bleibt das Gebiets-Modal aufgeräumt.
+    let custList = '';
+    if (profi) {
+        const list = entry.customers.slice(0, 8).map((c) => `<li class="mini">${escapeHtml(c.name)}${c.ort ? ` <span class="muted">(${escapeHtml(c.ort)})</span>` : ''}</li>`).join('');
+        const more = entry.customers.length > 8 ? `<li class="mini muted">… und ${entry.customers.length - 8} weitere</li>` : '';
+        custList = `<ul class="cust-list">${list}${more}</ul>`;
+    }
+    // Kundenzahl + Gesamtumsatz kompakt in EINER Zeile (wie beim Kunden-Popup).
+    const revShort = revenue ? ` · <b class="popup-umsatz" title="${formatRevenueFull(revenue)}">${formatRevenueShort(revenue)}</b> gesamt` : '';
+    return `<div class="popup popup-region">
         <h3>${escapeHtml(name)}</h3>
-        <p><b>${entry.total}</b> Kunde${entry.total === 1 ? '' : 'n'}</p>
-        ${revenueLine}
+        <p class="region-summary"><b>${entry.total}</b> Kunde${entry.total === 1 ? '' : 'n'}${revShort}</p>
         ${readonly}
-        <ul class="rep-list">${districtRows}</ul>
-        <ul class="cust-list">${list}${more}</ul>
+        <ul class="rep-list">${districtHead}${districtRows}</ul>
+        ${custList}
         ${assign}
     </div>`;
 }
@@ -814,6 +842,14 @@ const RHYTHM_OPTIONS = [
 ];
 
 function visitBlockHtml(customer) {
+    // Basis: nur „Heute besucht" – Rhythmus/Zuletzt/Status sind Profi-Komfort.
+    if (state.ui.depth !== 'profi') {
+        return `<div class="visit-block">
+            <div class="visit-controls">
+                <button data-action="mark-visited" data-id="${escapeHtml(customer.id)}">✓ Heute besucht</button>
+            </div>
+        </div>`;
+    }
     const status = visitStatus(customer);
     const last = lastVisit(customer);
     const statusBadge = customer.rhythmusWochen
@@ -823,7 +859,7 @@ function visitBlockHtml(customer) {
         ${RHYTHM_OPTIONS.map(([v, l]) => `<option value="${v}"${String(customer.rhythmusWochen ?? '') === v ? ' selected' : ''}>${l}</option>`).join('')}
     </select>`;
     return `<div class="visit-block">
-        <p class="visit-line">🗓️ Letzter Besuch: <b>${last ? formatDateDe(last) : '—'}</b> <span class="muted small">(${agoText(last)})</span> ${statusBadge}</p>
+        <p class="visit-line">🗓️ Zuletzt: <b>${last ? formatDateDe(last) : '—'}</b> <span class="muted small">(${agoText(last)})</span> ${statusBadge}</p>
         <div class="visit-controls">
             <button data-action="mark-visited" data-id="${escapeHtml(customer.id)}">✓ Heute besucht</button>
             ${rhythmSelect}
@@ -850,26 +886,32 @@ function contactBlockHtml(customer) {
 }
 
 export function customerPopupHtml(customer) {
-    const addr = [customer.strasse, `${customer.plz} ${customer.ort}`.trim()]
-        .filter(Boolean).map(escapeHtml).join('<br>');
     const inTour = state.tour.stops.includes(customer.id);
     const isDest = state.tour.destination?.customerId === customer.id;
-    return `<div class="popup">
-        <h3>${escapeHtml(customer.name)}</h3>
-        ${customer.nummer ? `<p class="muted">Kd.-Nr. ${escapeHtml(customer.nummer)}</p>` : ''}
-        ${addr ? `<p>${addr}</p>` : ''}
-        ${[customer.channel, customer.gruppe, customer.bezirk].some(Boolean)
-            ? `<p class="muted small">${[customer.channel, customer.gruppe, customer.bezirk].filter(Boolean).map(escapeHtml).join(' › ')}</p>`
-            : ''}
-        ${customer.umsatz ? `<p class="muted">Umsatz: ${customer.umsatz.toLocaleString('de-DE')} €</p>` : ''}
+    // Kompakter Kopf: Adresse einzeilig, Hierarchie und Umsatz in einer Zeile,
+    // Kundennummer neben den Namen – damit ohne Scrollen mehr sichtbar ist.
+    const addr = [customer.strasse, `${customer.plz} ${customer.ort}`.trim()]
+        .filter(Boolean).map(escapeHtml).join(' · ');
+    const hierarchy = [customer.channel, customer.gruppe, customer.bezirk]
+        .filter(Boolean).map(escapeHtml).join(' › ');
+    const umsatz = customer.umsatz
+        ? `<b class="popup-umsatz" title="${formatRevenueFull(customer.umsatz)}">${formatRevenueShort(customer.umsatz)}</b>`
+        : '';
+    const profi = state.ui.depth === 'profi';
+    // Basis: nur Umsatz (Priorisierung), Hierarchie/Kd.-Nr. sind Profi-Detail.
+    const metaLine = (profi ? [hierarchy, umsatz] : [umsatz]).filter(Boolean).join(' · ');
+    const nr = profi && customer.nummer ? `<span class="popup-nr">Nr. ${escapeHtml(customer.nummer)}</span>` : '';
+    return `<div class="popup popup-customer">
+        <h3>${escapeHtml(customer.name)}${nr}</h3>
+        ${addr ? `<p class="popup-addr">${addr}${customer.geo === 'plz' ? ' <span class="muted small">· 📍 ca. (PLZ-Mitte)</span>' : ''}</p>` : ''}
+        ${metaLine ? `<p class="muted small popup-meta">${metaLine}</p>` : ''}
         ${contactBlockHtml(customer)}
         ${visitBlockHtml(customer)}
-        ${customer.geo === 'plz' ? '<p class="muted small">📍 Position: PLZ-Mittelpunkt (ungefähr)</p>' : ''}
         <div class="popup-actions">
             <button data-action="tour-start" data-id="${escapeHtml(customer.id)}">🚩 Als Start</button>
-            <button data-action="tour-dest" data-id="${escapeHtml(customer.id)}" ${isDest ? 'disabled' : ''}>${isDest ? '✓ Ziel' : '🏁 Als Ziel'}</button>
+            ${profi ? `<button data-action="tour-dest" data-id="${escapeHtml(customer.id)}" ${isDest ? 'disabled' : ''}>${isDest ? '✓ Ziel' : '🏁 Als Ziel'}</button>` : ''}
             <button data-action="tour-add" data-id="${escapeHtml(customer.id)}" ${inTour ? 'disabled' : ''}>${inTour ? '✓ In Tour' : '➕ Zur Tour'}</button>
-            <button data-action="copy-customer" data-id="${escapeHtml(customer.id)}" title="Als Text für Outlook/Copilot kopieren">📋 Kopieren</button>
+            ${profi ? `<button data-action="copy-customer" data-id="${escapeHtml(customer.id)}" title="Als Text für Outlook/Copilot kopieren">📋 Kopieren</button>` : ''}
         </div>
     </div>`;
 }
@@ -1046,6 +1088,10 @@ export function flyToCustomer(customer, openPopup = true) {
                 .openOn(map);
         }, 850);
     }
+}
+
+export function closeMapPopups() {
+    if (map) map.closePopup();
 }
 
 export function fitToCustomers() {

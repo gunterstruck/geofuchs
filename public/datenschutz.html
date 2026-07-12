@@ -53,6 +53,58 @@ Betreiber übertragen. Sie können sie jederzeit über die Funktion „Daten lö
 oder über das Löschen der Browserdaten entfernen.
 </p>
 
+<h2>3a. Optionaler Datentresor (Verschlüsselung, Data at Rest)</h2>
+<p>
+Sie können einen <strong>Datentresor</strong> aktivieren. Ist er aktiv, werden die lokal gespeicherten
+Kundendaten mit <strong>AES-256-GCM</strong> verschlüsselt in der IndexedDB abgelegt. Der Datenschlüssel
+wird über eine von Ihnen gewählte <strong>PIN</strong> (Schlüsselableitung PBKDF2-SHA-256, hohe
+Iterationszahl) abgeleitet und ausschließlich im flüchtigen Arbeitsspeicher gehalten – er wird
+<strong>nie gespeichert oder übertragen</strong>. Ohne PIN sind die Daten kryptografisch nicht lesbar.
+</p>
+<ul>
+  <li>Bei jedem Öffnen der App und nach Inaktivität ist die PIN erforderlich (Sperrbildschirm).
+      Die Zeit bis zum automatischen Sperren ist einstellbar (von „1&nbsp;Minute" bis „nur manuell").</li>
+  <li>Optionaler Wiederherstellungscode: Er wird nur bei der Einrichtung angezeigt und liegt allein bei
+      Ihnen; es gibt keine Hinterlegung beim Betreiber und keine Hintertür.</li>
+  <li><strong>Optionale Biometrie (Face&nbsp;/&nbsp;Touch&nbsp;ID):</strong> Zusätzlich zur PIN kann per
+      WebAuthn ein Plattform-Authenticator als weitere Entsperr-„Tür" eingerichtet werden. Dabei wird über
+      die PRF-Erweiterung ein geräteinternes Geheimnis abgeleitet, das den Datenschlüssel umschließt.
+      Biometrische Merkmale <strong>verlassen das Gerät nie</strong> und werden von TourFuchs nicht
+      gespeichert oder übertragen; die PIN bleibt als Rückfallweg bestehen.</li>
+  <li>Nach mehreren Fehlversuchen werden die lokalen Daten gelöscht (Schutz gegen Ausprobieren).</li>
+  <li>Die gesamte Verschlüsselung nutzt ausschließlich die im Browser eingebauten Krypto-Funktionen
+      (Web&nbsp;Crypto API); es werden keine Schlüssel oder Daten an Dritte gesendet.</li>
+</ul>
+<p class="muted">
+Ehrliche Einordnung (Stand der Technik, Art. 32 DSGVO): Der Tresor schützt zuverlässig gegen den
+Zugriff auf ein verlorenes oder gestohlenes Gerät sowie auf die gespeicherte Datei. Er kann jedoch –
+wie jede App – nicht vor Schadsoftware auf einem bereits entsperrten, kompromittierten Gerät schützen.
+</p>
+
+<h2>3b. Sicherer Umzug (verschlüsselter Export &amp; Übergabe an ein anderes Gerät)</h2>
+<p>
+Möchten Sie Ihre Kundendaten auf ein anderes Gerät (z.&nbsp;B. vom Desktop aufs Diensthandy) übertragen,
+erstellt TourFuchs eine <strong>verschlüsselte Umzugsdatei</strong> (<code>.tfsafe</code>). Diese ist mit
+einem <strong>zufälligen 256-Bit-Schlüssel per AES-256-GCM</strong> verschlüsselt; der Schlüssel wird
+getrennt als <strong>QR-Code am Bildschirm</strong> angezeigt.
+</p>
+<ul>
+  <li><strong>Kanaltrennung:</strong> Die Datei darf über einen beliebigen Weg transportiert werden
+      (E-Mail, Cloud, USB) – ohne den Schlüssel ist sie kryptografisch wertlos. Der Schlüssel wandert nur
+      per Bildschirm&nbsp;→&nbsp;Kamera (QR) und wird <strong>bewusst nicht als Link</strong> ausgegeben,
+      damit er nicht in Verlauf, Cache oder Serverprotokollen landet.</li>
+  <li><strong>Keine Serverübertragung:</strong> Weder Datei noch Schlüssel werden an einen Server gesendet;
+      die Verschlüsselung erfolgt lokal über die Web&nbsp;Crypto API.</li>
+  <li><strong>Manipulationsschutz:</strong> Ein falscher oder nicht zur Datei gehörender Schlüssel sowie
+      eine beschädigte Datei werden erkannt und abgewiesen (GCM-Authentifizierung).</li>
+  <li><strong>Schutz am Zielgerät:</strong> Nach dem Empfang werden Sie unmittelbar zur Einrichtung eines
+      Datentresors geführt, damit die importierten Daten sofort verschlüsselt gespeichert werden.</li>
+</ul>
+<p class="muted">
+Verantwortung der Anwender:innen: Bewahren Sie Datei und Schlüssel-QR getrennt auf. Wer beides erlangt,
+kann die Daten entschlüsseln – wie bei jeder Datei mit zugehörigem Passwort.
+</p>
+
 <h2>4. Kartendarstellung</h2>
 <p>
 Die Kartenkacheln werden beim Betrachten von den folgenden Diensten geladen. Dabei können diese
@@ -71,20 +123,33 @@ der OpenStreetMap Foundation gesendet. Ohne diese ausdrückliche Aktion findet k
 statt; die Standardverortung erfolgt offline über mitgelieferte Postleitzahl-Koordinaten.
 </p>
 
-<h2>6. Navigation zu Google Maps</h2>
+<h2>6. Optionale Straßenrouten (OSRM)</h2>
+<p>
+Für die Anzeige von Straßenrouten und für Kunden-Vorschläge entlang des tatsächlichen
+Straßenverlaufs nutzt die Anwendung optional den Routingdienst
+<a href="https://project-osrm.org/" target="_blank" rel="noopener">OSRM</a>
+(<code>router.project-osrm.org</code>, betrieben auf Basis von OpenStreetMap). Dabei werden die
+<strong>Geokoordinaten des Startpunkts und der Tour-Stopps</strong> an diesen Dienst übertragen –
+keine Namen, Adressen oder sonstigen Kundendaten. Diese Funktion ist nur nach Ihrer
+<strong>ausdrücklichen Zustimmung</strong> aktiv, die Sie bei der ersten Nutzung erteilen.
+Ohne Zustimmung verwendet die Anwendung ausschließlich die direkte Verbindung (Luftlinie),
+ganz ohne externe Übertragung.
+</p>
+
+<h2>7. Navigation zu Google Maps</h2>
 <p>
 Wenn Sie „In Google Maps navigieren" wählen, wird ein Link zu Google Maps in einem neuen Tab geöffnet.
 Ab diesem Zeitpunkt gelten die Datenschutzbestimmungen von Google. Diese Weiterleitung erfolgt nur auf
 Ihre ausdrückliche Aktion.
 </p>
 
-<h2>7. Standortbestimmung</h2>
+<h2>8. Standortbestimmung</h2>
 <p>
 Die Funktion „Mein Standort" nutzt die Standortfreigabe Ihres Geräts ausschließlich lokal, um Ihren
 Startpunkt auf der Karte zu setzen. Der Standort wird nicht an den Betreiber oder Dritte übertragen.
 </p>
 
-<h2>8. Rechte der Nutzer:innen</h2>
+<h2>9. Rechte der Nutzer:innen</h2>
 <p>
 Da der Betreiber keine personenbezogenen Daten von Ihnen erhebt oder speichert, liegen ihm auch keine
 solchen Daten vor. Für die Rechtmäßigkeit der von Ihnen lokal verarbeiteten Kundendaten sind Sie als
@@ -92,7 +157,7 @@ Nutzer:in selbst verantwortlich. Bei Fragen können Sie sich jederzeit an den ob
 Verantwortlichen wenden.
 </p>
 
-<h2>9. Haftungsausschluss</h2>
+<h2>10. Haftungsausschluss</h2>
 <p>
 Diese Anwendung wird als privates Projekt ohne jegliche Gewährleistung und ohne Haftung bereitgestellt.
 Für die Richtigkeit, Vollständigkeit und Aktualität der dargestellten Daten (u. a. Gebietsgrenzen,

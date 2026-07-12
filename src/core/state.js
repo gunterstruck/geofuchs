@@ -61,6 +61,9 @@ export const state = {
         //              'gebietsplanung' (Experten: Gebiete schneiden, Cockpit, Simulation)
         mode: 'aussendienst',
         activeTab: 'tour',
+        // Ansichtstiefe: 'basis' (nur Kernnutzen, wenig Ablenkung) |
+        //               'profi' (alle Komfort-/Feinsteuer-Funktionen)
+        depth: 'basis',
         // Chancen-Fokus: nur fällige/überfällige Kunden auf der Karte zeigen
         opportunityOnly: false,
         sidebarOpen: window.innerWidth > 900
@@ -202,6 +205,7 @@ export function datasetSnapshot() {
  */
 export function setCustomers(customers, meta = {}) {
     state.customers = customers;
+    reindexCustomers();
     state.fileName = meta.fileName ?? state.fileName;
     state.importedAt = meta.importedAt ?? new Date().toISOString();
 
@@ -279,8 +283,16 @@ export function mergeCustomersDelta(importedCustomers) {
     return merged;
 }
 
+// Index für O(1)-Zugriff – wichtig für Cockpit/Simulation mit vielen Kunden
+let customersById = new Map();
+
+function reindexCustomers() {
+    customersById = new Map(state.customers.map((c) => [c.id, c]));
+}
+
 export function getCustomer(id) {
-    return state.customers.find((c) => c.id === id);
+    if (customersById.size !== state.customers.length) reindexCustomers();
+    return customersById.get(id) ?? state.customers.find((c) => c.id === id);
 }
 
 /**

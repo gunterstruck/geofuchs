@@ -7,6 +7,7 @@ import { CONFIG } from '../core/config.js';
 import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, filterDimensionDefs, datasetSnapshot } from '../core/state.js';
 import { geocodeExact } from '../services/geocode.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
+import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { STATUS_COLORS, STATUS_LABELS, isOpportunity } from '../features/visits.js';
 import { showToast } from './toast.js';
 
@@ -27,20 +28,21 @@ function toHexColor(value) {
 
 let geocodeHandle = null;
 let autoRevealTimer = null;
-let mobileSheetExpanded = false;
-let mobileSheetSnap = 'half';
+let demoSheetSnapshot = null;
 
 const mobileQuery = window.matchMedia('(max-width: 768px)');
 const MOBILE_DATA_TABS = new Set(['karte', 'tour']);
 const MOBILE_EMPTY_TABS = new Set(['karte', 'daten']);
 const SIDEBAR_WIDTH_KEY = 'gf_sidebar_width';
 const SIDEBAR_POS_KEY = 'gf_sidebar_position';
+const SHEET_HEIGHT_KEY = 'gf_sheet_height';
 const PANEL_ZOOM_KEY = 'tf_panel_zoom';
 const SIDEBAR_MIN = 340;
 const SIDEBAR_MAX = 400;
-const PANEL_ZOOM_MIN = 0.85;
-const PANEL_ZOOM_MAX = 1.2;
-const PANEL_ZOOM_STEP = 0.05;
+const SHEET_MIN_HEIGHT = 140; // reicht für Griff + Tabs
+const PANEL_ZOOM_MIN = 0.8;
+const PANEL_ZOOM_MAX = 1.5;
+const PANEL_ZOOM_STEP = 0.1;
 const DOCK_THRESHOLD = 34;
 const SIDEBAR_DRAG_SCROLL_IGNORE = [
     'button',
@@ -70,6 +72,32 @@ function isMobileUi() {
     return mobileQuery.matches;
 }
 
+/**
+ * Auf dem Handy die Ansichtstiefe (Basis/Profi) und die Tab-Leiste aus dem
+ * Bottom-Sheet in den fixen Kopf-Streifen heben – so bleiben sie immer sichtbar
+ * „oben aufgehängt". Auf dem Desktop wandern beide an ihre ursprüngliche Stelle
+ * in der Sidebar zurück. Die Elemente behalten ihre IDs/Klassen, daher greifen
+ * alle bestehenden Event-Handler unverändert.
+ */
+function syncTopnavPlacement() {
+    const topnav = document.getElementById('mobile-topnav');
+    const sidebar = document.getElementById('sidebar');
+    const depth = document.getElementById('depth-switch');
+    const tabs = document.querySelector('.tabs');
+    if (!topnav || !sidebar || !depth || !tabs) return;
+    if (isMobileUi()) {
+        // Reihenfolge im Streifen: erst Basis/Profi, dann die Tabs.
+        if (depth.parentElement !== topnav) topnav.appendChild(depth);
+        if (tabs.parentElement !== topnav) topnav.appendChild(tabs);
+    } else {
+        // Zurück in die Sidebar an die ursprünglichen Ankerpunkte.
+        const modeSwitch = sidebar.querySelector('.mode-switch');
+        const firstPanel = sidebar.querySelector('.tab-panel');
+        if (depth.parentElement !== sidebar && modeSwitch) sidebar.insertBefore(depth, modeSwitch);
+        if (tabs.parentElement !== sidebar && firstPanel) sidebar.insertBefore(tabs, firstPanel);
+    }
+}
+
 function clampSidebarWidth(width) {
     return Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, Math.round(width)));
 }
@@ -97,13 +125,33 @@ function currentPanelZoom() {
     return parseFloat(raw) || 1;
 }
 
+/**
+ * Panel-Inhalt jeder Tab-Sektion in einen .panel-scale-Wrapper legen. Der Zoom
+ * (CSS `zoom`) liegt auf dem Wrapper, während der Scrollcontainer (.tab-panel)
+ * unskaliert bleibt – so skaliert der gesamte Inhalt (Text, Buttons, Abstände)
+ * gleichmäßig und die Scrollhöhe stimmt weiterhin.
+ */
+function wrapPanelContentForZoom() {
+    document.querySelectorAll('.tab-panel').forEach((panel) => {
+        if (panel.querySelector(':scope > .panel-scale')) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'panel-scale';
+        while (panel.firstChild) wrap.appendChild(panel.firstChild);
+        panel.appendChild(wrap);
+    });
+}
+
 function initPanelZoom() {
+    wrapPanelContentForZoom();
     const saved = parseFloat(localStorage.getItem(PANEL_ZOOM_KEY) || '');
     setPanelZoom(Number.isFinite(saved) ? saved : 1);
     document.getElementById('panel-zoom-out')?.addEventListener('click', () => setPanelZoom(currentPanelZoom() - PANEL_ZOOM_STEP, true));
     document.getElementById('panel-zoom-in')?.addEventListener('click', () => setPanelZoom(currentPanelZoom() + PANEL_ZOOM_STEP, true));
+    // Doppelklick/-tipp auf die Prozentanzeige setzt auf 100 % zurück
+    document.getElementById('panel-zoom-label')?.addEventListener('dblclick', () => setPanelZoom(1, true));
+    // Reines Mausrad über dem Panel zoomt den Inhalt (Wunsch: wie die Karte)
     document.getElementById('sidebar')?.addEventListener('wheel', (ev) => {
-        if (isMobileUi() || !ev.ctrlKey) return;
+        if (isMobileUi()) return;
         ev.preventDefault();
         setPanelZoom(currentPanelZoom() + (ev.deltaY < 0 ? PANEL_ZOOM_STEP : -PANEL_ZOOM_STEP), true);
     }, { passive: false });
@@ -161,48 +209,19 @@ function resetSidebarPosition() {
     try { localStorage.removeItem(SIDEBAR_POS_KEY); } catch (e) { /* egal */ }
 }
 
-function initDesktopSidebarDrag() {
-    const handle = document.getElementById('sidebar-drag');
-    const sidebar = document.getElementById('sidebar');
-    if (!handle || !sidebar) return;
-    try {
-        const saved = JSON.parse(localStorage.getItem(SIDEBAR_POS_KEY) || 'null');
-        if (saved) applySidebarPosition(saved);
-    } catch (e) { /* egal */ }
-
-    let dragging = false;
-    let offsetX = 0;
-    let offsetY = 0;
-    handle.addEventListener('pointerdown', (ev) => {
-        if (isMobileUi()) return;
-        const rect = sidebar.getBoundingClientRect();
-        dragging = true;
-        offsetX = ev.clientX - rect.left;
-        offsetY = ev.clientY - rect.top;
-        handle.setPointerCapture?.(ev.pointerId);
-        document.body.classList.add('sidebar-dragging');
-    });
-    handle.addEventListener('pointermove', (ev) => {
-        if (!dragging) return;
-        applySidebarPosition({ left: ev.clientX - offsetX, top: ev.clientY - offsetY });
-    });
-    const stopDrag = () => {
-        if (!dragging) return;
-        dragging = false;
-        document.body.classList.remove('sidebar-dragging');
-        const rect = sidebar.getBoundingClientRect();
-        if (rect.left <= DOCK_THRESHOLD) {
-            resetSidebarPosition();
-            return;
-        }
-        try { localStorage.setItem(SIDEBAR_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top })); } catch (e) { /* egal */ }
-    };
-    handle.addEventListener('pointerup', stopDrag);
-    handle.addEventListener('pointercancel', () => {
-        dragging = false;
-        document.body.classList.remove('sidebar-dragging');
-    });
-    handle.addEventListener('dblclick', resetSidebarPosition);
+let desktopNoteHideScheduled = false;
+/**
+ * Den Hinweis „Komplexe Gebietsplanung nur am Desktop" nach kurzer Zeit
+ * automatisch ausblenden – erst wenn er sichtbar ist, dann sanft kollabieren.
+ * Gewinnt Platz und beruhigt das Bild. Läuft einmal pro Sitzung.
+ */
+function scheduleDesktopNoteAutoHide() {
+    if (desktopNoteHideScheduled) return;
+    const note = document.getElementById('mobile-desktop-note');
+    if (!note || note.classList.contains('auto-hidden')) return;
+    if (!isMobileUi() || note.offsetParent === null) return; // nur wenn tatsächlich sichtbar
+    desktopNoteHideScheduled = true;
+    setTimeout(() => note.classList.add('auto-hidden'), 5000);
 }
 
 function initSidebarContentDragScroll() {
@@ -270,45 +289,175 @@ function applySidebar() {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
     sidebar.classList.toggle('open', state.ui.sidebarOpen);
-    sidebar.classList.toggle('sheet-full', isMobileUi() && mobileSheetSnap === 'full' && state.ui.activeTab === 'tour');
-    sidebar.classList.toggle('sheet-peek', isMobileUi() && (state.ui.activeTab === 'karte' || mobileSheetSnap === 'peek'));
     document.getElementById('sidebar-toggle').setAttribute('aria-expanded', String(state.ui.sidebarOpen));
     const grip = document.getElementById('sheet-grip');
     if (grip) {
-        const full = sidebar.classList.contains('sheet-full');
-        grip.setAttribute('aria-label', full ? 'Tour-Panel verkleinern' : 'Tour-Panel vergrößern');
-        grip.title = full ? 'Tour-Panel verkleinern' : 'Tour-Panel vergrößern';
+        if (isMobileUi()) {
+            grip.setAttribute('aria-label', 'Panelgröße ändern');
+            grip.title = 'Ziehen: Größe · Tippen: ein-/ausklappen';
+        } else {
+            grip.setAttribute('aria-label', 'Panel: Größe ändern oder verschieben');
+            grip.title = 'Ziehen: ↕ Größe, ↔ verschieben · Doppelklick: zurück';
+        }
+    }
+    scheduleDesktopNoteAutoHide();
+}
+
+// ---- Panelhöhe kontinuierlich per Griff ziehen (Maus + Touch) ----
+function topbarPx() {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--topbar-height');
+    return parseInt(v, 10) || 56;
+}
+function sheetMaxHeight() {
+    return Math.max(SHEET_MIN_HEIGHT, Math.round(window.innerHeight - topbarPx() - 8));
+}
+// Sichtbare „Guckhöhe" des geschlossenen Blatts (nur der Griff schaut heraus).
+function peekPx() {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--mobile-sheet-peek');
+    return parseInt(v, 10) || 40;
+}
+function clampSheetHeight(h) {
+    return Math.max(SHEET_MIN_HEIGHT, Math.min(sheetMaxHeight(), Math.round(h)));
+}
+function setSheetHeight(h, persist = false) {
+    const next = clampSheetHeight(h);
+    document.documentElement.style.setProperty('--sheet-height', `${next}px`);
+    document.getElementById('sidebar')?.classList.add('sheet-sized');
+    if (persist) { try { localStorage.setItem(SHEET_HEIGHT_KEY, String(next)); } catch (e) { /* egal */ } }
+    return next;
+}
+function restoreSheetHeight() {
+    let saved = null;
+    try { saved = localStorage.getItem(SHEET_HEIGHT_KEY); } catch (e) { /* egal */ }
+    if (saved) setSheetHeight(Number(saved));
+}
+
+/**
+ * Für die Live-Demos: das Blatt auf dem Handy weit aufziehen, damit die
+ * Bedienelemente (Bezirk, Startpunkt, Vorschläge …) sichtbar sind, während der
+ * Geister-Cursor sie bedient. Die gewählte Höhe wird NICHT gespeichert.
+ */
+export function captureSheetForDemo() {
+    if (!isMobileUi()) return;
+    if (!demoSheetSnapshot) {
+        const sidebar = document.getElementById('sidebar');
+        demoSheetSnapshot = {
+            sidebarOpen: state.ui.sidebarOpen,
+            activeTab: state.ui.activeTab,
+            sized: sidebar?.classList.contains('sheet-sized') || false,
+            inlineHeight: document.documentElement.style.getPropertyValue('--sheet-height')
+        };
     }
 }
 
-function setMobileSheetSnap(snap) {
-    mobileSheetSnap = snap;
-    mobileSheetExpanded = snap === 'full';
-    state.ui.sidebarOpen = snap !== 'peek';
+export function expandSheetForDemo() {
+    if (!isMobileUi()) return;
+    captureSheetForDemo();
+    state.ui.sidebarOpen = true;
+    setSheetHeight(Math.round(sheetMaxHeight() * 0.92));
     applySidebar();
 }
 
-function initMobileSheetDrag() {
+/** Nach einer Demo den vom Nutzer gewählten Blatt-Zustand wiederherstellen. */
+export function restoreSheetAfterDemo() {
+    if (!isMobileUi() || !demoSheetSnapshot) return;
+    const snapshot = demoSheetSnapshot;
+    demoSheetSnapshot = null;
+    const sidebar = document.getElementById('sidebar');
+    if (snapshot.sized) {
+        if (snapshot.inlineHeight) document.documentElement.style.setProperty('--sheet-height', snapshot.inlineHeight);
+        sidebar?.classList.add('sheet-sized');
+    } else {
+        sidebar?.classList.remove('sheet-sized');
+        document.documentElement.style.removeProperty('--sheet-height');
+    }
+    activateTab(snapshot.activeTab);
+    state.ui.sidebarOpen = snapshot.sidebarOpen;
+    applySidebar();
+}
+
+function toggleSheet() {
+    const sidebar = document.getElementById('sidebar');
+    if (isMobileUi()) {
+        // Klick auf den Griff: ein-/ausklappen (auf „karte" stattdessen Tour öffnen).
+        if (state.ui.activeTab === 'karte') { activateTab('tour'); return; }
+        state.ui.sidebarOpen = !state.ui.sidebarOpen;
+        applySidebar();
+    } else if (sidebar?.classList.contains('sheet-sized')) {
+        // Desktop: Klick setzt auf volle Höhe zurück.
+        sidebar.classList.remove('sheet-sized');
+        document.documentElement.style.removeProperty('--sheet-height');
+        try { localStorage.removeItem(SHEET_HEIGHT_KEY); } catch (e) { /* egal */ }
+    }
+}
+
+/**
+ * Ein Griff für alles: senkrecht ziehen = Höhe ändern, waagerecht ziehen =
+ * Panel verschieben/schweben (nur Desktop), kurzer Klick = ein-/ausklappen bzw.
+ * volle Höhe, Doppelklick = Position zurücksetzen. Die Richtung entscheidet zu
+ * Beginn der Bewegung, was gemeint ist (auf dem Handy immer Höhe).
+ */
+function initSheetGrip() {
     const grip = document.getElementById('sheet-grip');
-    if (!grip) return;
-    let dragging = false;
-    let startY = 0;
+    const sidebar = document.getElementById('sidebar');
+    if (!grip || !sidebar) return;
+
+    // Gemerkte Schwebe-Position wiederherstellen (Desktop).
+    try {
+        const saved = JSON.parse(localStorage.getItem(SIDEBAR_POS_KEY) || 'null');
+        if (saved) applySidebarPosition(saved);
+    } catch (e) { /* egal */ }
+
+    let mode = null;             // 'pending' | 'resize' | 'move'
+    let startX = 0, startY = 0, startH = 0, offsetX = 0, offsetY = 0, moved = false;
+
     grip.addEventListener('pointerdown', (ev) => {
-        if (!isMobileUi()) return;
-        dragging = true;
-        startY = ev.clientY;
+        const rect = sidebar.getBoundingClientRect();
+        startX = ev.clientX; startY = ev.clientY;
+        startH = rect.height;
+        offsetX = ev.clientX - rect.left; offsetY = ev.clientY - rect.top;
+        mode = 'pending'; moved = false;
         grip.setPointerCapture?.(ev.pointerId);
+        ev.preventDefault();
     });
-    grip.addEventListener('pointerup', (ev) => {
-        if (!dragging) return;
-        dragging = false;
+    grip.addEventListener('pointermove', (ev) => {
+        if (!mode) return;
+        const dx = ev.clientX - startX;
         const dy = ev.clientY - startY;
-        const y = ev.clientY / Math.max(1, window.innerHeight);
-        if (dy < -36 || y < 0.34) setMobileSheetSnap('full');
-        else if (dy > 46 || y > 0.72) setMobileSheetSnap('peek');
-        else setMobileSheetSnap('half');
+        if (mode === 'pending') {
+            if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+            moved = true;
+            // Desktop: überwiegend waagerecht -> verschieben, sonst Größe. Handy: immer Größe.
+            mode = (!isMobileUi() && Math.abs(dx) > Math.abs(dy)) ? 'move' : 'resize';
+            document.body.classList.add(mode === 'move' ? 'sidebar-dragging' : 'sheet-resizing');
+            // Handy: aus dem geschlossenen Zustand kontinuierlich aufziehen –
+            // das Blatt zunächst auf die sichtbare Guckhöhe fixieren, damit es
+            // NICHT auf die volle Höhe springt, sondern von dort dem Finger folgt.
+            if (mode === 'resize' && isMobileUi() && !state.ui.sidebarOpen) {
+                startH = setSheetHeight(peekPx()); // geklammerte Starthöhe merken -> kein Sprung, kein Totgang
+                state.ui.sidebarOpen = true; applySidebar();
+            }
+        }
+        if (mode === 'resize') setSheetHeight(startH - dy);
+        else if (mode === 'move') applySidebarPosition({ left: ev.clientX - offsetX, top: ev.clientY - offsetY });
     });
-    grip.addEventListener('pointercancel', () => { dragging = false; });
+    const finish = () => {
+        if (!mode) return;
+        const done = mode; mode = null;
+        document.body.classList.remove('sheet-resizing', 'sidebar-dragging');
+        // Handy: reiner Tipp macht nichts – das Blatt wird nur durch Ziehen bewegt.
+        if (!moved) { if (!isMobileUi()) toggleSheet(); return; }
+        if (done === 'resize') {
+            try { localStorage.setItem(SHEET_HEIGHT_KEY, String(Math.round(sidebar.getBoundingClientRect().height))); } catch (e) { /* egal */ }
+        } else if (done === 'move') {
+            const rect = sidebar.getBoundingClientRect();
+            if (rect.left <= DOCK_THRESHOLD) resetSidebarPosition();
+            else { try { localStorage.setItem(SIDEBAR_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top })); } catch (e) { /* egal */ } }
+        }
+    };
+    grip.addEventListener('pointerup', finish);
+    grip.addEventListener('pointercancel', finish);
+    grip.addEventListener('dblclick', () => { if (!isMobileUi()) resetSidebarPosition(); });
 }
 
 /**
@@ -353,17 +502,12 @@ function activateTab(tab) {
     document.querySelectorAll('.tab-button').forEach((b) =>
         b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.tab-panel').forEach((p) =>
-        p.classList.toggle('active', tab !== 'karte' && p.id === `tab-${tab}`));
+        p.classList.toggle('active', p.id === `tab-${tab}`));
+    emit('tab:changed', tab);
 
     if (isMobileUi()) {
-        if (tab === 'karte') {
-            state.ui.sidebarOpen = false;
-            mobileSheetExpanded = false;
-            mobileSheetSnap = 'peek';
-        } else if (tab === 'tour') {
-            state.ui.sidebarOpen = true;
-            if (mobileSheetSnap === 'peek') mobileSheetSnap = 'half';
-        }
+        if (tab === 'karte') state.ui.sidebarOpen = false;
+        else if (tab === 'tour') state.ui.sidebarOpen = true;
         applySidebar();
     }
 }
@@ -411,6 +555,37 @@ function tabInMode(tabBtn, mode) {
  * @param {boolean} persist  Einstellungen sichern (beim allerersten Init false,
  *                           damit der noch nicht geladene gespeicherte Tab nicht überschrieben wird)
  */
+const DEPTH_KEY = 'gf_app_depth';
+
+/**
+ * Ansichtstiefe global setzen: 'basis' (nur Kernnutzen) oder 'profi' (alle
+ * Werkzeuge). Steuert per Body-Klasse alle .expert-only/.profi-only Elemente.
+ */
+export function applyDepth(depth, persist = true) {
+    const profi = depth === 'profi';
+    state.ui.depth = profi ? 'profi' : 'basis';
+    document.body.classList.toggle('depth-profi', profi);
+    document.querySelectorAll('#depth-switch .seg').forEach((b) =>
+        b.classList.toggle('active', b.dataset.depth === state.ui.depth));
+    if (persist) { try { localStorage.setItem(DEPTH_KEY, state.ui.depth); } catch (e) { /* egal */ } }
+    emit('depth:changed');
+}
+
+/** Beim Start: gespeicherte Tiefe laden bzw. aus dem alten Tour-Experten-Flag migrieren. */
+function initDepth() {
+    let depth = null;
+    try { depth = localStorage.getItem(DEPTH_KEY); } catch (e) { /* egal */ }
+    if (depth !== 'basis' && depth !== 'profi') {
+        // Migration: wer früher den Tour-Experten-Modus aktiv hatte, startet in Profi.
+        let legacy = null;
+        try { legacy = localStorage.getItem('gf_tour_expert'); } catch (e) { /* egal */ }
+        depth = legacy === '1' ? 'profi' : 'basis';
+    }
+    applyDepth(depth, false);
+    document.querySelectorAll('#depth-switch .seg').forEach((btn) =>
+        btn.addEventListener('click', () => applyDepth(btn.dataset.depth)));
+}
+
 export function applyMode(mode, userInitiated = true, persist = true) {
     if (isMobileUi()) mode = 'aussendienst';
     if (!MODE_CONFIG[mode]) mode = 'aussendienst';
@@ -465,6 +640,9 @@ export function applyMode(mode, userInitiated = true, persist = true) {
 async function clearAllData() {
     if (state.customers.length === 0 && Object.keys(state.territories).length === 0) return;
     if (!confirm('Alle Kundendaten und Gebietszuordnungen aus dem Browser löschen?')) return;
+    // Ohne Daten gibt es nichts zu schützen -> Tresor mit deaktivieren,
+    // sonst bliebe beim nächsten Öffnen ein Sperrbildschirm ohne Inhalt.
+    if (vaultEnabled()) removeVaultMeta();
     await clearDataset();
     state.tour.start = null;
     state.tour.destination = null;
@@ -480,9 +658,13 @@ async function clearAllData() {
 export function initSidebar() {
     initPanelZoom();
     initDesktopSidebarResize();
-    initDesktopSidebarDrag();
     initSidebarContentDragScroll();
-    initMobileSheetDrag();
+    initSheetGrip();
+    restoreSheetHeight();
+    initDepth();
+    syncTopnavPlacement();
+    // Bei Wechsel Desktop <-> Handy (Drehen/Resize) Elemente umhängen.
+    mobileQuery.addEventListener('change', () => { syncTopnavPlacement(); applySidebar(); });
 
     // Fokus-Umschalter
     document.querySelectorAll('.mode-btn').forEach((btn) => {
@@ -494,6 +676,10 @@ export function initSidebar() {
         btn.addEventListener('click', () => {
             handleMapTabRouteToggle(btn.dataset.tab);
             activateTab(btn.dataset.tab);
+            // Handy: „Tour" öffnet das Blatt auf 2/3 der Bildschirmhöhe.
+            if (isMobileUi() && btn.dataset.tab === 'tour') {
+                setSheetHeight(Math.round(window.innerHeight * (2 / 3)), true);
+            }
             persistSettings();
         });
     });
@@ -514,13 +700,6 @@ export function initSidebar() {
     });
     applySidebar();
 
-    document.getElementById('sheet-grip')?.addEventListener('click', () => {
-        if (!isMobileUi()) return;
-        if (state.ui.activeTab !== 'tour') activateTab('tour');
-        else {
-            setMobileSheetSnap(mobileSheetSnap === 'full' ? 'half' : 'full');
-        }
-    });
 
     mobileQuery.addEventListener('change', () => {
         applyMode(state.ui.mode, false, false);
@@ -587,18 +766,7 @@ export function initSidebar() {
         const { exportCustomers } = await import('../services/excel.js');
         exportCustomers(state.customers);
     });
-    document.getElementById('btn-clear').addEventListener('click', async () => {
-        if (state.customers.length === 0 && Object.keys(state.territories).length === 0) return;
-        if (!confirm('Alle Kundendaten und Gebietszuordnungen aus dem Browser löschen?')) return;
-        await clearDataset();
-        state.tour.start = null;
-        state.tour.stops = [];
-        state.fileName = null;
-        state.territories = {};
-        setCustomers([]);
-        emit('tour:changed');
-        showToast('Daten gelöscht.', 'success');
-    });
+    document.getElementById('btn-clear').addEventListener('click', clearAllData);
 
     document.getElementById('btn-mobile-clear-data')?.addEventListener('click', clearAllData);
 
@@ -766,6 +934,9 @@ function renderDataStatus() {
     // Onboarding-Modus: Modus-Umschalter, Hinweis und Tab-Leiste ausblenden,
     // damit der Einstieg maximal einfach ist (nur Willkommen + Demo).
     if (sidebar) sidebar.classList.toggle('onboarding', empty);
+    // Spiegelt den Onboarding-Zustand auf den Body, damit der mobile Kopf-Streifen
+    // (außerhalb der Sidebar) währenddessen ausgeblendet werden kann.
+    document.body.classList.toggle('app-onboarding', empty);
     if (empty) {
         if (onboarding) onboarding.style.display = '';
         if (loaded) loaded.style.display = 'none';

@@ -77,7 +77,6 @@
     background: var(--color-surface);
     border-right: 1px solid var(--color-border);
     border-radius: 0 var(--radius-l) var(--radius-l) 0;
-    font-size: calc(1rem * var(--panel-zoom));
     z-index: 1050;
     display: flex;
     flex-direction: column;
@@ -94,55 +93,81 @@
     border-radius: var(--radius-l);
     box-shadow: var(--shadow-2);
 }
+/* Höhe per Griff gezogen: unten verankert, Höhe frei (min/max in JS begrenzt). */
+.sidebar.sheet-sized {
+    top: auto;
+    height: var(--sheet-height);
+}
+.sidebar.sheet-sized.floating-sidebar {
+    height: var(--sheet-height);
+    max-height: none;
+}
+.sheet-resizing .sidebar { transition: none; }
 
-.sidebar-drag {
+/* Ein Griff für alles: Höhe ziehen (↕) und – am Desktop – verschieben (↔). */
+.sheet-grip {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 26px;
-    margin: 8px 12px 0;
-    padding: 0;
-    border: 1px dashed transparent;
+    min-height: 22px;
+    padding: 7px 0 3px;
+    border: none;
     background: transparent;
-    border-radius: var(--radius-pill);
     cursor: grab;
+    touch-action: none; /* verhindert Scroll-/Zoom-Gesten beim Ziehen */
+    flex-shrink: 0;
 }
-.sidebar-drag span {
+.sheet-resizing .sheet-grip,
+.sidebar-dragging .sheet-grip { cursor: grabbing; }
+.sheet-grip span {
     width: 46px;
     height: 5px;
     border-radius: var(--radius-pill);
     background: #cbd5e1;
+    transition: background 0.14s ease, width 0.14s ease;
 }
-.sidebar-drag:hover {
-    border-color: rgba(13, 148, 136, 0.32);
-    background: var(--color-primary-light);
-}
-.sidebar-dragging,
-.sidebar-dragging .sidebar-drag {
+.sheet-grip:hover span { background: var(--color-primary); width: 60px; }
+.sheet-resizing .sheet-grip span { background: var(--color-primary); }
+
+.sidebar-dragging {
     cursor: grabbing;
     user-select: none;
 }
 
+/* Vertikales, schwebendes Zoom-Control unten im Panel (wie der Kartenzoom) */
 .panel-zoom {
-    display: grid;
-    grid-template-columns: 34px 1fr 34px;
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 30;
+    opacity: 0.92;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 6px;
-    margin: 6px 12px 0;
+    gap: 2px;
+    padding: 4px;
+    background: var(--color-surface, #fff);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: var(--radius-l, 12px);
+    box-shadow: var(--shadow-1);
 }
 .panel-zoom button {
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     padding: 0;
-    border-radius: 50%;
-    font-size: 1rem;
+    border-radius: 10px;
+    font-size: 1.25rem;
     font-weight: 800;
+    line-height: 1;
 }
 .panel-zoom span {
     text-align: center;
     color: var(--color-text-muted);
-    font-size: 0.78em;
+    font-size: 0.68rem;
     font-weight: 700;
+    padding: 1px 0;
+    cursor: pointer;
+    user-select: none;
 }
 
 .sidebar-resize {
@@ -174,7 +199,39 @@
     user-select: none;
 }
 
+/* Mobiler Kopf-Streifen (Basis/Profi + Tabs) – nur auf dem Handy sichtbar.
+   Auf dem Desktop bleibt der Container leer und ausgeblendet. */
+.mobile-topnav { display: none; }
+
 /* Fokus-Umschalter Außendienst / Gebietsplanung */
+/* Ansichtstiefe Basis/Profi – prominenter, beschrifteter Umschalter oben */
+.depth-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin: 10px 10px 0;
+    padding: 3px;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+}
+.depth-switch .seg {
+    border: none;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    padding: 8px 6px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+.depth-switch .seg.active {
+    background: var(--color-primary);
+    color: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+}
+
 .mode-switch {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -239,6 +296,7 @@
 
 /* Onboarding (keine Daten): Modus-Umschalter, Hinweis und Tab-Leiste ausblenden
    – der Einstieg zeigt nur Willkommen + Demo. */
+.sidebar.onboarding .depth-switch,
 .sidebar.onboarding .mode-switch,
 .sidebar.onboarding .mode-hint,
 .sidebar.onboarding .basemap-control,
@@ -304,6 +362,11 @@
         cursor: grabbing;
     }
 }
+
+/* Inhalts-Zoom: skaliert den kompletten Panel-Inhalt (Text, Buttons, Abstände)
+   gleichmäßig – anders als der frühere reine Schrift-Zoom. Der Wrapper liegt im
+   nicht-skalierten Scrollcontainer .tab-panel, damit Scrollhöhe korrekt bleibt. */
+.panel-scale { zoom: var(--panel-zoom); padding-bottom: 60px; }
 
 #map {
     grid-row: 2;

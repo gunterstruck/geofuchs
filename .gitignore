@@ -5,6 +5,9 @@ node_modules/
 dist/
 *.local
 
+# Generierte Dokumente (Quelle ist die jeweilige Markdown-Datei)
+docs/*.pdf
+
 # Editor directories and files
 .vscode/
 .idea/

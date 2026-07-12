@@ -22,21 +22,28 @@
                 <div id="search-results" class="search-results"></div>
             </div>
             <button id="btn-mobile-preview" class="icon-button" aria-label="Mobile-Vorschau" title="Mobile-Ansicht zeigen (Demo)">📱</button>
+            <button id="btn-vault-toggle" class="icon-button" hidden aria-label="Tresor sperren" title="Tresor jetzt sperren">🔓</button>
             <button id="btn-info" class="icon-button" aria-label="Info & Impressum">ⓘ</button>
         </header>
+
+        <!-- Mobiler Kopf-Streifen: nimmt auf dem Handy die Ansichtstiefe (Basis/Profi)
+             und die Tab-Navigation auf, damit sie immer sichtbar oben „hängen"
+             (statt im Bottom-Sheet). Auf dem Desktop leer & ausgeblendet. -->
+        <div id="mobile-topnav" class="mobile-topnav" role="navigation" aria-label="Ansicht &amp; Bereiche"></div>
 
         <aside id="sidebar" class="sidebar">
             <button id="sheet-grip" class="sheet-grip" type="button" aria-label="Tour-Panel vergrößern" title="Panelgröße ändern">
                 <span></span>
             </button>
             <div id="sidebar-resize" class="sidebar-resize" role="separator" aria-orientation="vertical" aria-label="Bedienpanel-Breite ändern" title="Panelbreite ziehen"></div>
-            <button id="sidebar-drag" class="sidebar-drag" type="button" aria-label="Bedienpanel verschieben" title="Panel an eine andere Stelle ziehen">
-                <span></span>
-            </button>
-            <div class="panel-zoom" aria-label="Panel-Zoom">
-                <button type="button" id="panel-zoom-out" aria-label="Panel verkleinern">−</button>
-                <span id="panel-zoom-label">100%</span>
+            <div class="panel-zoom" aria-label="Panel-Zoom" title="Panelinhalt vergrößern/verkleinern (Doppelklick auf % = 100 %)">
                 <button type="button" id="panel-zoom-in" aria-label="Panel vergrößern">+</button>
+                <span id="panel-zoom-label" role="button" tabindex="0" title="Zurück auf 100 %">100%</span>
+                <button type="button" id="panel-zoom-out" aria-label="Panel verkleinern">−</button>
+            </div>
+            <div class="depth-switch seg-toggle" id="depth-switch" role="group" aria-label="Ansichtstiefe wählen" title="Basis zeigt nur das Wesentliche · Profi blendet alle Werkzeuge ein">
+                <button type="button" class="seg" data-depth="basis">🌱 Basis</button>
+                <button type="button" class="seg" data-depth="profi">🛠️ Profi</button>
             </div>
             <div class="mode-switch" role="group" aria-label="Fokus wählen">
                 <button type="button" class="mode-btn active" data-mode="aussendienst">🚗 Außendienst</button>
@@ -65,8 +72,9 @@
                 <div id="onboarding">
                     <div class="ob-hero">
                         <div class="ob-fox">🦊</div>
-                        <h2>Willkommen bei TourFuchs</h2>
-                        <p class="muted">Deine Kundenliste auf der Deutschlandkarte – Touren planen und Vertriebsgebiete sehen.</p>
+                        <h2>Willkommen bei TourFuchs!</h2>
+                        <p class="ob-greeting">Schön, dass du da bist.</p>
+                        <p class="muted">Deine Kundenliste auf der Deutschlandkarte – Touren planen und Vertriebsgebiete sehen. Am schnellsten geht's mit den Beispieldaten unten.</p>
                     </div>
 
                     <!-- Primär: sofort erleben -->
@@ -83,6 +91,11 @@
                     </label>
                     <p class="muted small ob-upload-sub only-desktop">Datei auswählen oder einfach auf die Karte ziehen.</p>
                     <p class="muted small ob-upload-sub only-mobile">Schon am PC vorbereitet? Lade deine Liste direkt hier hoch – die Demo brauchst du dann nicht.</p>
+
+                    <!-- Verschlüsselten Umzug von einem anderen Gerät empfangen -->
+                    <div class="ob-or"><span>oder verschlüsselten Umzug</span></div>
+                    <button id="btn-safe-receive-ob" class="ob-upload-btn">📥 Daten von anderem Gerät empfangen</button>
+                    <p class="muted small ob-upload-sub">Umzugsdatei (.tfsafe) vom Desktop wählen und den Schlüssel-QR scannen.</p>
 
                     <!-- Vorbereitungs-Schritte nur am Desktop (am Handy bereitet man selten vor) -->
                     <details class="ob-details only-desktop">
@@ -124,6 +137,34 @@
                             <div id="geocode-progress" class="muted small" style="display:none"></div>
                             <button id="btn-export">💾 Als Excel exportieren</button>
                             <button id="btn-clear" class="danger">🗑 Daten löschen</button>
+                        </div>
+                    </div>
+
+                    <div id="vault-controls" class="vault-controls">
+                        <h3>🔐 Datentresor</h3>
+                        <p id="vault-status" class="muted small"></p>
+                        <div class="button-column">
+                            <button id="btn-vault-setup" class="primary">🔐 Tresor aktivieren (PIN)</button>
+                            <button id="btn-vault-lock" hidden>🔒 Jetzt sperren</button>
+                            <button id="btn-vault-bio" hidden>👤 Face/Touch ID einrichten</button>
+                            <button id="btn-vault-bio-off" hidden>👤 Face/Touch ID entfernen</button>
+                            <button id="btn-vault-changepin" hidden>PIN ändern</button>
+                            <button id="btn-vault-disable" class="danger" hidden>Tresor deaktivieren</button>
+                        </div>
+                        <label id="vault-autolock-row" class="vault-autolock" hidden>Automatisch sperren nach
+                            <select id="vault-autolock">
+                                <option value="0">Nie (nur manuell)</option>
+                                <option value="60000">1 Minute</option>
+                                <option value="300000">5 Minuten</option>
+                                <option value="900000">15 Minuten</option>
+                                <option value="3600000">1 Stunde</option>
+                            </select>
+                        </label>
+                        <h3>🧳 Sicherer Umzug</h3>
+                        <p class="muted small">Daten verschlüsselt auf ein anderes Gerät bringen: Datei und Schlüssel (QR) reisen getrennt – die Datei ist ohne Schlüssel wertlos.</p>
+                        <div class="button-column">
+                            <button id="btn-safe-export">🧳 Verschlüsselt exportieren (Datei + QR)</button>
+                            <button id="btn-safe-receive">📥 Daten empfangen (Datei + Schlüssel)</button>
                         </div>
                     </div>
                 </div>
@@ -171,6 +212,20 @@
                 <div id="team-filters"></div>
             </section>
 
+            <!-- Tab: Karte – „In der Nähe"-Begleiter (mobil, wenn das Blatt aufgezogen ist) -->
+            <section id="tab-karte" class="tab-panel karte-companion">
+                <div class="near-head">
+                    <b class="near-title">In der Nähe</b>
+                    <div class="near-origin seg-toggle" role="group" aria-label="Bezugspunkt für die Umkreissuche">
+                        <button type="button" class="seg active" data-near-origin="map">🗺️ Kartenmitte</button>
+                        <button type="button" class="seg" data-near-origin="gps">📍 Standort</button>
+                    </div>
+                </div>
+                <p class="near-stats muted small"></p>
+                <ul class="near-list"></ul>
+                <p class="near-empty muted small" hidden>Keine verorteten Kunden in der Nähe.</p>
+            </section>
+
             <!-- Tab: Tour -->
             <section id="tab-tour" class="tab-panel">
                 <h2>Besuchsplaner</h2>
@@ -185,7 +240,7 @@
                     <div class="seg-toggle" id="aussen-view" role="group" aria-label="Kartenansicht">
                         <button type="button" class="seg" data-view="rep">Kunden</button>
                         <button type="button" class="seg" data-view="status">Status</button>
-                        <button type="button" class="seg" data-view="chancen">🎯 Chancen</button>
+                        <button type="button" class="seg expert-only" data-view="chancen">🎯 Chancen</button>
                     </div>
                     <p id="chancen-count" class="muted small"></p>
                 </div>
@@ -198,6 +253,18 @@
                 <div class="start-search-wrap">
                     <input id="start-search" type="search" placeholder="…oder Kunde als Start wählen" autocomplete="off">
                     <div id="start-results"></div>
+                </div>
+
+                <div class="plan-day-box">
+                    <div class="plan-settings">
+                        <label class="plan-field">Datum
+                            <input type="date" id="plan-date"></label>
+                        <label class="plan-field">Start
+                            <input type="time" id="plan-time" value="08:00"></label>
+                        <label class="plan-field">Besuch (Min.)
+                            <input type="number" id="plan-visit-min" value="45" min="10" max="240" step="5"></label>
+                    </div>
+                    <p class="muted small">Datum, Startzeit und Besuchsdauer für den Tagesplan-Druck, die Kalender-Termine (.ics) und die QR-Übergabe.</p>
                 </div>
 
                 <div class="expert-only expert-swipe-section" data-expert-section="destination">
@@ -231,6 +298,8 @@
                     <button id="btn-tour-print" class="expert-only expert-swipe-section" data-expert-section="tour-print" disabled>🖨️ Tagesplan drucken</button>
                     <button id="btn-tour-ics" class="expert-only expert-swipe-section" data-expert-section="tour-ics" disabled>📅 Kalender-Export (.ics)</button>
                     <button id="btn-tour-copy" class="expert-only expert-swipe-section" data-expert-section="tour-copy" disabled>📋 Als Text kopieren (Outlook/Copilot)</button>
+                    <button id="btn-tour-qr" disabled>📲 An Handy übergeben (QR)</button>
+                    <button id="btn-tour-scan">📷 Tour vom Desktop scannen</button>
                     <button id="btn-tour-clear" class="danger" disabled>✕ Tour leeren</button>
                 </div>
 
@@ -243,14 +312,9 @@
                     <div id="saved-tours"></div>
                 </div>
 
-                <!-- Basis-/Experten-Umschalter (ganz unten) -->
-                <div class="tour-mode">
-                    <span class="muted small">Ansicht</span>
-                    <button type="button" id="btn-reset-hidden-expert" class="linklike expert-reset" hidden>Elemente zurücksetzen</button>
-                    <div class="seg-toggle" id="tour-mode-toggle" role="group" aria-label="Ansichtsmodus">
-                        <button type="button" class="seg" data-tourmode="basic">Basis</button>
-                        <button type="button" class="seg" data-tourmode="expert">Experte</button>
-                    </div>
+                <!-- Zurücksetzen weggewischter Profi-Elemente (nur im Profi-Modus relevant) -->
+                <div class="tour-mode expert-only">
+                    <button type="button" id="btn-reset-hidden-expert" class="linklike expert-reset" hidden>Ausgeblendete Elemente zurücksetzen</button>
                 </div>
                 </div><!-- /#tour-planner -->
                 <button id="btn-mobile-clear-data" class="danger mobile-data-reset" type="button">Datenbank zurücksetzen</button>
@@ -318,9 +382,10 @@
                 <button class="dialog-close" aria-label="Schließen">Schließen</button>
             </header>
             <div class="info-content">
-                <p>Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete (Landkreise & Postleitzahlen), Team-Filter und Besuchsplanung mit Tourenoptimierung.</p>
+                <button type="button" id="btn-showcase" class="primary" style="width:100%;margin-bottom:12px;">🎬 Funktionen entdecken (Live-Demos)</button>
+                <p>Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete (Landkreise & Postleitzahlen), Team-Filter und Besuchsplanung mit Tourenoptimierung. Optional mit verschlüsseltem Datentresor.</p>
                 <p class="note-private"><b>Privates, nicht-kommerzielles Projekt.</b> Nutzung auf eigene Gefahr, ohne Gewähr und ohne Haftung jeglicher Art.</p>
-                <p><b>Datenschutz:</b> Alle Kundendaten werden ausschließlich lokal in Ihrem Browser gespeichert und verlassen Ihr Gerät nicht. Kein Server, keine Cloud, kein Tracking, keine KI. Die optionale exakte Adress-Verortung sendet nur die jeweilige Adresse an OpenStreetMap (Nominatim).</p>
+                <p><b>Datenschutz:</b> Alle Kundendaten werden ausschließlich lokal in Ihrem Browser gespeichert und verlassen Ihr Gerät nicht. Kein Server, keine Cloud, kein Tracking, keine KI. Optional lassen sie sich mit einem PIN- bzw. Face-/Touch-ID-geschützten <b>Datentresor AES-256-verschlüsseln</b>. Die optionale exakte Adress-Verortung sendet nur die jeweilige Adresse an OpenStreetMap (Nominatim).</p>
                 <h3>Impressum</h3>
                 <p>Verantwortlich gemäß § 5 TMG:<br>
                 Günter Struck · Lönsberg 8 · 45136 Essen<br>
@@ -453,6 +518,121 @@
                 <button id="import-error-download">⬇ Fehlerliste (.xlsx)</button>
                 <button id="import-result-ok" class="primary">OK</button>
             </footer>
+        </dialog>
+
+        <dialog id="showcase-dialog" aria-label="Funktionen entdecken"></dialog>
+
+        <!-- Tresor: Vollbild-Sperre beim Start / nach Auto-Lock -->
+        <div id="vault-lock" class="vault-lock" hidden>
+            <div class="vault-card">
+                <div class="vault-fox">🦊</div>
+                <div class="vault-badge">🔐</div>
+                <h2>TourFuchs ist gesperrt</h2>
+                <p class="muted">Bitte PIN eingeben, um deine verschlüsselten Daten zu entsperren.</p>
+                <form id="vault-unlock-form">
+                    <input id="vault-pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" class="vault-pin-input" aria-label="PIN">
+                    <button type="submit" id="vault-unlock" class="primary">Entsperren</button>
+                </form>
+                <button type="button" id="vault-bio-unlock" class="vault-bio-btn" hidden>👤 Mit Face/Touch ID entsperren</button>
+                <p id="vault-error" class="vault-error" role="alert" hidden></p>
+                <button type="button" id="vault-recovery-link" class="linklike">PIN vergessen? Wiederherstellungscode nutzen</button>
+                <form id="vault-recovery-form" hidden>
+                    <input id="vault-recovery" type="text" placeholder="TFRC-XXXXX-XXXXX-XXXXX-XXXXX" class="vault-pin-input" autocomplete="off" aria-label="Wiederherstellungscode">
+                    <button type="submit" class="primary">Mit Code entsperren</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tresor: generischer Dialog (Aktivieren / PIN ändern / Recovery-Anzeige) -->
+        <dialog id="vault-dialog" class="vault-dialog" aria-label="Datentresor"></dialog>
+
+        <dialog id="qr-share-dialog">
+            <header>
+                <h2>📲 Tour an Handy übergeben</h2>
+                <button class="dialog-close" aria-label="Schließen">Schließen</button>
+            </header>
+            <div class="qr-share-body">
+                <canvas id="qr-share-canvas"></canvas>
+                <p id="qr-share-info" class="muted small"></p>
+                <p class="muted small">Einfach mit der <b>normalen Handy-Kamera</b> scannen – der Link öffnet TourFuchs (installierte App oder Browser) direkt mit dieser Tour. Alternativ in TourFuchs <b>„Tour vom Desktop scannen"</b> nutzen. Es wird nur die Tour übertragen – Bildschirm zu Kamera, ohne Netzwerk und ohne Server.</p>
+            </div>
+        </dialog>
+
+        <dialog id="qr-scan-dialog">
+            <header>
+                <h2>📷 Tour vom Desktop scannen</h2>
+                <button class="dialog-close" aria-label="Schließen">Schließen</button>
+            </header>
+            <div class="qr-scan-body">
+                <div id="qr-scan-live">
+                    <video id="qr-scan-video" playsinline muted></video>
+                    <p id="qr-scan-status" class="muted small">Kamera auf den QR-Code am Desktop richten …</p>
+                    <label class="qr-scan-fallback">Kamera klappt nicht? <input type="file" id="qr-scan-file" accept="image/*" capture="environment"> Foto des QR-Codes wählen</label>
+                </div>
+                <div id="qr-scan-result" hidden>
+                    <p id="qr-scan-summary"></p>
+                    <div id="qr-scan-stoplist" class="scroll-list"></div>
+                    <div class="button-column">
+                        <button id="qr-received-adopt" class="primary">➕ Als Tour übernehmen</button>
+                        <button id="qr-received-gmaps">🧭 In Google Maps navigieren</button>
+                        <button id="qr-received-ics">📅 Termine als Kalender (.ics)</button>
+                    </div>
+                    <p id="qr-scan-matchinfo" class="muted small"></p>
+                </div>
+            </div>
+        </dialog>
+
+        <!-- Sicherer Umzug: verschlüsselt exportieren (Desktop) -->
+        <dialog id="safe-export-dialog" aria-label="Verschlüsselt exportieren">
+            <header>
+                <h2>🧳 Verschlüsselt exportieren</h2>
+                <button class="dialog-close" aria-label="Schließen">Schließen</button>
+            </header>
+            <div class="safe-body">
+                <canvas id="safe-export-canvas"></canvas>
+                <p id="safe-export-info" class="muted small"></p>
+                <ol class="safe-steps">
+                    <li>Die heruntergeladene Datei <b>.tfsafe</b> aufs Handy bringen (Mail, Cloud, USB).</li>
+                    <li>In TourFuchs auf dem Handy <b>„Daten empfangen"</b> öffnen, die Datei wählen.</li>
+                    <li>Diesen <b>Schlüssel-QR</b> mit der App scannen – fertig.</li>
+                </ol>
+                <p class="muted small"><b>Wichtig:</b> Schlüssel und Datei getrennt halten. Wer nur die Datei hat, kann nichts entschlüsseln. Der Schlüssel wird nicht übers Netz übertragen.</p>
+                <details class="safe-fallback">
+                    <summary>Schlüssel als Text (falls Scannen nicht klappt)</summary>
+                    <textarea id="safe-export-keytext" rows="2" readonly aria-label="Schlüssel als Text"></textarea>
+                </details>
+                <div class="button-column">
+                    <button id="safe-export-download">💾 Datei erneut herunterladen</button>
+                </div>
+            </div>
+        </dialog>
+
+        <!-- Sicherer Umzug: Daten empfangen (Handy) -->
+        <dialog id="safe-receive-dialog" aria-label="Daten empfangen">
+            <header>
+                <h2>📥 Daten empfangen</h2>
+                <button class="dialog-close" aria-label="Schließen">Schließen</button>
+            </header>
+            <div class="safe-body">
+                <div id="safe-step-file">
+                    <p class="muted small">Schritt 1 von 2: Wähle die verschlüsselte Umzugsdatei (<b>.tfsafe</b>), die du vom Desktop bekommen hast.</p>
+                    <label class="safe-file-pick">📄 Umzugsdatei wählen
+                        <input type="file" id="safe-file-input" accept=".tfsafe,application/json">
+                    </label>
+                </div>
+                <div id="safe-step-key" hidden>
+                    <p id="safe-file-meta" class="muted small" hidden></p>
+                    <p class="muted small">Schritt 2 von 2: Scanne den <b>Schlüssel-QR</b> vom Desktop.</p>
+                    <video id="safe-scan-video" playsinline muted></video>
+                    <p id="safe-scan-status" class="muted small">Kamera auf den Schlüssel-QR am Desktop richten …</p>
+                    <label class="qr-scan-fallback">Kamera klappt nicht? <input type="file" id="safe-scan-photo" accept="image/*" capture="environment"> Foto des QR-Codes wählen</label>
+                    <details class="safe-fallback">
+                        <summary>Schlüssel eintippen/einfügen</summary>
+                        <textarea id="safe-key-input" rows="2" placeholder="TFK1:…" aria-label="Schlüssel eingeben"></textarea>
+                        <button id="safe-key-submit" class="primary">Entschlüsseln</button>
+                    </details>
+                </div>
+            </div>
         </dialog>
     </div>
     <div id="orientation-lock" class="orientation-lock" role="status" aria-live="polite">

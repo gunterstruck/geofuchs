@@ -5,6 +5,7 @@
  */
 
 import { CONFIG } from '../core/config.js';
+import { isEnabled, isUnlocked, encryptForStore, decryptFromStore, isEncryptedPayload } from './vault.js';
 
 const { dbName, dbVersion, storeName } = CONFIG.storage;
 
@@ -64,7 +65,10 @@ export async function removeFromCache(key) {
 
 export async function saveDataset(dataset) {
     try {
-        await saveToCache(KEYS.dataset, dataset);
+        // Aktiver, gesperrter Tresor: niemals im Klartext schreiben – lieber gar nicht.
+        if (isEnabled() && !isUnlocked()) return;
+        const payload = (isEnabled() && isUnlocked()) ? await encryptForStore(dataset) : dataset;
+        await saveToCache(KEYS.dataset, payload);
     } catch (error) {
         console.warn('Kundendaten konnten nicht gespeichert werden:', error);
     }
@@ -72,7 +76,13 @@ export async function saveDataset(dataset) {
 
 export async function loadDataset() {
     try {
-        return (await loadFromCache(KEYS.dataset)) ?? null;
+        const raw = (await loadFromCache(KEYS.dataset)) ?? null;
+        if (!raw) return null;
+        if (isEncryptedPayload(raw)) {
+            // Verschlüsselt gespeichert – nur bei entsperrtem Tresor lesbar.
+            return isUnlocked() ? await decryptFromStore(raw) : null;
+        }
+        return raw;
     } catch (error) {
         console.warn('Kundendaten konnten nicht geladen werden:', error);
         return null;
@@ -81,6 +91,16 @@ export async function loadDataset() {
 
 export async function clearDataset() {
     await removeFromCache(KEYS.dataset);
+}
+
+/** Gibt es überhaupt einen gespeicherten Datensatz? (unabhängig von Ver-/Entschlüsselung) */
+export async function hasStoredDataset() {
+    try {
+        const raw = await loadFromCache(KEYS.dataset);
+        return raw != null;
+    } catch {
+        return false;
+    }
 }
 
 // ---- Geocode-Cache (Nominatim-Ergebnisse) ----

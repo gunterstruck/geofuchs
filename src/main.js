@@ -8,17 +8,24 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 
 import { CONFIG } from './core/config.js';
 import { state, on, emit, setCustomers, datasetSnapshot } from './core/state.js';
-import { loadDataset, saveDataset, loadSettings } from './services/storage.js';
+import { loadDataset, saveDataset, loadSettings, hasStoredDataset } from './services/storage.js';
+import { isEnabled as vaultEnabled, isLocked as vaultLocked, removeVaultMeta } from './services/vault.js';
 import { geocodeByPlz } from './services/geocode.js';
 import { initMap } from './features/map.js';
 import { initSidebar, applyMode, autoRevealIfEmpty } from './ui/sidebar.js';
 import { initImportWizard } from './ui/importWizard.js';
 import { initTourPanel } from './ui/tourPanel.js';
+import { openReceivedFromUrl } from './ui/tourQr.js';
+import { initSafeTransfer } from './ui/safeTransfer.js';
+import { decodeTourPayload, TOUR_HASH_KEY } from './features/tourShare.js';
 import { initCockpit } from './ui/cockpit.js';
 import { initRegionEditor } from './ui/regionEditor.js';
 import { initSearch } from './ui/search.js';
+import { initNearby } from './ui/nearby.js';
 import { initToasts } from './ui/toast.js';
 import { initMobilePreview } from './ui/mobilePreview.js';
+import { initShowcase } from './ui/showcase.js';
+import { initVault } from './ui/lockVault.js';
 import { initPwaUpdates } from './ui/pwaUpdate.js';
 import { initContextHelp } from './ui/contextHelp.js';
 import { fitToCustomers } from './features/map.js';
@@ -108,6 +115,16 @@ function scheduleSave() {
     saveTimer = setTimeout(() => saveDataset(datasetSnapshot()), 400);
 }
 
+function handleSharedTourFromUrl() {
+    const hash = window.location.hash || '';
+    if (!hash.includes(`${TOUR_HASH_KEY}=`)) return;
+    const payload = decodeTourPayload(window.location.href);
+    // Fragment entfernen, damit ein Reload die Tour nicht erneut öffnet
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    if (payload) openReceivedFromUrl(payload);
+    else emit('toast', { type: 'error', text: 'Der gescannte Tour-Link konnte nicht gelesen werden.' });
+}
+
 async function init() {
     initToasts();
     initMap('map');
@@ -117,20 +134,43 @@ async function init() {
     initCockpit();
     initRegionEditor();
     initSearch();
+    initNearby();
     initMobilePreview();
+    initShowcase();
     initPwaUpdates();
     initContextHelp();
+    initSafeTransfer();
 
     on('dataset:dirty', scheduleSave);
 
-    try {
-        await restorePersistedState();
-    } catch (error) {
-        console.warn('Gespeicherter Zustand konnte nicht wiederhergestellt werden:', error);
+    // Persistierte Daten laden (bei aktivem Tresor erst nach dem Entsperren).
+    async function bootData() {
+        try {
+            await restorePersistedState();
+        } catch (error) {
+            console.warn('Gespeicherter Zustand konnte nicht wiederhergestellt werden:', error);
+        }
+        // QR-Übergabe: Wurde die App über einen gescannten Tour-Link geöffnet
+        // (host/…#t=…), direkt den Empfangs-Dialog zeigen.
+        handleSharedTourFromUrl();
+        autoRevealIfEmpty();
     }
 
-    // Ohne Daten: nach der blanken Karte das Menü mit dem Einstieg einblenden (mobil)
-    autoRevealIfEmpty();
+    // Migration/Konsistenz: Ein verwaister Tresor (aktiv, aber gar kein
+    // gespeicherter Datensatz – z. B. nach „Daten löschen" einer Altversion)
+    // würde sonst einen leeren Sperrbildschirm zeigen. Da nichts zu schützen
+    // ist, wird er gefahrlos deaktiviert (nur wenn wirklich kein Datensatz da ist).
+    if (vaultEnabled() && vaultLocked() && !(await hasStoredDataset())) {
+        removeVaultMeta();
+    }
+
+    // Tresor: Ist er aktiv und gesperrt, zeigt initVault den Sperrbildschirm und
+    // ruft bootData erst nach erfolgreichem Entsperren auf.
+    const lockedAtStart = initVault({ bootData });
+
+    window.addEventListener('hashchange', handleSharedTourFromUrl);
+
+    if (!lockedAtStart) await bootData();
 
     // Info-Dialog
     const infoDialog = document.getElementById('info-dialog');
