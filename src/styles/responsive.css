@@ -119,7 +119,9 @@
         --mobile-sheet-half: min(68dvh, 620px);
     }
 
-    /* Fixer Kopf-Streifen unter der Topbar: Ansichtstiefe + Tabs immer sichtbar. */
+    /* Fixer Kopf-Streifen unter der Topbar: Ansichtstiefe + Tabs immer sichtbar.
+       Hintergrund transparent, damit die Karte durchscheint – nur die beiden
+       Segment-Pillen „schweben" darüber. */
     .mobile-topnav {
         display: block;
         position: absolute;
@@ -127,28 +129,54 @@
         left: 0;
         right: 0;
         z-index: 1040;
-        background: var(--color-surface);
-        border-bottom: 1px solid var(--color-border);
-        box-shadow: var(--shadow-1);
-        padding-bottom: 6px;
+        background: transparent;
+        padding: 8px 0 2px;
+        pointer-events: none; /* Lücken lassen die Karte darunter durch */
     }
     /* Während des Onboardings (keine Daten) nur Willkommen + Demo zeigen. */
     body.app-onboarding .mobile-topnav { display: none; }
 
-    .mobile-topnav .depth-switch { margin: 8px 10px 6px; }
-
+    /* Beide Reihen identischer Stil: schwebende, leicht durchscheinende
+       Segment-Pille (wie Basis/Profi). */
+    .mobile-topnav .depth-switch,
     .mobile-topnav .tabs {
-        grid-auto-flow: initial;
+        pointer-events: auto;
+        display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        border-bottom: none;
-        padding: 0 10px;
-        background: transparent;
+        gap: 4px;
+        margin: 0 10px 6px;
+        padding: 3px;
+        background: rgba(255, 255, 255, 0.72);
+        -webkit-backdrop-filter: blur(9px);
+        backdrop-filter: blur(9px);
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: var(--radius-pill);
+        box-shadow: var(--shadow-1);
     }
     .mobile-topnav .mobile-map-tab { display: block; }
+
+    /* Segmente in beiden Reihen gleich: inaktiv gedämpft, aktiv grün gefüllt. */
+    .mobile-topnav .depth-switch .seg,
     .mobile-topnav .tab-button {
-        min-height: 44px;
+        border: none;
+        border-radius: var(--radius-pill);
+        background: transparent;
+        padding: 9px 6px;
+        min-height: 42px;
         font-size: 0.92rem;
+        font-weight: 700;
+        color: var(--color-text-muted);
+        white-space: nowrap;
     }
+    .mobile-topnav .depth-switch .seg.active,
+    .mobile-topnav .tab-button.active {
+        background: var(--color-primary);
+        color: #fff;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+    }
+    /* Passende Icons für Karte/Tour (nur im mobilen Streifen). */
+    .mobile-topnav .tab-button[data-tab="karte"]::before { content: "🗺️ "; }
+    .mobile-topnav .tab-button[data-tab="tour"]::before { content: "🧭 "; }
 
     .sidebar {
         top: auto;

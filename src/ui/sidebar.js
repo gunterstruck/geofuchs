@@ -574,6 +574,10 @@ export function initSidebar() {
         btn.addEventListener('click', () => {
             handleMapTabRouteToggle(btn.dataset.tab);
             activateTab(btn.dataset.tab);
+            // Handy: „Tour" öffnet das Blatt auf 2/3 der Bildschirmhöhe.
+            if (isMobileUi() && btn.dataset.tab === 'tour') {
+                setSheetHeight(Math.round(window.innerHeight * (2 / 3)), true);
+            }
             persistSettings();
         });
     });
