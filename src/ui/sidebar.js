@@ -42,6 +42,25 @@ const PANEL_ZOOM_MIN = 0.85;
 const PANEL_ZOOM_MAX = 1.2;
 const PANEL_ZOOM_STEP = 0.05;
 const DOCK_THRESHOLD = 34;
+const SIDEBAR_DRAG_SCROLL_IGNORE = [
+    'button',
+    'input',
+    'select',
+    'textarea',
+    'label',
+    'a',
+    'summary',
+    '[role="button"]',
+    '[role="separator"]',
+    '[contenteditable="true"]',
+    '.sidebar-drag',
+    '.sidebar-resize',
+    '.panel-zoom',
+    '.scroll-list',
+    '.filter-rows',
+    '.table-scroll',
+    '.cockpit-kpi-scroll'
+].join(',');
 
 function hasDataset() {
     return state.customers.length > 0 || Object.keys(state.territories).length > 0;
@@ -184,6 +203,59 @@ function initDesktopSidebarDrag() {
         document.body.classList.remove('sidebar-dragging');
     });
     handle.addEventListener('dblclick', resetSidebarPosition);
+}
+
+function initSidebarContentDragScroll() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+
+    let scroller = null;
+    let pointerId = null;
+    let startY = 0;
+    let startScrollTop = 0;
+    let moved = false;
+
+    const stopScroll = () => {
+        if (!scroller) return;
+        scroller.classList.remove('drag-scrolling');
+        document.body.classList.remove('sidebar-content-dragging');
+        scroller = null;
+        pointerId = null;
+    };
+
+    sidebar.addEventListener('pointerdown', (ev) => {
+        if (ev.button !== 0 || ev.target.closest(SIDEBAR_DRAG_SCROLL_IGNORE)) return;
+        const panel = ev.target.closest('.tab-panel.active');
+        if (!panel || panel.scrollHeight <= panel.clientHeight) return;
+
+        scroller = panel;
+        pointerId = ev.pointerId;
+        startY = ev.clientY;
+        startScrollTop = panel.scrollTop;
+        moved = false;
+        panel.setPointerCapture?.(ev.pointerId);
+        panel.classList.add('drag-scrolling');
+        document.body.classList.add('sidebar-content-dragging');
+        ev.preventDefault();
+    });
+
+    sidebar.addEventListener('pointermove', (ev) => {
+        if (!scroller || ev.pointerId !== pointerId) return;
+        const dy = ev.clientY - startY;
+        if (Math.abs(dy) > 3) moved = true;
+        scroller.scrollTop = startScrollTop - dy;
+        ev.preventDefault();
+    });
+
+    sidebar.addEventListener('pointerup', stopScroll);
+    sidebar.addEventListener('pointercancel', stopScroll);
+    sidebar.addEventListener('lostpointercapture', stopScroll);
+    sidebar.addEventListener('click', (ev) => {
+        if (!moved) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        moved = false;
+    }, true);
 }
 
 function applySidebar() {
@@ -401,6 +473,7 @@ export function initSidebar() {
     initPanelZoom();
     initDesktopSidebarResize();
     initDesktopSidebarDrag();
+    initSidebarContentDragScroll();
     initMobileSheetDrag();
 
     // Fokus-Umschalter

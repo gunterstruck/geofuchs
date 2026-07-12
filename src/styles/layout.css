@@ -251,6 +251,42 @@
 
 .tab-panel { display: none; padding: 14px; overflow-y: auto; flex: 1; border-radius: var(--radius-l) var(--radius-l) 0 0; }
 .tab-panel.active { display: block; }
+.tab-panel.active {
+    scrollbar-width: none;
+    overscroll-behavior: contain;
+}
+
+.tab-panel.active::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.tab-panel.active.drag-scrolling,
+.sidebar-content-dragging .tab-panel.active {
+    cursor: grabbing;
+    user-select: none;
+}
+
+@media (pointer: fine) {
+    .tab-panel.active {
+        cursor: grab;
+        user-select: none;
+    }
+
+    .tab-panel.active :is(button, input, select, textarea, label, a, summary, [role="button"], [contenteditable="true"], .scroll-list, .filter-rows, .table-scroll, .cockpit-kpi-scroll) {
+        cursor: auto;
+        user-select: auto;
+    }
+
+    .tab-panel.active :is(button, label, a, summary, [role="button"]) {
+        cursor: pointer;
+    }
+
+    .tab-panel.active.drag-scrolling,
+    .sidebar-content-dragging .tab-panel.active {
+        cursor: grabbing;
+    }
+}
 
 #map {
     grid-row: 2;
