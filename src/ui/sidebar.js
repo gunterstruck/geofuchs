@@ -223,10 +223,18 @@ function initSidebarContentDragScroll() {
         pointerId = null;
     };
 
+    const isOnScrollbar = (panel, ev) => {
+        const scrollbarWidth = panel.offsetWidth - panel.clientWidth;
+        if (scrollbarWidth <= 0 || panel.scrollHeight <= panel.clientHeight) return false;
+        const rect = panel.getBoundingClientRect();
+        return ev.clientX >= rect.right - Math.max(scrollbarWidth, 12);
+    };
+
     sidebar.addEventListener('pointerdown', (ev) => {
         if (ev.button !== 0 || ev.target.closest(SIDEBAR_DRAG_SCROLL_IGNORE)) return;
         const panel = ev.target.closest('.tab-panel.active');
         if (!panel || panel.scrollHeight <= panel.clientHeight) return;
+        if (isOnScrollbar(panel, ev)) return;
 
         scroller = panel;
         pointerId = ev.pointerId;

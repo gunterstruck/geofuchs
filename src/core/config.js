@@ -33,7 +33,10 @@ export const CONFIG = {
             [40.0, -10.0],
             [62.0, 30.0]
         ],
-        zoomSnap: 0.5,
+        zoomSnap: 0.25,
+        zoomDelta: 0.25,
+        wheelPxPerZoomLevel: 120,
+        wheelDebounceTime: 24,
         // Zoom-Automatik (Level of Detail): >= custom -> Kunden sichtbar,
         // >= bezirk -> Vertriebsbezirke als Flächen, darunter -> Vertriebsgruppen
         lodCustomerZoom: 9,

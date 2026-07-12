@@ -252,13 +252,30 @@
 .tab-panel { display: none; padding: 14px; overflow-y: auto; flex: 1; border-radius: var(--radius-l) var(--radius-l) 0 0; }
 .tab-panel.active { display: block; }
 .tab-panel.active {
-    scrollbar-width: none;
+    scrollbar-color: rgba(100, 116, 139, 0.64) transparent;
+    scrollbar-width: thin;
     overscroll-behavior: contain;
 }
 
 .tab-panel.active::-webkit-scrollbar {
-    width: 0;
-    height: 0;
+    width: 10px;
+    height: 10px;
+}
+
+.tab-panel.active::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tab-panel.active::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: var(--radius-pill);
+    background: rgba(100, 116, 139, 0.58);
+    background-clip: padding-box;
+}
+
+.tab-panel.active::-webkit-scrollbar-thumb:hover {
+    background: rgba(71, 85, 105, 0.76);
+    background-clip: padding-box;
 }
 
 .tab-panel.active.drag-scrolling,

@@ -156,6 +156,9 @@ export function initMap(containerId) {
         attributionControl: true,
         zoomControl: false,
         zoomSnap: CONFIG.map.zoomSnap,
+        zoomDelta: CONFIG.map.zoomDelta,
+        wheelPxPerZoomLevel: CONFIG.map.wheelPxPerZoomLevel,
+        wheelDebounceTime: CONFIG.map.wheelDebounceTime,
         maxBoundsViscosity: 0.05
     }).setView(CONFIG.map.defaultCenter, CONFIG.map.defaultZoom);
 
