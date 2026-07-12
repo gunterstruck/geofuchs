@@ -52,6 +52,32 @@ function isMobileUi() {
     return mobileQuery.matches;
 }
 
+/**
+ * Auf dem Handy die Ansichtstiefe (Basis/Profi) und die Tab-Leiste aus dem
+ * Bottom-Sheet in den fixen Kopf-Streifen heben – so bleiben sie immer sichtbar
+ * „oben aufgehängt". Auf dem Desktop wandern beide an ihre ursprüngliche Stelle
+ * in der Sidebar zurück. Die Elemente behalten ihre IDs/Klassen, daher greifen
+ * alle bestehenden Event-Handler unverändert.
+ */
+function syncTopnavPlacement() {
+    const topnav = document.getElementById('mobile-topnav');
+    const sidebar = document.getElementById('sidebar');
+    const depth = document.getElementById('depth-switch');
+    const tabs = document.querySelector('.tabs');
+    if (!topnav || !sidebar || !depth || !tabs) return;
+    if (isMobileUi()) {
+        // Reihenfolge im Streifen: erst Basis/Profi, dann die Tabs.
+        if (depth.parentElement !== topnav) topnav.appendChild(depth);
+        if (tabs.parentElement !== topnav) topnav.appendChild(tabs);
+    } else {
+        // Zurück in die Sidebar an die ursprünglichen Ankerpunkte.
+        const modeSwitch = sidebar.querySelector('.mode-switch');
+        const firstPanel = sidebar.querySelector('.tab-panel');
+        if (depth.parentElement !== sidebar && modeSwitch) sidebar.insertBefore(depth, modeSwitch);
+        if (tabs.parentElement !== sidebar && firstPanel) sidebar.insertBefore(tabs, firstPanel);
+    }
+}
+
 function clampSidebarWidth(width) {
     return Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, Math.round(width)));
 }
@@ -204,6 +230,11 @@ function topbarPx() {
 function sheetMaxHeight() {
     return Math.max(SHEET_MIN_HEIGHT, Math.round(window.innerHeight - topbarPx() - 8));
 }
+// Sichtbare „Guckhöhe" des geschlossenen Blatts (nur der Griff schaut heraus).
+function peekPx() {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--mobile-sheet-peek');
+    return parseInt(v, 10) || 40;
+}
 function clampSheetHeight(h) {
     return Math.max(SHEET_MIN_HEIGHT, Math.min(sheetMaxHeight(), Math.round(h)));
 }
@@ -299,10 +330,12 @@ function initSheetGrip() {
             // Desktop: überwiegend waagerecht -> verschieben, sonst Größe. Handy: immer Größe.
             mode = (!isMobileUi() && Math.abs(dx) > Math.abs(dy)) ? 'move' : 'resize';
             document.body.classList.add(mode === 'move' ? 'sidebar-dragging' : 'sheet-resizing');
-            // Handy: erst beim tatsächlichen Ziehen das Blatt öffnen (translateY 0).
+            // Handy: aus dem geschlossenen Zustand kontinuierlich aufziehen –
+            // das Blatt zunächst auf die sichtbare Guckhöhe fixieren, damit es
+            // NICHT auf die volle Höhe springt, sondern von dort dem Finger folgt.
             if (mode === 'resize' && isMobileUi() && !state.ui.sidebarOpen) {
+                startH = setSheetHeight(peekPx()); // geklammerte Starthöhe merken -> kein Sprung, kein Totgang
                 state.ui.sidebarOpen = true; applySidebar();
-                startH = sidebar.getBoundingClientRect().height;
             }
         }
         if (mode === 'resize') setSheetHeight(startH - dy);
@@ -527,6 +560,9 @@ export function initSidebar() {
     initSheetGrip();
     restoreSheetHeight();
     initDepth();
+    syncTopnavPlacement();
+    // Bei Wechsel Desktop <-> Handy (Drehen/Resize) Elemente umhängen.
+    mobileQuery.addEventListener('change', () => { syncTopnavPlacement(); applySidebar(); });
 
     // Fokus-Umschalter
     document.querySelectorAll('.mode-btn').forEach((btn) => {
@@ -792,6 +828,9 @@ function renderDataStatus() {
     // Onboarding-Modus: Modus-Umschalter, Hinweis und Tab-Leiste ausblenden,
     // damit der Einstieg maximal einfach ist (nur Willkommen + Demo).
     if (sidebar) sidebar.classList.toggle('onboarding', empty);
+    // Spiegelt den Onboarding-Zustand auf den Body, damit der mobile Kopf-Streifen
+    // (außerhalb der Sidebar) währenddessen ausgeblendet werden kann.
+    document.body.classList.toggle('app-onboarding', empty);
     if (empty) {
         if (onboarding) onboarding.style.display = '';
         if (loaded) loaded.style.display = 'none';

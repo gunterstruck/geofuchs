@@ -199,6 +199,10 @@
     user-select: none;
 }
 
+/* Mobiler Kopf-Streifen (Basis/Profi + Tabs) – nur auf dem Handy sichtbar.
+   Auf dem Desktop bleibt der Container leer und ausgeblendet. */
+.mobile-topnav { display: none; }
+
 /* Fokus-Umschalter Außendienst / Gebietsplanung */
 /* Ansichtstiefe Basis/Profi – prominenter, beschrifteter Umschalter oben */
 .depth-switch {
