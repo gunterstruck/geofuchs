@@ -61,7 +61,9 @@ function popupOptions(extra = {}) {
         maxWidth: mobile ? Math.min(330, window.innerWidth - 28) : 320,
         maxHeight: mobile ? Math.max(260, Math.floor(window.innerHeight * 0.56)) : 380,
         autoPan: true,
-        keepInView: true,
+        // false: das Popup darf beim Karten-Schwenk aus dem Bild wandern, damit man
+        // die Umgebung sehen kann (Ziehen im Modal schwenkt die Karte).
+        keepInView: false,
         autoPanPaddingTopLeft: L.point(18, mobile ? 76 : 82),
         autoPanPaddingBottomRight: L.point(18, mobile ? 190 : 44),
         ...extra
@@ -73,7 +75,6 @@ function decoratePopup(popupEl) {
     if (!popup || popup.querySelector('.popup-toolbar')) return;
     popup.insertAdjacentHTML('afterbegin', `
         <div class="popup-toolbar">
-            <button type="button" class="popup-drag-handle" aria-label="Popup verschieben" title="Popup verschieben">↔</button>
             <button type="button" class="popup-close-btn" data-popup-close>Schließen</button>
         </div>
     `);
@@ -117,40 +118,37 @@ function drawColoredRoute(latLngs, { dashed = false, tooltip = '' } = {}) {
     }
 }
 
-function makePopupDraggable(popupEl) {
-    if (!popupEl || !isMobileMap() || popupEl.dataset.draggablePopup === '1') return;
-    popupEl.dataset.draggablePopup = '1';
+// Handy: Ziehen im Modal schwenkt die ganze Karte – genau wie das Ziehen auf der
+// Karte selbst. Das Popup ist an seinen Geo-Punkt gebunden und wandert dabei mit.
+// Bedienelemente (Buttons, Selects, scrollbare Kundenliste) starten keinen Schwenk.
+function makePopupPanMap(popupEl) {
+    if (!popupEl || !isMobileMap() || popupEl.dataset.panMap === '1') return;
+    popupEl.dataset.panMap = '1';
     const wrapper = popupEl.querySelector('.leaflet-popup-content-wrapper');
-    const handle = popupEl.querySelector('.popup-drag-handle');
-    if (!wrapper || !handle) return;
-    wrapper.classList.add('draggable-popup');
+    if (!wrapper) return;
+    wrapper.classList.add('pan-map-popup');
 
-    let startX = 0, startY = 0, tx = 0, ty = 0, dragging = false;
-    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-
-    handle.addEventListener('pointerdown', (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        dragging = true;
-        startX = ev.clientX - tx;
-        startY = ev.clientY - ty;
-        handle.setPointerCapture?.(ev.pointerId);
-        wrapper.classList.add('dragging');
+    let lastX = 0, lastY = 0, startX = 0, startY = 0, armed = false, panning = false;
+    wrapper.addEventListener('pointerdown', (ev) => {
+        if (ev.target.closest('button, select, a, input, textarea, label, .cust-list')) return;
+        armed = true; panning = false;
+        startX = lastX = ev.clientX; startY = lastY = ev.clientY;
     });
-    handle.addEventListener('pointermove', (ev) => {
-        if (!dragging) return;
+    wrapper.addEventListener('pointermove', (ev) => {
+        if (!armed) return;
+        if (!panning) {
+            if (Math.abs(ev.clientX - startX) < 5 && Math.abs(ev.clientY - startY) < 5) return;
+            panning = true;
+            wrapper.setPointerCapture?.(ev.pointerId);
+            document.body.classList.add('popup-panning');
+        }
         ev.preventDefault();
-        ev.stopPropagation();
-        tx = clamp(ev.clientX - startX, -window.innerWidth * 0.42, window.innerWidth * 0.42);
-        ty = clamp(ev.clientY - startY, -window.innerHeight * 0.28, window.innerHeight * 0.28);
-        wrapper.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+        map.panBy([lastX - ev.clientX, lastY - ev.clientY], { animate: false });
+        lastX = ev.clientX; lastY = ev.clientY;
     });
-    const endDrag = () => {
-        dragging = false;
-        wrapper.classList.remove('dragging');
-    };
-    handle.addEventListener('pointerup', endDrag);
-    handle.addEventListener('pointercancel', endDrag);
+    const end = () => { armed = false; panning = false; document.body.classList.remove('popup-panning'); };
+    wrapper.addEventListener('pointerup', end);
+    wrapper.addEventListener('pointercancel', end);
 }
 
 export function initMap(containerId) {
@@ -194,7 +192,7 @@ export function initMap(containerId) {
         const el = e.popup.getElement();
         if (!el) return;
         decoratePopup(el);
-        makePopupDraggable(el);
+        makePopupPanMap(el);
         el.querySelector('[data-popup-close]')?.addEventListener('click', () => map.closePopup());
         el.querySelectorAll('[data-action]:not([data-action="edit-region"])').forEach((btn) => {
             btn.addEventListener('click', () => {
@@ -398,7 +396,9 @@ export async function setLevel(level) {
             layer.on('mouseout', function () {
                 this.setStyle(styleFor(feature));
             });
-            layer.bindPopup(() => regionPopupHtml(feature), popupOptions({ maxWidth: 320 }));
+            // minWidth: sichert genug Breite für die Bezirks-/Umsatz-Tabelle, damit
+            // die Namen trotz kompaktem Kopf nicht abgeschnitten werden.
+            layer.bindPopup(() => regionPopupHtml(feature), popupOptions({ maxWidth: 320, minWidth: isMobileMap() ? 264 : 250 }));
             layer.bindTooltip(() => regionTooltip(feature), { sticky: true, direction: 'top' });
         }
     }).addTo(map);
@@ -765,11 +765,10 @@ function regionPopupHtml(feature) {
     }
     const assign = territoryAssignHtml(feature);
     const revenue = entry?.customers?.reduce((sum, c) => sum + (c.umsatz || 0), 0) || 0;
-    const revenueLine = revenue ? `<p class="region-revenue">Umsatz gesamt: <b title="${formatRevenueFull(revenue)}">${formatRevenueShort(revenue)}</b></p>` : '';
-    const readonly = isMobileMap() ? '<p class="muted small">Mobile Ansicht: Gebiete sind hier nur lesbar. Änderungen bitte am Desktop vornehmen.</p>' : '';
+    const readonly = isMobileMap() ? '<p class="muted small region-readonly">Nur lesbar – Änderungen am Desktop.</p>' : '';
 
     if (!entry || entry.total === 0) {
-        return `<div class="popup">
+        return `<div class="popup popup-region">
             <h3>${escapeHtml(name)}</h3>
             <p class="muted">Keine (sichtbaren) Kunden in diesem Gebiet.</p>
             ${readonly}
@@ -799,10 +798,11 @@ function regionPopupHtml(feature) {
         const more = entry.customers.length > 8 ? `<li class="mini muted">… und ${entry.customers.length - 8} weitere</li>` : '';
         custList = `<ul class="cust-list">${list}${more}</ul>`;
     }
-    return `<div class="popup">
+    // Kundenzahl + Gesamtumsatz kompakt in EINER Zeile (wie beim Kunden-Popup).
+    const revShort = revenue ? ` · <b class="popup-umsatz" title="${formatRevenueFull(revenue)}">${formatRevenueShort(revenue)}</b> gesamt` : '';
+    return `<div class="popup popup-region">
         <h3>${escapeHtml(name)}</h3>
-        <p><b>${entry.total}</b> Kunde${entry.total === 1 ? '' : 'n'}</p>
-        ${revenueLine}
+        <p class="region-summary"><b>${entry.total}</b> Kunde${entry.total === 1 ? '' : 'n'}${revShort}</p>
         ${readonly}
         <ul class="rep-list">${districtHead}${districtRows}</ul>
         ${custList}
