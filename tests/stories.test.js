@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { STORIES, CRITICAL_SELECTORS, visibleStories, prepareShowcaseTour, selectShowcaseTour } from '../src/features/stories.js';
+import { STORIES, CRITICAL_SELECTORS, visibleStories, visibleStorySteps, prepareShowcaseTour, selectShowcaseTour } from '../src/features/stories.js';
 
 const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
 const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -48,6 +48,21 @@ describe('Showcase-Stories: Guardrail', () => {
         expect(ids).toEqual(['excel-karte', 'tour', 'chancen', 'tresor', 'empfang']);
         expect(ids).not.toContain('handy-qr');
         expect(ids).not.toContain('simulation');
+    });
+
+    it('die Tour-Demo zeigt die QR-Übergabe nur am Desktop', () => {
+        const tour = STORIES.find((story) => story.id === 'tour');
+        const desktopSteps = visibleStorySteps(tour, { isDesktop: true });
+        const mobileSteps = visibleStorySteps(tour, { isDesktop: false });
+
+        expect(desktopSteps.some((step) => step.key === 'shareTourQr')).toBe(true);
+        expect(mobileSteps.some((step) => step.key === 'shareTourQr')).toBe(false);
+        expect(mobileSteps.some((step) => step.sel === '#qr-share-canvas')).toBe(false);
+        expect(mobileSteps.at(-1)?.text).toContain('Straßenroute');
+    });
+
+    it('blendet die QR-Übergabe-Taste im mobilen View aus', () => {
+        expect(doc.querySelector('#btn-tour-qr')?.classList.contains('only-desktop')).toBe(true);
     });
 
     it('Tour-Vorführungen starten unabhängig von einer vorhandenen Tour', () => {

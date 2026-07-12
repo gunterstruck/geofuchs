@@ -11,7 +11,7 @@
  * am Ende wieder her. ESC / „Abbrechen" bricht jederzeit sauber ab.
  */
 
-import { STORIES, visibleStories, prepareShowcaseTour, selectShowcaseTour } from '../features/stories.js';
+import { STORIES, visibleStories, visibleStorySteps, prepareShowcaseTour, selectShowcaseTour } from '../features/stories.js';
 import { state, emit, markDirty, datasetSnapshot } from '../core/state.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { saveDataset } from '../services/storage.js';
@@ -648,10 +648,12 @@ async function play(story) {
     applyDepth('profi', false);
     resetView();
     try {
-        for (let i = 0; i < story.steps.length; i++) {
+        const isDesktop = window.matchMedia('(min-width: 769px)').matches;
+        const steps = visibleStorySteps(story, { isDesktop });
+        for (let i = 0; i < steps.length; i++) {
             guard();
-            setProgress(i, story.steps.length);
-            await runStep(story.steps[i]);
+            setProgress(i, steps.length);
+            await runStep(steps[i]);
         }
         markSeen(story.id);
     } catch (err) {

@@ -56,9 +56,9 @@ export const STORIES = [
             { t: 'say', text: 'Die Route liegt auf der Karte – zuerst als Luftlinie.', ms: 2200, pos: 'bottom' },
             { t: 'run', key: 'showRoadRoute' },
             { t: 'say', text: 'Ein Tipp – und statt Luftlinie siehst du die echte Straßenroute.', ms: 2800, pos: 'bottom' },
-            { t: 'run', key: 'shareTourQr' },
-            { t: 'say', text: 'Und die fertige Tour per QR-Code aufs Handy – ohne Kabel, ohne Cloud.', sel: '#qr-share-canvas', ms: 3200 },
-            { t: 'run', key: 'closeQr' }
+            { t: 'run', key: 'shareTourQr', desktopOnly: true },
+            { t: 'say', text: 'Und die fertige Tour per QR-Code aufs Handy – ohne Kabel, ohne Cloud.', sel: '#qr-share-canvas', ms: 3200, desktopOnly: true },
+            { t: 'run', key: 'closeQr', desktopOnly: true }
         ]
     },
     {
@@ -192,6 +192,15 @@ export function visibleStories({ isDesktop = true } = {}) {
     return STORIES.filter((s) => {
         if (s.desktopOnly && !isDesktop) return false;
         if (s.mobileOnly && isDesktop) return false;
+        return true;
+    });
+}
+
+/** Schritte einer Story, die in der aktuellen Ansicht sinnvoll sind. */
+export function visibleStorySteps(story, { isDesktop = true } = {}) {
+    return (story?.steps || []).filter((step) => {
+        if (step.desktopOnly && !isDesktop) return false;
+        if (step.mobileOnly && isDesktop) return false;
         return true;
     });
 }
