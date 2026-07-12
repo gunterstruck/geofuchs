@@ -421,6 +421,37 @@ function tabInMode(tabBtn, mode) {
  * @param {boolean} persist  Einstellungen sichern (beim allerersten Init false,
  *                           damit der noch nicht geladene gespeicherte Tab nicht überschrieben wird)
  */
+const DEPTH_KEY = 'gf_app_depth';
+
+/**
+ * Ansichtstiefe global setzen: 'basis' (nur Kernnutzen) oder 'profi' (alle
+ * Werkzeuge). Steuert per Body-Klasse alle .expert-only/.profi-only Elemente.
+ */
+export function applyDepth(depth, persist = true) {
+    const profi = depth === 'profi';
+    state.ui.depth = profi ? 'profi' : 'basis';
+    document.body.classList.toggle('depth-profi', profi);
+    document.querySelectorAll('#depth-switch .seg').forEach((b) =>
+        b.classList.toggle('active', b.dataset.depth === state.ui.depth));
+    if (persist) { try { localStorage.setItem(DEPTH_KEY, state.ui.depth); } catch (e) { /* egal */ } }
+    emit('depth:changed');
+}
+
+/** Beim Start: gespeicherte Tiefe laden bzw. aus dem alten Tour-Experten-Flag migrieren. */
+function initDepth() {
+    let depth = null;
+    try { depth = localStorage.getItem(DEPTH_KEY); } catch (e) { /* egal */ }
+    if (depth !== 'basis' && depth !== 'profi') {
+        // Migration: wer früher den Tour-Experten-Modus aktiv hatte, startet in Profi.
+        let legacy = null;
+        try { legacy = localStorage.getItem('gf_tour_expert'); } catch (e) { /* egal */ }
+        depth = legacy === '1' ? 'profi' : 'basis';
+    }
+    applyDepth(depth, false);
+    document.querySelectorAll('#depth-switch .seg').forEach((btn) =>
+        btn.addEventListener('click', () => applyDepth(btn.dataset.depth)));
+}
+
 export function applyMode(mode, userInitiated = true, persist = true) {
     if (isMobileUi()) mode = 'aussendienst';
     if (!MODE_CONFIG[mode]) mode = 'aussendienst';
@@ -495,6 +526,7 @@ export function initSidebar() {
     initDesktopSidebarResize();
     initSheetGrip();
     restoreSheetHeight();
+    initDepth();
 
     // Fokus-Umschalter
     document.querySelectorAll('.mode-btn').forEach((btn) => {

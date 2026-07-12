@@ -66,11 +66,8 @@ export function initTourPanel() {
         if (e.target.closest('#scope-toggle')) { scopeExpanded = true; renderTourScope(); }
     });
 
-    // Basis-/Experten-Umschalter
-    tourExpert = localStorage.getItem('gf_tour_expert') === '1';
-    document.querySelectorAll('#tour-mode-toggle .seg').forEach((btn) => {
-        btn.addEventListener('click', () => applyTourMode(btn.dataset.tourmode));
-    });
+    // Tour-Tiefe folgt der globalen Ansichtstiefe (Basis/Profi).
+    on('depth:changed', () => applyTourMode(state.ui.depth === 'profi' ? 'expert' : 'basic'));
     initExpertSwipeControls();
 
     const radius = document.getElementById('radius-slider');
@@ -197,7 +194,7 @@ export function initTourPanel() {
     on('tour:changed', renderPanel);
     on('customers:changed', () => { pruneTourToScope(); renderTourScope(); renderPanel(); });
     on('filters:changed', renderSuggestions);
-    applyTourMode(tourExpert ? 'expert' : 'basic', false);
+    applyTourMode(state.ui.depth === 'profi' ? 'expert' : 'basic', false);
     renderTourScope();
     renderPanel();
 }
@@ -255,11 +252,8 @@ function updatePlannerVisibility() {
  */
 function applyTourMode(mode, doEmit = true) {
     tourExpert = mode === 'expert';
-    try { localStorage.setItem('gf_tour_expert', tourExpert ? '1' : '0'); } catch (e) { /* egal */ }
     const planner = document.getElementById('tour-planner');
     if (planner) planner.classList.toggle('basic', !tourExpert);
-    document.querySelectorAll('#tour-mode-toggle .seg').forEach((b) =>
-        b.classList.toggle('active', b.dataset.tourmode === (tourExpert ? 'expert' : 'basic')));
     // Schritt-Nummerierung an den Modus anpassen
     const sh = document.getElementById('suggest-head');
     const mh = document.getElementById('mytour-head');

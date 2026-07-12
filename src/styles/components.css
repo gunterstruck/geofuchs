@@ -668,8 +668,10 @@
 }
 .scope-collapsed:hover { border-color: var(--color-primary); background: var(--color-primary-light); }
 
-/* Basis-/Experten-Umschalter (unten im Tour-Panel) */
-#tour-planner.basic .expert-only { display: none !important; }
+/* Globale Ansichtstiefe: im Basis-Modus werden alle Profi-/Experten-Elemente
+   ausgeblendet – app-weit, nicht nur im Tour-Panel. */
+body:not(.depth-profi) .expert-only,
+body:not(.depth-profi) .profi-only { display: none !important; }
 .tour-mode { display: flex; align-items: center; gap: 8px; margin: 18px 0 4px; padding-top: 10px; border-top: 1px solid var(--color-surface-2); }
 .tour-mode .seg-toggle { flex: 1; margin: 0; }
 .expert-reset {

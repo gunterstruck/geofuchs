@@ -61,6 +61,9 @@ export const state = {
         //              'gebietsplanung' (Experten: Gebiete schneiden, Cockpit, Simulation)
         mode: 'aussendienst',
         activeTab: 'tour',
+        // Ansichtstiefe: 'basis' (nur Kernnutzen, wenig Ablenkung) |
+        //               'profi' (alle Komfort-/Feinsteuer-Funktionen)
+        depth: 'basis',
         // Chancen-Fokus: nur fällige/überfällige Kunden auf der Karte zeigen
         opportunityOnly: false,
         sidebarOpen: window.innerWidth > 900
