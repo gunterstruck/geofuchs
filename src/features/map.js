@@ -824,6 +824,14 @@ const RHYTHM_OPTIONS = [
 ];
 
 function visitBlockHtml(customer) {
+    // Basis: nur „Heute besucht" – Rhythmus/Zuletzt/Status sind Profi-Komfort.
+    if (state.ui.depth !== 'profi') {
+        return `<div class="visit-block">
+            <div class="visit-controls">
+                <button data-action="mark-visited" data-id="${escapeHtml(customer.id)}">✓ Heute besucht</button>
+            </div>
+        </div>`;
+    }
     const status = visitStatus(customer);
     const last = lastVisit(customer);
     const statusBadge = customer.rhythmusWochen
@@ -871,18 +879,21 @@ export function customerPopupHtml(customer) {
     const umsatz = customer.umsatz
         ? `<b class="popup-umsatz" title="${formatRevenueFull(customer.umsatz)}">${formatRevenueShort(customer.umsatz)}</b>`
         : '';
-    const metaLine = [hierarchy, umsatz].filter(Boolean).join(' · ');
+    const profi = state.ui.depth === 'profi';
+    // Basis: nur Umsatz (Priorisierung), Hierarchie/Kd.-Nr. sind Profi-Detail.
+    const metaLine = (profi ? [hierarchy, umsatz] : [umsatz]).filter(Boolean).join(' · ');
+    const nr = profi && customer.nummer ? `<span class="popup-nr">Nr. ${escapeHtml(customer.nummer)}</span>` : '';
     return `<div class="popup popup-customer">
-        <h3>${escapeHtml(customer.name)}${customer.nummer ? `<span class="popup-nr">Nr. ${escapeHtml(customer.nummer)}</span>` : ''}</h3>
+        <h3>${escapeHtml(customer.name)}${nr}</h3>
         ${addr ? `<p class="popup-addr">${addr}${customer.geo === 'plz' ? ' <span class="muted small">· 📍 ca. (PLZ-Mitte)</span>' : ''}</p>` : ''}
         ${metaLine ? `<p class="muted small popup-meta">${metaLine}</p>` : ''}
         ${contactBlockHtml(customer)}
         ${visitBlockHtml(customer)}
         <div class="popup-actions">
             <button data-action="tour-start" data-id="${escapeHtml(customer.id)}">🚩 Als Start</button>
-            <button data-action="tour-dest" data-id="${escapeHtml(customer.id)}" ${isDest ? 'disabled' : ''}>${isDest ? '✓ Ziel' : '🏁 Als Ziel'}</button>
+            ${profi ? `<button data-action="tour-dest" data-id="${escapeHtml(customer.id)}" ${isDest ? 'disabled' : ''}>${isDest ? '✓ Ziel' : '🏁 Als Ziel'}</button>` : ''}
             <button data-action="tour-add" data-id="${escapeHtml(customer.id)}" ${inTour ? 'disabled' : ''}>${inTour ? '✓ In Tour' : '➕ Zur Tour'}</button>
-            <button data-action="copy-customer" data-id="${escapeHtml(customer.id)}" title="Als Text für Outlook/Copilot kopieren">📋 Kopieren</button>
+            ${profi ? `<button data-action="copy-customer" data-id="${escapeHtml(customer.id)}" title="Als Text für Outlook/Copilot kopieren">📋 Kopieren</button>` : ''}
         </div>
     </div>`;
 }

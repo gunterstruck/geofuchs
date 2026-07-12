@@ -17,7 +17,7 @@ import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js
 import { saveDataset } from '../services/storage.js';
 import { openSetupDialog } from './lockVault.js';
 import { flyToCustomer, fitToCustomers, closeMapPopups } from '../features/map.js';
-import { showMapView, expandSheetForDemo, restoreSheetAfterDemo } from './sidebar.js';
+import { showMapView, expandSheetForDemo, restoreSheetAfterDemo, applyDepth } from './sidebar.js';
 import { showKeyStepForDemo } from './safeTransfer.js';
 
 const ROUTING_CONSENT_KEY = 'gf_routing_consent';
@@ -41,6 +41,7 @@ let visitRestore = null;      // { id, besuche } zum Zurücksetzen von „Heute 
 let origConfirm = null;       // Originales window.confirm während patchConfirm
 let priorConsent = undefined; // Routing-Zustimmung vor der Demo (zum Zurücksetzen)
 let demoVaultCreated = false; // hat DIESE Demo den Tresor angelegt? (nur dann abbauen)
+let priorDepth = null;        // Ansichtstiefe vor der Demo (zum Zurücksetzen)
 
 class AbortError extends Error {}
 
@@ -544,6 +545,8 @@ function cleanup(story) {
     // auf die definierte Ausgangslage bringen (nicht dort stehen bleiben, wo die
     // Vorführung geendet hat).
     restoreSheetAfterDemo();
+    // Ansichtstiefe auf den Stand vor der Demo zurück.
+    if (priorDepth) { applyDepth(priorDepth, false); priorDepth = null; }
     resetView();
 }
 
@@ -563,6 +566,9 @@ async function play(story) {
     if (story.mutatesTour) tourSnapshot = JSON.parse(JSON.stringify(state.tour));
     if (story.patchConfirm) { origConfirm = window.confirm; window.confirm = () => true; }
     showChrome(story);
+    // Vorführungen laufen im Profi-Modus, damit alle Funktionen zeigbar sind.
+    priorDepth = state.ui.depth;
+    applyDepth('profi', false);
     resetView();
     try {
         for (let i = 0; i < story.steps.length; i++) {

@@ -40,17 +40,33 @@ Sie beantwortet zwei Kernfragen:
 **Topbar (oben):** Menü-Schalter „☰", TourFuchs-Logo, Suchfeld
 „Kunde, Ort, PLZ suchen…", Mobile-Vorschau „📱" (Desktop), Info „ⓘ".
 
-**Moduswechsel (oben im Bedienpanel):** zwei Schaltflächen
+**Ansichtstiefe (ganz oben im Bedienpanel):** beschrifteter Umschalter
+**„🌱 Basis" / „🛠️ Profi"** – die aktive Stufe ist hervorgehoben, die andere
+ausgegraut. Dies ist eine **globale** Achse (gilt in beiden Fokus-Modi, mobil wie
+Desktop):
+- **🌱 Basis** (Standard beim ersten Start): zeigt nur das Wesentliche und hält den
+  ersten Eindruck ruhig. Im Kunden-Popup z. B. nur Umsatz, Adresse, Kontakt,
+  „Als Start", „Zur Tour" und „✓ Heute besucht" – ohne Rhythmus/Zuletzt-Zeile,
+  Kundennummer, „Als Ziel" oder „Kopieren".
+- **🛠️ Profi**: blendet alle Komfort- und Feinsteuerungs-Werkzeuge ein
+  (z. B. Chancen/fällige Kunden, Ziel, Vorschlagsmodus, Druck/Export, Besuchs­rhythmus
+  und Kundennummer im Popup, „Als Ziel", „Kopieren").
+
+Die Wahl wird gespeichert (`gf_app_depth`). Bestandsnutzer mit früher aktiviertem
+Tour-Experten-Modus (`gf_tour_expert`) starten automatisch in **Profi**.
+Live-Vorführungen laufen immer in Profi, damit alle Funktionen zeigbar sind, und
+stellen danach die vorherige Stufe wieder her.
+
+**Fokuswechsel (darunter im Bedienpanel):** zwei Schaltflächen
 - **„🚗 Außendienst"** – Alltag: Karte, Tour, Kunden. Tabs: „📄 Daten", „Filter", „Tour".
 - **„🗺️ Gebietsplanung"** – Analyse: Flächen, Cockpit, Simulation. Tabs: „📄 Daten", „Filter", „🗺️ Gebiete".
 
 Auf dem Smartphone gibt es zusätzlich den Tab **„Karte"**; das Tour-Panel liegt als
 Bottom Sheet über der Karte (minimiert / halb / voll, per Wischen).
 
-Im Tour-Tab gibt es unten den Umschalter **„Basis" / „Experte"**: Der Experten-Modus
-blendet zusätzliche Optionen ein (z. B. Ziel, Vorschlagsmodus, Druck/Export-Aktionen).
-Wenn ein Nutzer eine Schaltfläche nicht findet, zuerst prüfen: richtiger Modus,
-richtiger Tab, ggf. „Experte" aktivieren.
+Wenn ein Nutzer eine Schaltfläche nicht findet, zuerst prüfen: richtige
+Ansichtstiefe (**Profi** blendet die Werkzeuge ein), richtiger Fokus-Modus,
+richtiger Tab.
 
 ---
 
@@ -294,7 +310,7 @@ mit Vorschlägen und Optimierung.
    **„Start"** (Uhrzeit, Standard 08:00), **„Besuch (Min.)"** (Standard 45).
    Diese Werte steuern Tagesplan-Druck, Kalender-Termine und die QR-Übergabe.
 4. **Vorschläge**: Umschalter **„Umkreis um Start"** / **„Entlang der Tour"**
-   (Experten-Modus), Umkreis/Korridor per Schieberegler, Häkchen
+   (nur im Profi-Modus), Umkreis/Korridor per Schieberegler, Häkchen
    **„Überfällige zuerst"** priorisiert fällige Kunden.
 5. Kunden aus der Vorschlagsliste oder aus Karten-Popups mit **„➕ Zur Tour"** hinzufügen.
 6. **„⚡ Reihenfolge optimieren"** – kürzeste Strecke (Nearest-Neighbor + 2-Opt).
@@ -302,7 +318,7 @@ mit Vorschlägen und Optimierung.
 8. **„🧭 In Google Maps navigieren"** – Übergabe zur Navigation (max. 10 Stopps).
 
 ### 9.2 Ziel und Rundreise
-- **„2. Ziel (optional)"** (Experten-Modus): fester Endpunkt der Tour; Vorschläge
+- **„2. Ziel (optional)"** (nur im Profi-Modus): fester Endpunkt der Tour; Vorschläge
   „Entlang der Tour" nutzen dann die Strecke Start → Stopps → Ziel.
 - Häkchen **„🔁 Rundreise (zurück zum Start)"**: Start ist zugleich Ziel.
 - Ohne Ziel und ohne Rundreise ist der letzte Stopp automatisch das Ziel.
@@ -327,7 +343,7 @@ arbeitet alles mit der direkten Verbindung (Luftlinie), komplett offline.
 - **„📋 Als Text kopieren (Outlook/Copilot)"**: Tour als Text in die Zwischenablage.
 
 ### 9.5 Tour speichern
-Bereich „Gespeicherte Touren" (Experten-Modus): Namen eingeben
+Bereich „Gespeicherte Touren" (nur im Profi-Modus): Namen eingeben
 („Tourname, z. B. Dienstag Nord") → **„💾"**. Gespeicherte Touren später laden.
 
 ### 9.6 „Was ist in meiner Nähe?"
@@ -406,7 +422,7 @@ trotzdem immer die Gesamtsumme (fachliche Sicht).
   (minimiert / halb / voll), die Karte bleibt sichtbar.
 - **Hochformat** ist optimiert; im Querformat erscheint ein Drehhinweis.
 - Kunden-Popups sind scrollbar; „➕ Zur Tour" funktioniert auch aus dem Popup.
-- Im Experten-Modus können einzelne Abschnitte per Wischgeste ausgeblendet werden;
+- Im Profi-Modus können einzelne Abschnitte per Wischgeste ausgeblendet werden;
   „Elemente zurücksetzen" holt sie zurück.
 - **Mobile-Vorschau am Desktop:** Symbol „📱" in der Topbar simuliert die
   Smartphone-Ansicht (praktisch für Schulungen).

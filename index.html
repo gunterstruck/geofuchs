@@ -36,6 +36,10 @@
                 <span id="panel-zoom-label" role="button" tabindex="0" title="Zurück auf 100 %">100%</span>
                 <button type="button" id="panel-zoom-out" aria-label="Panel verkleinern">−</button>
             </div>
+            <div class="depth-switch seg-toggle" id="depth-switch" role="group" aria-label="Ansichtstiefe wählen" title="Basis zeigt nur das Wesentliche · Profi blendet alle Werkzeuge ein">
+                <button type="button" class="seg" data-depth="basis">🌱 Basis</button>
+                <button type="button" class="seg" data-depth="profi">🛠️ Profi</button>
+            </div>
             <div class="mode-switch" role="group" aria-label="Fokus wählen">
                 <button type="button" class="mode-btn active" data-mode="aussendienst">🚗 Außendienst</button>
                 <button type="button" class="mode-btn" data-mode="gebietsplanung">🗺️ Gebietsplanung</button>
@@ -217,7 +221,7 @@
                     <div class="seg-toggle" id="aussen-view" role="group" aria-label="Kartenansicht">
                         <button type="button" class="seg" data-view="rep">Kunden</button>
                         <button type="button" class="seg" data-view="status">Status</button>
-                        <button type="button" class="seg" data-view="chancen">🎯 Chancen</button>
+                        <button type="button" class="seg expert-only" data-view="chancen">🎯 Chancen</button>
                     </div>
                     <p id="chancen-count" class="muted small"></p>
                 </div>
@@ -289,14 +293,9 @@
                     <div id="saved-tours"></div>
                 </div>
 
-                <!-- Basis-/Experten-Umschalter (ganz unten) -->
-                <div class="tour-mode">
-                    <span class="muted small">Ansicht</span>
-                    <button type="button" id="btn-reset-hidden-expert" class="linklike expert-reset" hidden>Elemente zurücksetzen</button>
-                    <div class="seg-toggle" id="tour-mode-toggle" role="group" aria-label="Ansichtsmodus">
-                        <button type="button" class="seg" data-tourmode="basic">Basis</button>
-                        <button type="button" class="seg" data-tourmode="expert">Experte</button>
-                    </div>
+                <!-- Zurücksetzen weggewischter Profi-Elemente (nur im Profi-Modus relevant) -->
+                <div class="tour-mode expert-only">
+                    <button type="button" id="btn-reset-hidden-expert" class="linklike expert-reset" hidden>Ausgeblendete Elemente zurücksetzen</button>
                 </div>
                 </div><!-- /#tour-planner -->
                 <button id="btn-mobile-clear-data" class="danger mobile-data-reset" type="button">Datenbank zurücksetzen</button>

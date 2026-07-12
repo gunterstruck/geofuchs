@@ -200,6 +200,34 @@
 }
 
 /* Fokus-Umschalter Außendienst / Gebietsplanung */
+/* Ansichtstiefe Basis/Profi – prominenter, beschrifteter Umschalter oben */
+.depth-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin: 10px 10px 0;
+    padding: 3px;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+}
+.depth-switch .seg {
+    border: none;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    padding: 8px 6px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+.depth-switch .seg.active {
+    background: var(--color-primary);
+    color: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+}
+
 .mode-switch {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -264,6 +292,7 @@
 
 /* Onboarding (keine Daten): Modus-Umschalter, Hinweis und Tab-Leiste ausblenden
    – der Einstieg zeigt nur Willkommen + Demo. */
+.sidebar.onboarding .depth-switch,
 .sidebar.onboarding .mode-switch,
 .sidebar.onboarding .mode-hint,
 .sidebar.onboarding .basemap-control,
