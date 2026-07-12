@@ -11,13 +11,13 @@
  * am Ende wieder her. ESC / „Abbrechen" bricht jederzeit sauber ab.
  */
 
-import { STORIES, visibleStories, prepareShowcaseTour } from '../features/stories.js';
+import { STORIES, visibleStories, prepareShowcaseTour, selectShowcaseTour } from '../features/stories.js';
 import { state, emit, markDirty, datasetSnapshot } from '../core/state.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { saveDataset } from '../services/storage.js';
 import { distanceKm } from '../services/geocode.js';
 import { openSetupDialog, showRecoveryCodeForDemo } from './lockVault.js';
-import { flyToCustomer, fitToCustomers, fitTourRoute, closeMapPopups } from '../features/map.js';
+import { flyToCustomer, fitToCustomers, fitTourRoute, focusMapArea, closeMapPopups } from '../features/map.js';
 import { showMapView, captureSheetForDemo, expandSheetForDemo, restoreSheetAfterDemo, applyDepth } from './sidebar.js';
 import { showKeyStepForDemo } from './safeTransfer.js';
 
@@ -43,6 +43,7 @@ let origConfirm = null;       // Originales window.confirm während patchConfirm
 let priorConsent = undefined; // Routing-Zustimmung vor der Demo (zum Zurücksetzen)
 let demoVaultCreated = false; // hat DIESE Demo den Tresor angelegt? (nur dann abbauen)
 let priorDepth = null;        // Ansichtstiefe vor der Demo (zum Zurücksetzen)
+let showcaseTourPlan = null;  // reproduzierbare Start-/Stoppwahl der aktuellen Demo
 
 class AbortError extends Error {}
 
@@ -232,6 +233,25 @@ function hideBubble() {
 function scopedWithCoords() {
     return state.customers.filter((c) => c.lat !== null && c.lng !== null);
 }
+function showcaseSearchTerm(customer) {
+    const pool = scopedWithCoords();
+    const name = String(customer?.name || '').trim();
+    const terms = [name.slice(0, 12), name, String(customer?.plz || ''), String(customer?.ort || '')]
+        .filter((term, index, all) => term.length >= 2 && all.indexOf(term) === index);
+    return terms.find((term) => pool
+        .filter((c) => c.name.toLowerCase().includes(term.toLowerCase())
+            || String(c.ort || '').toLowerCase().includes(term.toLowerCase())
+            || String(c.plz || '').startsWith(term))
+        .slice(0, 6)
+        .some((c) => c.id === customer.id)) || name;
+}
+function assignShowcaseStart(customer) {
+    state.tour.start = {
+        lat: customer.lat, lng: customer.lng, label: customer.name, customerId: customer.id,
+        strasse: customer.strasse, plz: customer.plz, ort: customer.ort
+    };
+    emit('tour:changed');
+}
 async function waitForCustomers(timeout = 6000) {
     const start = Date.now();
     while (state.customers.length === 0) {
@@ -253,6 +273,14 @@ const HELPERS = {
             await clickEl('#btn-demo');
             await waitForCustomers();
         }
+    },
+    async focusDemoTourArea() {
+        showcaseTourPlan = selectShowcaseTour(scopedWithCoords());
+        const center = showcaseTourPlan?.center || { lat: 51.48, lng: 7.08 };
+        document.querySelector('.mode-btn[data-mode="aussendienst"]')?.click();
+        showMapView();
+        focusMapArea(center.lat, center.lng, 10);
+        await sleep(1700);
     },
     async showOneCustomer() {
         // Karte in den Vordergrund holen (auf dem Handy das Blatt einklappen),
@@ -285,21 +313,38 @@ const HELPERS = {
         await sleep(500);
     },
     async pickStart() {
+        const planned = showcaseTourPlan?.start;
         // Auf dem Handy NICHT ins Suchfeld tippen – das würde die Bildschirm-
         // tastatur öffnen und das halbe Panel verdecken. Dort Start direkt setzen.
-        if (!isMobileView()) {
+        if (!isMobileView() && planned) {
+            await typeInto('#start-search', showcaseSearchTerm(planned));
+            const selector = `#start-results [data-id="${CSS.escape(String(planned.id))}"]`;
+            const res = await resolveEl(selector, 2200);
+            if (res) { await clickEl(selector); await sleep(500); return; }
+        } else if (!isMobileView()) {
             await typeInto('#start-search', 'au');
             const res = await resolveEl('#start-results .result-row', 2200);
             if (res) { await clickEl('#start-results .result-row'); await sleep(500); return; }
         }
-        const c = scopedWithCoords()[0];
-        if (c) {
-            state.tour.start = { lat: c.lat, lng: c.lng, label: c.name, customerId: c.id };
-            emit('tour:changed');
-        }
+        const c = planned || scopedWithCoords()[0];
+        if (c) assignShowcaseStart(c);
         await sleep(400);
     },
     async addTwoSuggestions() {
+        const plannedStops = showcaseTourPlan?.stops?.filter((c) => c.id !== state.tour.start?.customerId) || [];
+        if (plannedStops.length >= 2) {
+            await moveToEl('#tour-suggestions');
+            for (const customer of plannedStops.slice(0, 2)) {
+                const selector = `#tour-suggestions [data-add="${CSS.escape(String(customer.id))}"]`;
+                if (await resolveEl(selector, 250)) await clickEl(selector);
+                else if (!state.tour.stops.includes(customer.id)) {
+                    state.tour.stops.push(customer.id);
+                    emit('tour:changed');
+                    await sleep(650);
+                }
+            }
+            return;
+        }
         for (let i = 0; i < 2; i++) {
             const add = await resolveEl('#tour-suggestions [data-add]', 2500);
             if (add) { await clickEl('#tour-suggestions [data-add]'); await sleep(600); continue; }
@@ -332,6 +377,8 @@ const HELPERS = {
         try { localStorage.setItem(ROUTING_CONSENT_KEY, 'yes'); } catch { /* egal */ }
         await clickEl('#btn-route-focus');   // schaltet Luftlinie -> Straße (mapFocus ist bereits aktiv)
         await sleep(2600);                    // Straßenroute (OSRM) berechnen/zeichnen lassen
+        fitTourRoute();
+        await sleep(700);
     },
     // Fertige Tour als QR-Code zeigen (Barcode-Übergabe aufs Handy).
     async shareTourQr() {
@@ -545,6 +592,7 @@ function cleanup(story) {
         emit('tour:changed');
     }
     tourSnapshot = null;
+    showcaseTourPlan = null;
 
     // Routing-Zustimmung auf den Stand vor der Demo zurücksetzen.
     if (priorConsent !== undefined) {
@@ -585,6 +633,7 @@ async function play(story) {
     running = true;
     aborted = false;
     ensureDom();
+    showcaseTourPlan = null;
     captureSheetForDemo();
     if (story.mutatesTour) {
         tourSnapshot = JSON.parse(JSON.stringify(state.tour));

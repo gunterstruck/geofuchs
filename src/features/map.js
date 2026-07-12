@@ -1121,9 +1121,10 @@ export function fitToCustomers() {
     const located = markerCustomers().filter((c) => c.lat !== null);
     if (!map || located.length === 0) return;
     const bounds = L.latLngBounds(located.map((c) => [c.lat, c.lng]));
+    const padding = fitPadding(174);
     map.fitBounds(bounds.pad(0.15), {
-        paddingTopLeft: isMobileMap() ? [18, 72] : [24, 80],
-        paddingBottomRight: isMobileMap() ? [18, 174] : [24, 72]
+        paddingTopLeft: padding.topLeft,
+        paddingBottomRight: padding.bottomRight
     });
 }
 
@@ -1138,15 +1139,42 @@ export function fitTourRoute() {
     map.closePopup();
     map.invalidateSize();
     const bounds = L.latLngBounds(routePts);
-    const mobile = isMobileMap();
+    const padding = fitPadding(190);
     map.fitBounds(bounds.pad(0.18), {
         animate: true,
         duration: 0.7,
         maxZoom: 12,
-        paddingTopLeft: mobile ? [18, 76] : [24, 80],
-        paddingBottomRight: mobile ? [18, 190] : [24, 72]
+        paddingTopLeft: padding.topLeft,
+        paddingBottomRight: padding.bottomRight
     });
     return true;
+}
+
+function fitPadding(mobileBottom) {
+    if (isMobileMap()) return { topLeft: [18, 76], bottomRight: [18, mobileBottom] };
+    const mapRect = map?.getContainer()?.getBoundingClientRect();
+    const sidebar = document.getElementById('sidebar');
+    let left = 24;
+    if (mapRect && sidebar?.classList.contains('open')) {
+        const sidebarRect = sidebar.getBoundingClientRect();
+        const overlapsLeftSide = sidebarRect.right > mapRect.left
+            && sidebarRect.left < mapRect.left + mapRect.width * 0.55;
+        if (overlapsLeftSide) {
+            left = Math.min(
+                Math.round(mapRect.width * 0.48),
+                Math.max(left, Math.round(sidebarRect.right - mapRect.left + 24))
+            );
+        }
+    }
+    return { topLeft: [left, 80], bottomRight: [24, 72] };
+}
+
+/** Karte für eine geführte Demo auf einen definierten Ausschnitt setzen. */
+export function focusMapArea(lat, lng, zoom = 10) {
+    if (!map || lat === null || lng === null) return;
+    map.closePopup();
+    map.invalidateSize();
+    map.flyTo([lat, lng], zoom, { duration: 0.9 });
 }
 
 /** Karte auf einen Punkt (z. B. GPS-Standort) zentrieren */

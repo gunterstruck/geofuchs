@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { STORIES, CRITICAL_SELECTORS, visibleStories, prepareShowcaseTour } from '../src/features/stories.js';
+import { STORIES, CRITICAL_SELECTORS, visibleStories, prepareShowcaseTour, selectShowcaseTour } from '../src/features/stories.js';
 
 const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
 const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -84,5 +84,22 @@ describe('Showcase-Stories: Guardrail', () => {
         const vault = STORIES.find((story) => story.id === 'tresor');
         expect(tour.steps.some((step) => step.t === 'run' && step.key === 'focusTourRoute')).toBe(true);
         expect(vault.steps.some((step) => step.t === 'say' && step.sel === '#recovery-code')).toBe(true);
+    });
+
+    it('wählt für die Tour-Demo getrennte Kunden quer durchs Ruhrgebiet', () => {
+        const customers = [
+            { id: 'start', name: 'Start Oberhausen', lat: 51.47, lng: 6.85 },
+            { id: 'duplicate', name: 'Gleiche PLZ', lat: 51.47, lng: 6.85 },
+            { id: 'essen', name: 'Kunde Essen', lat: 51.45, lng: 7.02 },
+            { id: 'bochum', name: 'Kunde Bochum', lat: 51.48, lng: 7.22 },
+            { id: 'dortmund', name: 'Kunde Dortmund', lat: 51.50, lng: 7.40 },
+            { id: 'berlin', name: 'Kunde Berlin', lat: 52.52, lng: 13.40 }
+        ];
+
+        const plan = selectShowcaseTour(customers);
+        expect(plan.start.id).toBe('start');
+        expect(plan.stops.map((c) => c.id)).toEqual(['essen', 'dortmund']);
+        expect(plan.stops.map((c) => c.id)).not.toContain('duplicate');
+        expect(plan.inRuhr).toBe(true);
     });
 });

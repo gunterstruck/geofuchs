@@ -39,6 +39,8 @@ export const STORIES = [
         mutatesTour: true,
         steps: [
             { t: 'run', key: 'ensureDemo' },
+            { t: 'run', key: 'focusDemoTourArea' },
+            { t: 'say', text: 'Wir starten im Ruhrgebiet: Hier liegen genug Kunden für eine sichtbare, sinnvolle Tagestour.', ms: 2400, pos: 'bottom' },
             { t: 'run', key: 'gotoTour' },
             { t: 'say', text: 'Zuerst den Vertriebsbezirk wählen – dann kommen nur passende Kunden.', sel: '#tour-scope', ms: 2200 },
             { t: 'run', key: 'pickBezirkAll' },
@@ -207,6 +209,69 @@ export function prepareShowcaseTour(tour, { radiusKm = 50 } = {}) {
         suggestMode: 'radius',
         mapFocus: false,
         routeLineMode: 'air'
+    };
+}
+
+const RUHR_CENTER = { lat: 51.48, lng: 7.08 };
+const RUHR_ROUTE_TARGETS = [
+    { lat: 51.47, lng: 6.85 }, // Oberhausen
+    { lat: 51.45, lng: 7.02 }, // Essen
+    { lat: 51.50, lng: 7.40 }  // westliches Dortmund
+];
+
+function geoDistanceKm(a, b) {
+    const rad = Math.PI / 180;
+    const dLat = (Number(b.lat) - Number(a.lat)) * rad;
+    const dLng = (Number(b.lng) - Number(a.lng)) * rad;
+    const lat1 = Number(a.lat) * rad;
+    const lat2 = Number(b.lat) * rad;
+    const h = Math.sin(dLat / 2) ** 2
+        + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function nearestTo(target, candidates) {
+    return [...candidates].sort((a, b) => geoDistanceKm(target, a) - geoDistanceKm(target, b))[0] || null;
+}
+
+/**
+ * Wählt für die Tour-Demo drei geografisch getrennte Kunden. Im Regelfall
+ * entsteht Oberhausen -> Essen -> westliches Dortmund; bei anderen Datensätzen
+ * wird dieselbe Tagesentfernung rund um den nächstgelegenen Kunden nachgebildet.
+ */
+export function selectShowcaseTour(customers, { areaRadiusKm = 85, maxRouteKm = 60 } = {}) {
+    const located = customers.filter((c) => Number.isFinite(Number(c.lat)) && Number.isFinite(Number(c.lng)));
+    if (located.length < 3) return null;
+
+    const ruhr = located.filter((c) => geoDistanceKm(RUHR_CENTER, c) <= areaRadiusKm);
+    const start = nearestTo(RUHR_ROUTE_TARGETS[0], ruhr.length ? ruhr : located);
+    if (!start) return null;
+
+    const routePool = located.filter((c) => c.id !== start.id && geoDistanceKm(start, c) <= maxRouteKm);
+    const choose = (target, desiredKm, minFromStart, used = [], minFromUsed = 7) => routePool
+        .filter((c) => !used.some((u) => u.id === c.id))
+        .filter((c) => geoDistanceKm(start, c) >= minFromStart)
+        .filter((c) => used.every((u) => u.id === start.id || geoDistanceKm(u, c) >= minFromUsed))
+        .sort((a, b) => {
+            const score = (c) => geoDistanceKm(target, c) + Math.abs(geoDistanceKm(start, c) - desiredKm) * 0.35;
+            return score(a) - score(b);
+        })[0] || null;
+
+    let first = choose(RUHR_ROUTE_TARGETS[1], 14, 7, [start]);
+    if (!first) first = choose(RUHR_ROUTE_TARGETS[1], 18, 2, [start], 2);
+    let second = first ? choose(RUHR_ROUTE_TARGETS[2], 38, 18, [start, first], 8) : null;
+    if (!second && first) second = choose(RUHR_ROUTE_TARGETS[2], 32, 8, [start, first], 4);
+    if (!first || !second) return null;
+
+    const points = [start, first, second];
+    return {
+        start,
+        stops: [first, second],
+        center: {
+            lat: points.reduce((sum, p) => sum + Number(p.lat), 0) / points.length,
+            lng: points.reduce((sum, p) => sum + Number(p.lng), 0) / points.length
+        },
+        inRuhr: geoDistanceKm(RUHR_CENTER, start) <= areaRadiusKm
     };
 }
 
