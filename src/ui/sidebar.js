@@ -191,7 +191,7 @@ function initDesktopSidebarResize() {
 /** Sidebar auf-/zuklappen (mobil) gemäß state.ui.sidebarOpen */
 function applySidebarPosition(pos) {
     const sidebar = document.getElementById('sidebar');
-    if (!sidebar || !pos) return;
+    if (!sidebar || !pos || isMobileUi()) return;
     const width = sidebar.getBoundingClientRect().width || SIDEBAR_MIN;
     const left = Math.max(8, Math.min(window.innerWidth - width - 12, Math.round(pos.left)));
     const top = Math.max(58, Math.min(window.innerHeight - 220, Math.round(pos.top)));
@@ -200,13 +200,33 @@ function applySidebarPosition(pos) {
     sidebar.style.top = `${top}px`;
 }
 
-function resetSidebarPosition() {
+function clearSidebarFloatingStyles() {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
     sidebar.classList.remove('floating-sidebar');
     sidebar.style.left = '';
     sidebar.style.top = '';
+}
+
+function resetSidebarPosition() {
+    clearSidebarFloatingStyles();
     try { localStorage.removeItem(SIDEBAR_POS_KEY); } catch (e) { /* egal */ }
+}
+
+function syncSidebarPositionForViewport() {
+    if (isMobileUi()) {
+        // Desktop-Koordinaten würden das Bottom-Sheet oben festnageln. Nur die
+        // Darstellung lösen; die gespeicherte Desktop-Position bleibt erhalten.
+        clearSidebarFloatingStyles();
+        return;
+    }
+    try {
+        const saved = JSON.parse(localStorage.getItem(SIDEBAR_POS_KEY) || 'null');
+        if (saved) applySidebarPosition(saved);
+        else clearSidebarFloatingStyles();
+    } catch (e) {
+        clearSidebarFloatingStyles();
+    }
 }
 
 let desktopNoteHideScheduled = false;
@@ -402,11 +422,8 @@ function initSheetGrip() {
     const sidebar = document.getElementById('sidebar');
     if (!grip || !sidebar) return;
 
-    // Gemerkte Schwebe-Position wiederherstellen (Desktop).
-    try {
-        const saved = JSON.parse(localStorage.getItem(SIDEBAR_POS_KEY) || 'null');
-        if (saved) applySidebarPosition(saved);
-    } catch (e) { /* egal */ }
+    // Gemerkte Schwebe-Position ausschließlich am Desktop wiederherstellen.
+    syncSidebarPositionForViewport();
 
     let mode = null;             // 'pending' | 'resize' | 'move'
     let startX = 0, startY = 0, startH = 0, offsetX = 0, offsetY = 0, moved = false;
@@ -664,7 +681,11 @@ export function initSidebar() {
     initDepth();
     syncTopnavPlacement();
     // Bei Wechsel Desktop <-> Handy (Drehen/Resize) Elemente umhängen.
-    mobileQuery.addEventListener('change', () => { syncTopnavPlacement(); applySidebar(); });
+    mobileQuery.addEventListener('change', () => {
+        syncSidebarPositionForViewport();
+        syncTopnavPlacement();
+        applySidebar();
+    });
 
     // Fokus-Umschalter
     document.querySelectorAll('.mode-btn').forEach((btn) => {

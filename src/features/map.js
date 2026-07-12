@@ -32,6 +32,7 @@ let featureByKey = new Map();
 let currentView = { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
 let roadRouteSeq = 0;
 let simulationPreview = null;
+let activeRegionTooltipLayer = null;
 const ROUTE_HUE_START = 0;      // rot
 const ROUTE_HUE_END = 276;      // lila
 
@@ -41,6 +42,24 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
 
 function isMobileMap() {
     return window.innerWidth <= 768;
+}
+
+function closeActiveRegionTooltip() {
+    const layer = activeRegionTooltipLayer;
+    activeRegionTooltipLayer = null;
+    layer?.closeTooltip?.();
+}
+
+function trackRegionTooltip(layer) {
+    layer.on('tooltipopen', function () {
+        if (activeRegionTooltipLayer && activeRegionTooltipLayer !== this) {
+            activeRegionTooltipLayer.closeTooltip();
+        }
+        activeRegionTooltipLayer = this;
+    });
+    layer.on('tooltipclose', function () {
+        if (activeRegionTooltipLayer === this) activeRegionTooltipLayer = null;
+    });
 }
 
 function tileOptions(key = state.basemap) {
@@ -189,6 +208,8 @@ export function initMap(containerId) {
     map.on('zoomend', () => {
         if (state.colorMode === 'auto') applyView();
     });
+    map.on('movestart zoomstart', closeActiveRegionTooltip);
+    map.getContainer().addEventListener('pointerleave', closeActiveRegionTooltip);
     // Für den „In der Nähe"-Begleiter: nach jeder Karten-Bewegung neu berechnen.
     map.on('moveend', () => emit('map:moved'));
 
@@ -365,6 +386,7 @@ function applyView() {
 
 export async function setLevel(level) {
     state.level = level;
+    closeActiveRegionTooltip();
     if (regionLayer) { map.removeLayer(regionLayer); regionLayer = null; }
     if (labelLayer) labelLayer.clearLayers();
     currentLevelData = null;
@@ -405,6 +427,7 @@ export async function setLevel(level) {
             // die Namen trotz kompaktem Kopf nicht abgeschnitten werden.
             layer.bindPopup(() => regionPopupHtml(feature), popupOptions({ maxWidth: 320, minWidth: isMobileMap() ? 264 : 250 }));
             layer.bindTooltip(() => regionTooltip(feature), { sticky: true, direction: 'top' });
+            trackRegionTooltip(layer);
         }
     }).addTo(map);
     regionLayer.bringToBack();
