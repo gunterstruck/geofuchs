@@ -66,22 +66,33 @@ Zeitraum:
 - letzte 12 Monate, mit Schwerpunkt auf den letzten 90 Tagen
 - zusätzlich zukünftige Termine, zugesagte Aufgaben und Fristen
 
-Liefere in dieser Reihenfolge:
-1. 30-Sekunden-Zusammenfassung mit höchstens 5 Stichpunkten
-2. Letzte relevante Kontakte: Datum, Beteiligte, Kanal, Ergebnis und zugesagter nächster Schritt
-3. Wichtige Ansprechpartner und aktueller Beziehungsstand
-4. Offene Punkte, Zusagen, Fristen oder Eskalationen
-5. Erkennbare Chancen und Risiken
-6. Besuchsvorbereitung: sinnvolles Gesprächsziel, möglicher Einstieg, 5 konkrete Fragen, erwartbare kritische Rückfragen und beste nächste Aktion
+Verdichte nur Informationen, die für den nächsten Kundenkontakt handlungsrelevant sind. Relevanz ist wichtiger als Vollständigkeit.
+
+Liefere ausschließlich dieses Format:
+## Jetzt wichtig
+- höchstens 4 kurze Stichpunkte zu Anlass, jüngstem relevanten Kontakt, Ansprechpartnern und offenen Zusagen
+
+## Gespräch
+- Ziel: ein Satz
+- Einstieg: ein Satz
+- Fragen: genau 3 kurze, konkrete Fragen
+
+## Handlung
+- höchstens je ein kurzer Punkt zu Offen, Chance und Risiko; nicht belegbare oder unzutreffende Punkte weglassen
+
+## Belege
+- höchstens 3 entscheidende Quellen als „Datum – Betreff/Anlass – direkter Link"
 
 Qualitätsregeln:
+- Das gesamte Briefing einschließlich Überschriften hat höchstens 250 Wörter.
+- Beginne direkt mit „## Jetzt wichtig". Schreibe keinen Vorspann und keinen Bericht über Trefferzahlen, Suchvorgänge oder ausgeschlossene Dokumente.
+- Wiederhole keine Fakten, Personen oder Links. Führe jeden Quellenlink höchstens einmal und nur unter „Belege" auf.
 - Erfinde nichts.
-- Trenne belegte Fakten, Schlussfolgerungen und Empfehlungen klar.
-- Nenne Unsicherheiten und widersprüchliche Informationen ausdrücklich.
-- Wenn du keine belastbaren internen Informationen findest, sage das klar.
-- Belege wesentliche Aussagen möglichst mit Datum, Quelle und direktem Verweis.
+- Kennzeichne Schlussfolgerungen oder Empfehlungen knapp als solche.
+- Erwähne ähnlich benannte Konzerngesellschaften nur, wenn sie für die nächste Aktion unmittelbar relevant sind, und fasse die Unsicherheit in höchstens einem Satz zusammen.
+- Wenn du keine belastbaren internen Informationen findest, sage das in einem Satz und blähe das Briefing nicht mit allgemeinen Aussagen auf.
 - Nutze keine Websuche und keine allgemeinen Internetinformationen.
-- Bleibe unter 600 Wörtern und schreibe auf Deutsch.`;
+- Schreibe präzise, scanbar und auf Deutsch.`;
 }
 
 export function customerBriefingContext(customer, tour, plannedDate = '') {

@@ -53,6 +53,13 @@ describe('Kundenbriefing', () => {
         expect(prompt).toContain('Geplanter Besuch: 15.07.2026');
         expect(prompt).toContain('Stopp 2 von 5');
         expect(prompt).toContain('Nutze keine Websuche');
+        expect(prompt).toContain('## Jetzt wichtig');
+        expect(prompt).toContain('genau 3 kurze, konkrete Fragen');
+        expect(prompt).toContain('höchstens 250 Wörter');
+        expect(prompt).toContain('keinen Vorspann');
+        expect(prompt).toContain('jeden Quellenlink höchstens einmal');
+        expect(prompt).not.toContain('5 konkrete Fragen');
+        expect(prompt).not.toContain('600 Wörtern');
         expect(prompt).not.toContain(customer.strasse);
         expect(prompt).not.toContain(customer.telefon);
         expect(prompt).not.toContain(customer.email);
