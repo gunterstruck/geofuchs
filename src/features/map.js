@@ -16,8 +16,8 @@ import { aggregateByRegion, dominantRep } from './territory.js';
 import { revenueWeightedCentroids } from './labelPlacement.js';
 import { suggestNearby, suggestAlongRoute } from './tour.js';
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
-import { copyText, customerText } from './handoff.js';
 import { openRegionEditor } from '../ui/regionEditor.js';
+import { openCustomerBriefing } from '../ui/customerBriefing.js';
 
 let map = null;
 let regionLayer = null;
@@ -307,10 +307,8 @@ function handlePopupAction(action, customerId) {
         markVisitedToday(customer);
         markDirty();
         emit('toast', { type: 'success', text: `Besuch bei ${customer.name} für heute eingetragen.` });
-    } else if (action === 'copy-customer') {
-        copyText(customerText(customer)).then((ok) => emit('toast', ok
-            ? { type: 'success', text: `${customer.name} in die Zwischenablage kopiert.` }
-            : { type: 'error', text: 'Kopieren nicht möglich.' }));
+    } else if (action === 'customer-briefing') {
+        openCustomerBriefing(customer);
     }
     return false;
 }
@@ -934,7 +932,7 @@ export function customerPopupHtml(customer) {
             <button data-action="tour-start" data-id="${escapeHtml(customer.id)}">🚩 Als Start</button>
             ${profi ? `<button data-action="tour-dest" data-id="${escapeHtml(customer.id)}" ${isDest ? 'disabled' : ''}>${isDest ? '✓ Ziel' : '🏁 Als Ziel'}</button>` : ''}
             <button data-action="tour-add" data-id="${escapeHtml(customer.id)}" ${inTour ? 'disabled' : ''}>${inTour ? '✓ In Tour' : '➕ Zur Tour'}</button>
-            ${profi ? `<button data-action="copy-customer" data-id="${escapeHtml(customer.id)}" title="Als Text für Outlook/Copilot kopieren">📋 Kopieren</button>` : ''}
+            <button data-action="customer-briefing" data-id="${escapeHtml(customer.id)}" title="Aktuelles Kundenbriefing mit Microsoft 365 Copilot erstellen">📋 Briefing</button>
         </div>
     </div>`;
 }

@@ -28,6 +28,7 @@ import { initShowcase } from './ui/showcase.js';
 import { initVault } from './ui/lockVault.js';
 import { initPwaUpdates } from './ui/pwaUpdate.js';
 import { initContextHelp } from './ui/contextHelp.js';
+import { initCustomerBriefing } from './ui/customerBriefing.js';
 import { fitToCustomers } from './features/map.js';
 
 async function restorePersistedState() {
@@ -127,6 +128,7 @@ function handleSharedTourFromUrl() {
 
 async function init() {
     initToasts();
+    initCustomerBriefing();
     initMap('map');
     initSidebar();
     initImportWizard();

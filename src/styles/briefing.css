@@ -1,0 +1,321 @@
+.customer-briefing-dialog {
+    width: min(680px, calc(100vw - 28px));
+    max-width: 680px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.customer-briefing-dialog > header {
+    margin: 0;
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+}
+
+.customer-briefing-dialog > header h2 {
+    font-size: 1.15rem;
+}
+
+#customer-briefing-body {
+    max-height: calc(86dvh - 142px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.customer-briefing-dialog > footer {
+    margin: 0;
+    padding: 12px 18px 16px;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+    flex-wrap: wrap;
+}
+
+.customer-briefing-dialog > footer:empty {
+    display: none;
+}
+
+.customer-briefing-dialog > footer button {
+    min-height: 42px;
+}
+
+.briefing-customer {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--color-border);
+    background: #f1f5f9;
+}
+
+.briefing-customer b {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.briefing-customer span {
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+}
+
+.briefing-state {
+    padding: 18px;
+}
+
+.briefing-state h3 {
+    margin: 4px 0 8px;
+    font-size: 1.05rem;
+}
+
+.briefing-state > p {
+    line-height: 1.5;
+}
+
+.briefing-kicker {
+    color: #0f766e;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.briefing-field {
+    display: grid;
+    gap: 5px;
+    margin-top: 12px;
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.briefing-field input {
+    width: 100%;
+    min-height: 42px;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.86rem;
+}
+
+.briefing-redirect {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px 10px;
+    margin-top: 14px;
+    padding: 10px 0;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.briefing-redirect span {
+    grid-column: 1 / -1;
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.briefing-redirect code {
+    align-self: center;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 0.78rem;
+}
+
+.briefing-redirect button {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+}
+
+.briefing-consent {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    gap: 9px;
+    align-items: start;
+    margin-top: 14px;
+    padding: 12px;
+    border: 1px solid #99f6e4;
+    border-radius: 8px;
+    background: #f0fdfa;
+    line-height: 1.4;
+}
+
+.briefing-consent input {
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+}
+
+.briefing-privacy {
+    padding: 10px 12px;
+    border-left: 3px solid #0ea5e9;
+    background: #f0f9ff;
+    color: #0c4a6e;
+    font-size: 0.86rem;
+}
+
+.briefing-prompt-details,
+.briefing-error-details {
+    margin-top: 14px;
+    border-top: 1px solid var(--color-border);
+    padding-top: 10px;
+}
+
+.briefing-prompt-details summary,
+.briefing-error-details summary {
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.briefing-prompt-details pre {
+    max-height: 220px;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-family: inherit;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.briefing-error {
+    padding: 10px 12px;
+    border-left: 3px solid #dc2626;
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.briefing-error-details code {
+    display: block;
+    margin-top: 8px;
+    overflow-wrap: anywhere;
+    color: var(--color-text-muted);
+    font-size: 0.76rem;
+}
+
+.briefing-loading {
+    min-height: 230px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    text-align: center;
+}
+
+.briefing-loading h3,
+.briefing-loading p {
+    max-width: 440px;
+}
+
+.briefing-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #ccfbf1;
+    border-top-color: #0d9488;
+    border-radius: 50%;
+    animation: briefing-spin 0.8s linear infinite;
+}
+
+@keyframes briefing-spin {
+    to { transform: rotate(360deg); }
+}
+
+.briefing-result-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.briefing-account {
+    color: var(--color-text-muted);
+    font-size: 0.76rem;
+    overflow-wrap: anywhere;
+}
+
+.briefing-answer {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.55;
+    font-size: 0.9rem;
+}
+
+.briefing-sources {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+}
+
+.briefing-sources h3 {
+    font-size: 0.9rem;
+}
+
+.briefing-sources ul {
+    margin: 6px 0 0;
+    padding-left: 20px;
+}
+
+.briefing-sources a {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+    .customer-briefing-dialog {
+        width: calc(100vw - 12px);
+        height: calc(100dvh - 12px);
+        max-height: calc(100dvh - 12px);
+    }
+
+    .customer-briefing-dialog[open] {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+
+    #customer-briefing-body {
+        min-height: 0;
+        max-height: none;
+    }
+
+    .customer-briefing-dialog > header,
+    .briefing-state {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .briefing-customer {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 2px;
+        padding: 9px 14px;
+    }
+
+    .briefing-customer span {
+        flex-shrink: 1;
+    }
+
+    .customer-briefing-dialog > footer {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        padding: 10px 14px 14px;
+    }
+
+    .customer-briefing-dialog > footer button {
+        width: 100%;
+        min-width: 0;
+        white-space: normal;
+    }
+
+    .customer-briefing-dialog > footer button:only-child,
+    .customer-briefing-dialog > footer button:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+
+    .briefing-redirect {
+        grid-template-columns: 1fr;
+    }
+
+    .briefing-redirect button {
+        justify-self: start;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .briefing-spinner { animation-duration: 1.6s; }
+}

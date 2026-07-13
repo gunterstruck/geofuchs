@@ -169,7 +169,7 @@
                     </div>
                 </div>
 
-                <p class="privacy-note">🔒 Ihre Daten bleiben ausschließlich in diesem Browser – kein Server, keine Cloud, keine KI.</p>
+                <p class="privacy-note">🔒 Ihre Kundendaten bleiben lokal. Nur ein von Ihnen gestartetes Kundenbriefing übergibt die zuvor angezeigten Identifikationsdaten an Ihren Microsoft 365 Copilot.</p>
             </section>
 
             <!-- Tab: Gebiete -->
@@ -385,7 +385,7 @@
                 <button type="button" id="btn-showcase" class="primary" style="width:100%;margin-bottom:12px;">🎬 Funktionen entdecken (Live-Demos)</button>
                 <p>Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete (Landkreise & Postleitzahlen), Team-Filter und Besuchsplanung mit Tourenoptimierung. Optional mit verschlüsseltem Datentresor.</p>
                 <p class="note-private"><b>Privates, nicht-kommerzielles Projekt.</b> Nutzung auf eigene Gefahr, ohne Gewähr und ohne Haftung jeglicher Art.</p>
-                <p><b>Datenschutz:</b> Alle Kundendaten werden ausschließlich lokal in Ihrem Browser gespeichert und verlassen Ihr Gerät nicht. Kein Server, keine Cloud, kein Tracking, keine KI. Optional lassen sie sich mit einem PIN- bzw. Face-/Touch-ID-geschützten <b>Datentresor AES-256-verschlüsseln</b>. Die optionale exakte Adress-Verortung sendet nur die jeweilige Adresse an OpenStreetMap (Nominatim).</p>
+                <p><b>Datenschutz:</b> Kundendaten werden lokal in Ihrem Browser gespeichert. Optional lassen sie sich mit einem PIN- bzw. Face-/Touch-ID-geschützten <b>Datentresor AES-256-verschlüsseln</b>. Nur wenn Sie ein Kundenbriefing ausdrücklich starten, übergibt TourFuchs die im Briefing-Dialog genannten Identifikationsdaten an Ihren Microsoft 365 Copilot; dabei gelten Ihr Arbeitskonto und die Richtlinien Ihrer Organisation. Die optionale exakte Adress-Verortung sendet nur die jeweilige Adresse an OpenStreetMap (Nominatim).</p>
                 <h3>Impressum</h3>
                 <p>Verantwortlich gemäß § 5 TMG:<br>
                 Günter Struck · Lönsberg 8 · 45136 Essen<br>
@@ -518,6 +518,15 @@
                 <button id="import-error-download">⬇ Fehlerliste (.xlsx)</button>
                 <button id="import-result-ok" class="primary">OK</button>
             </footer>
+        </dialog>
+
+        <dialog id="customer-briefing-dialog" class="customer-briefing-dialog" aria-label="Kundenbriefing mit Microsoft 365 Copilot">
+            <header>
+                <h2>📋 Kundenbriefing</h2>
+                <button type="button" class="dialog-close" data-briefing-header-close aria-label="Schließen">Schließen</button>
+            </header>
+            <div id="customer-briefing-body"></div>
+            <footer id="customer-briefing-footer"></footer>
         </dialog>
 
         <dialog id="showcase-dialog" aria-label="Funktionen entdecken"></dialog>
