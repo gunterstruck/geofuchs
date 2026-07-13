@@ -149,12 +149,6 @@ function initPanelZoom() {
     document.getElementById('panel-zoom-in')?.addEventListener('click', () => setPanelZoom(currentPanelZoom() + PANEL_ZOOM_STEP, true));
     // Doppelklick/-tipp auf die Prozentanzeige setzt auf 100 % zurück
     document.getElementById('panel-zoom-label')?.addEventListener('dblclick', () => setPanelZoom(1, true));
-    // Reines Mausrad über dem Panel zoomt den Inhalt (Wunsch: wie die Karte)
-    document.getElementById('sidebar')?.addEventListener('wheel', (ev) => {
-        if (isMobileUi()) return;
-        ev.preventDefault();
-        setPanelZoom(currentPanelZoom() + (ev.deltaY < 0 ? PANEL_ZOOM_STEP : -PANEL_ZOOM_STEP), true);
-    }, { passive: false });
 }
 
 function initDesktopSidebarResize() {
