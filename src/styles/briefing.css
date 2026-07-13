@@ -150,6 +150,42 @@
     font-size: 0.86rem;
 }
 
+.briefing-manual-note {
+    padding: 10px 12px;
+    border-left: 3px solid #0d9488;
+    background: #f0fdfa;
+    color: #115e59;
+    font-size: 0.88rem;
+}
+
+.briefing-prompt-visible {
+    margin-top: 16px;
+}
+
+.briefing-prompt-visible > span {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.briefing-prompt-visible pre {
+    max-height: 300px;
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: #f8fafc;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: text;
+    font-family: inherit;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
 .briefing-prompt-details,
 .briefing-error-details {
     margin-top: 14px;

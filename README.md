@@ -30,7 +30,7 @@ TourFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 | 🚗 **Tour** | Startpunkt = eigener GPS-Standort oder ein Kunde; Vorschläge „Wen könnte ich in der Nähe noch besuchen?“ (Umkreis einstellbar); Tourenoptimierung (kürzeste Strecke, Nearest-Neighbor + 2-Opt); Übergabe an Google Maps zur Navigation |
 | 📆 **Plan-Einstellungen** | Datum, Startzeit und Besuchsdauer (z. B. 45 min) der Tagestour sind einstellbar und fließen in Tagesplan-Druck und Kalender-Termine (.ics für Outlook, ein Termin je Besuch inkl. Fahrzeit) ein |
 | 📲 **QR-Übergabe** | Am Desktop geplante Tour als QR-Code anzeigen, am Handy mit der Kamera scannen und übernehmen – nur die Tour (keine Datenbank), Bildschirm zu Kamera, ohne Netzwerk und ohne Server. Navigation und Kalender-Termine funktionieren direkt aus dem gescannten Code |
-| 📋 **Kundenbriefing** | Direkt am Kunden ein aktuelles Briefing aus dem berechtigten Microsoft-365-Wissen des angemeldeten Nutzers anfordern. Übergeben werden nur Kundenidentität und Tourkontext; ohne API-Freigabe steht ein Copilot-Fallback per Zwischenablage bereit |
+| 📋 **Kundenbriefing** | In **Basis** sofort ohne Einrichtung nutzbar: kundenspezifischen Prompt kopieren, Corporate Copilot öffnen und dort bewusst absenden. **Profi** ergänzt optional die automatische Entra-/Copilot-Verbindung und zeigt das Ergebnis direkt in TourFuchs |
 | 🔍 **Suche** | Kunden nach Name, Ort, PLZ oder Kundennummer finden und anfliegen |
 | 📱 **PWA** | Auf Smartphone/Desktop installierbar, App-Shell und Gebietsdaten offline verfügbar, zuletzt gesehene Kartenausschnitte werden gecacht |
 | 🔐 **Datentresor** | Optional aktivierbar: Kundendaten werden **AES-256-verschlüsselt** lokal gespeichert (Schlüssel aus PIN via PBKDF2, nie gespeichert). Sperrbildschirm bei App-Start/Inaktivität, **optional Face/Touch ID** (WebAuthn-PRF als zusätzliche Tür), **einstellbare Auto-Lock-Zeit**, Wiederherstellungscode, Auto-Löschung nach zu vielen Fehlversuchen – alles ausschließlich mit der Web-Crypto-API, ohne Server |
@@ -69,7 +69,8 @@ Beim Import werden die Zeilen geprüft. **Gültige Zeilen werden importiert**, p
 ### Datenschutz
 
 - Kundendaten werden **lokal im Browser** gespeichert (IndexedDB); der Betreiber erhält sie nicht und es gibt kein Tracking.
-- Nur wenn ein Nutzer ein **Kundenbriefing ausdrücklich startet**, werden die zuvor angezeigten Identifikationsdaten und der Tourkontext an dessen Microsoft 365 Copilot übergeben. Microsoft-Entra-Rechte, Richtlinien und Vertraulichkeitsbezeichnungen der Organisation bleiben wirksam.
+- Im **Basis-Briefing** wird der vorbereitete Prompt zunächst nur lokal angezeigt und in die Zwischenablage kopiert. Eine Übertragung an Microsoft erfolgt erst, wenn der Nutzer ihn selbst in Copilot einfügt und absendet.
+- Nur das optionale **Profi-Briefing** kann nach ausdrücklicher Zustimmung Kundenidentität und Tourkontext automatisch an Microsoft 365 Copilot übergeben. Microsoft-Entra-Rechte, Richtlinien und Vertraulichkeitsbezeichnungen der Organisation bleiben wirksam.
 - Nur die optionale adressgenaue Verortung sendet die jeweilige Adresse an OpenStreetMap (Nominatim), gedrosselt gemäß deren Nutzungsrichtlinie.
 - Optionale Straßenrouten (Routenlinie und Korridor-Vorschläge) senden **nach ausdrücklicher Zustimmung** die Koordinaten von Start und Tour-Stopps an OSRM (`router.project-osrm.org`) – keine Namen oder sonstigen Kundendaten. Ohne Zustimmung rechnet die App mit der Luftlinie, komplett offline.
 

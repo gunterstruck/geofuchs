@@ -1,5 +1,9 @@
 import { state, emit } from '../core/state.js';
-import { buildCustomerBriefingPrompt, customerBriefingContext } from '../features/customerBriefing.js';
+import {
+    buildCustomerBriefingPrompt,
+    customerBriefingContext,
+    customerBriefingFlow
+} from '../features/customerBriefing.js';
 import { copyText } from '../features/handoff.js';
 import {
     COPILOT_WEB_URL,
@@ -62,6 +66,18 @@ function fillPromptPreview() {
     if (pre) pre.textContent = currentPrompt;
 }
 
+function visiblePrompt() {
+    return `<div class="briefing-prompt-visible">
+        <span>Vorbereiteter Prompt</span>
+        <pre></pre>
+    </div>`;
+}
+
+function fillVisiblePrompt() {
+    const pre = body?.querySelector('.briefing-prompt-visible pre');
+    if (pre) pre.textContent = currentPrompt;
+}
+
 function setFooter(html) {
     footer.innerHTML = html;
 }
@@ -70,11 +86,25 @@ function wireClose() {
     footer.querySelector('[data-briefing-close]')?.addEventListener('click', () => dialog.close());
 }
 
+function renderManual() {
+    body.innerHTML = `${identityHtml(currentCustomer)}
+        <div class="briefing-state briefing-manual">
+            <span class="briefing-kicker">Direkt nutzbar</span>
+            <h3>Ihr Kundenbriefing ist vorbereitet</h3>
+            <p>TourFuchs hat aus dem ausgewählten Kunden und dem aktuellen Tourkontext einen Prompt erstellt. Mit dem nächsten Schritt wird er kopiert und Microsoft 365 Copilot geöffnet.</p>
+            <p class="briefing-manual-note"><b>In Copilot:</b> Prompt einfügen und selbst absenden. Erst dann werden die enthaltenen Daten an Microsoft übergeben.</p>
+            ${visiblePrompt()}
+        </div>`;
+    fillVisiblePrompt();
+    setFooter('<button type="button" class="primary" data-briefing-fallback>Prompt kopieren &amp; Copilot öffnen</button>');
+    footer.querySelector('[data-briefing-fallback]')?.addEventListener('click', openFallback);
+}
+
 function renderSetup(errorText = '') {
     const saved = loadCopilotConfig();
     body.innerHTML = `${identityHtml(currentCustomer)}
         <div class="briefing-state briefing-setup">
-            <span class="briefing-kicker">Lokaler API-Test</span>
+            <span class="briefing-kicker">Profi · Automatisierung</span>
             <h3>Microsoft-Verbindung einrichten</h3>
             <p>Für die automatische Anmeldung braucht TourFuchs die Kennungen einer von Ihrer IT registrierten <b>Entra-SPA</b>. Es wird kein Client Secret benötigt oder gespeichert.</p>
             ${errorText ? `<p class="briefing-error" role="alert">${escapeHtml(errorText)}</p>` : ''}
@@ -124,7 +154,7 @@ function renderSetup(errorText = '') {
 function renderConsent() {
     body.innerHTML = `${identityHtml(currentCustomer)}
         <div class="briefing-state">
-            <span class="briefing-kicker">Microsoft 365 Copilot</span>
+            <span class="briefing-kicker">Profi · Microsoft 365 Copilot</span>
             <h3>Aktuelles Kundenwissen abrufen</h3>
             <p>TourFuchs übergibt Kundenname, Kundennummer, Ort, Hauptansprechpartner und den aktuellen Tourkontext. Copilot durchsucht nur Inhalte, auf die Ihr Arbeitskonto zugreifen darf.</p>
             <p class="briefing-privacy"><b>Nicht übertragen:</b> die vollständige Kundenliste, Telefonnummer, E-Mail-Adresse, Umsatz oder Kartenkoordinaten.</p>
@@ -283,7 +313,6 @@ export function initCustomerBriefing() {
     body = document.getElementById('customer-briefing-body');
     footer = document.getElementById('customer-briefing-footer');
     if (!dialog || !body || !footer) return;
-    if (isCopilotConfigured()) warmupCopilotAuth().catch(() => {});
     dialog.querySelector('[data-briefing-header-close]')?.addEventListener('click', () => dialog.close());
     dialog.addEventListener('close', () => {
         requestSequence++;
@@ -296,18 +325,22 @@ export function openCustomerBriefing(customer) {
     if (!dialog) initCustomerBriefing();
     if (!dialog || !customer) return;
     currentCustomer = customer;
-    warmupCopilotAuth().catch(() => {});
     currentPrompt = buildCustomerBriefingPrompt(
         customer,
         customerBriefingContext(customer, state.tour, plannedDate())
     );
     dialog.showModal();
     const config = loadCopilotConfig();
-    if (!isCopilotConfigured(config)) {
+    const flow = customerBriefingFlow(state.ui.depth, isCopilotConfigured(config));
+    if (flow === 'manual') {
+        renderManual();
+    } else if (flow === 'setup') {
         renderSetup();
     } else if (!hasConsent()) {
+        warmupCopilotAuth().catch(() => {});
         renderConsent();
     } else {
+        warmupCopilotAuth().catch(() => {});
         startBriefing();
     }
 }

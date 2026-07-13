@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { buildCustomerBriefingPrompt, customerBriefingContext } from '../src/features/customerBriefing.js';
+import {
+    buildCustomerBriefingPrompt,
+    customerBriefingContext,
+    customerBriefingFlow
+} from '../src/features/customerBriefing.js';
 import {
     CopilotApiError,
     clearCopilotConfig,
@@ -27,6 +31,13 @@ const customer = {
 beforeEach(() => clearCopilotConfig());
 
 describe('Kundenbriefing', () => {
+    it('hält das Briefing in Basis manuell und die Automatisierung in Profi', () => {
+        expect(customerBriefingFlow('basis', false)).toBe('manual');
+        expect(customerBriefingFlow('basis', true)).toBe('manual');
+        expect(customerBriefingFlow('profi', false)).toBe('setup');
+        expect(customerBriefingFlow('profi', true)).toBe('automatic');
+    });
+
     it('baut einen eindeutigen, datensparsamen Vertriebs-Prompt', () => {
         const prompt = buildCustomerBriefingPrompt(customer, {
             plannedDate: '2026-07-15',
@@ -84,9 +95,12 @@ describe('Kundenbriefing', () => {
 
     it('ersetzt den bisherigen Kopieren-Button durch Briefing', () => {
         const mapSource = readFileSync(resolve(process.cwd(), 'src/features/map.js'), 'utf8');
+        const briefingSource = readFileSync(resolve(process.cwd(), 'src/ui/customerBriefing.js'), 'utf8');
         const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
         expect(mapSource).toContain('data-action="customer-briefing"');
         expect(mapSource).not.toContain('data-action="copy-customer"');
+        expect(briefingSource).toContain('Prompt kopieren &amp; Copilot öffnen');
+        expect(briefingSource).toContain("flow === 'manual'");
         expect(html).toContain('id="customer-briefing-dialog"');
     });
 });

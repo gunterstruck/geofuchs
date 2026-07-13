@@ -13,6 +13,11 @@ function formatLocalDate(isoDate) {
     return match ? `${match[3]}.${match[2]}.${match[1]}` : value(isoDate);
 }
 
+export function customerBriefingFlow(depth, configured) {
+    if (depth !== 'profi') return 'manual';
+    return configured ? 'automatic' : 'setup';
+}
+
 function identityLines(customer) {
     const lines = [`- Kundenname: ${value(customer.name) || 'nicht angegeben'}`];
     if (value(customer.nummer)) lines.push(`- Kundennummer: ${value(customer.nummer)}`);

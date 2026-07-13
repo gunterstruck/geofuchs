@@ -25,9 +25,9 @@
 <p class="note">
 TourFuchs Vertrieb ist ein <strong>privates, nicht-kommerzielles Projekt</strong>. Alle von Ihnen
 importierten Kundendaten werden <strong>ausschließlich lokal in Ihrem Browser</strong> verarbeitet und
-gespeichert. Der Betreiber erhält diese Daten nicht; es gibt kein Tracking und keine Werbung. Nur
-wenn Sie ein Kundenbriefing ausdrücklich starten, werden die zuvor angezeigten Identifikationsdaten
-an Ihren Microsoft 365 Copilot übergeben.
+gespeichert. Der Betreiber erhält diese Daten nicht; es gibt kein Tracking und keine Werbung. Im
+Basis-Briefing wird ein Prompt nur lokal vorbereitet und kopiert. Erst wenn Sie ihn selbst in Copilot
+einfügen und absenden, werden die enthaltenen Identifikationsdaten an Microsoft übergeben.
 </p>
 
 <h2>1. Verantwortlicher</h2>
@@ -147,7 +147,9 @@ Ihre ausdrückliche Aktion.
 <h2>8. Optionales Kundenbriefing mit Microsoft 365 Copilot</h2>
 <p>
 Wenn Sie im Kunden-Popup ausdrücklich „Briefing" wählen, kann TourFuchs einen Prompt für Ihren
-Microsoft 365 Copilot erstellen. Bei konfigurierter Copilot Chat API werden ausschließlich
+Microsoft 365 Copilot erstellen. Im Basis-Modus wird dieser Prompt nur lokal angezeigt und auf Ihre
+Aktion in die Zwischenablage kopiert; Sie fügen ihn selbst in Copilot ein und senden ihn ab. Nur im
+Profi-Modus werden bei konfigurierter Copilot Chat API und nach Ihrer Bestätigung ausschließlich
 <strong>Kundenname, Kundennummer, Ort, Hauptansprechpartner und aktueller Tourkontext</strong> an
 Microsoft Graph übergeben. Die vollständige Kundenliste, Telefonnummer, E-Mail-Adresse, Umsatz und
 Kartenkoordinaten werden nicht mitgesendet. Vor der ersten Übertragung zeigt TourFuchs diese
