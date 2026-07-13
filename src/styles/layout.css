@@ -203,56 +203,53 @@
    Auf dem Desktop bleibt der Container leer und ausgeblendet. */
 .mobile-topnav { display: none; }
 
-/* Fokus-Umschalter Außendienst / Gebietsplanung */
-/* Ansichtstiefe Basis/Profi – prominenter, beschrifteter Umschalter oben */
-.depth-switch {
+/* Desktop: Ansichtstiefe und Fokus als zwei identische Segment-Schalter. */
+.sidebar > .depth-switch,
+.sidebar > .mode-switch {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 4px;
+    gap: 3px;
     margin: 10px 10px 0;
     padding: 3px;
     background: var(--color-surface-2);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-pill);
+    overflow: hidden;
 }
-.depth-switch .seg {
+.sidebar > .mode-switch { margin-top: 8px; }
+
+.sidebar > .depth-switch .seg,
+.sidebar > .mode-switch .mode-btn {
     border: none;
     border-radius: var(--radius-pill);
     background: transparent;
     padding: 8px 6px;
-    font-size: 0.9rem;
+    min-height: 36px;
+    font-size: 0.82rem;
     font-weight: 700;
     color: var(--color-text-muted);
     cursor: pointer;
-    transition: background 0.12s, color 0.12s;
+    transition: background 0.12s, color 0.12s, box-shadow 0.12s;
 }
-.depth-switch .seg.active {
+
+.sidebar > .depth-switch .seg:not(.active):hover,
+.sidebar > .mode-switch .mode-btn:not(.active):hover {
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.sidebar > .depth-switch .seg.active,
+.sidebar > .mode-switch .mode-btn.active,
+.sidebar > .depth-switch .seg.active:hover,
+.sidebar > .mode-switch .mode-btn.active:hover {
     background: var(--color-primary);
     color: #fff;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
 }
 
-.mode-switch {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    padding: 10px 10px 0;
-}
-.mode-btn {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-pill);
-    background: var(--color-surface-2);
-    padding: 10px 6px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.12s, color 0.12s, border-color 0.12s;
-}
-.mode-btn.active {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
-    color: #fff;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+.sidebar > .depth-switch .seg:focus-visible,
+.sidebar > .mode-switch .mode-btn:focus-visible {
+    outline: 2px solid rgba(13, 148, 136, 0.38);
+    outline-offset: 1px;
 }
 .mode-hint {
     margin: 6px 10px 2px;
