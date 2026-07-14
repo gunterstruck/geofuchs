@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { STORIES, CRITICAL_SELECTORS, visibleStories, visibleStorySteps, prepareShowcaseTour, selectShowcaseTour } from '../src/features/stories.js';
 
 const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+const showcaseSource = readFileSync(resolve(process.cwd(), 'src/ui/showcase.js'), 'utf8');
 const doc = new DOMParser().parseFromString(html, 'text/html');
 
 describe('Showcase-Stories: Guardrail', () => {
@@ -109,6 +110,16 @@ describe('Showcase-Stories: Guardrail', () => {
         expect(briefing.steps.some((step) => step.sel === '[data-briefing-fallback]')).toBe(true);
         expect(briefing.steps.some((step) => step.key === 'closeCustomerBriefing')).toBe(true);
         expect(briefing.steps.some((step) => step.key === 'checkVisit')).toBe(false);
+    });
+
+    it('erkennt das geöffnete native Briefing-Dialogfenster zuverlässig', () => {
+        const start = showcaseSource.indexOf('async openCustomerBriefing()');
+        const end = showcaseSource.indexOf('async closeCustomerBriefing()', start);
+        const helper = showcaseSource.slice(start, end);
+
+        expect(helper).toContain("document.getElementById('customer-briefing-dialog')");
+        expect(helper).toContain('briefing?.open');
+        expect(helper).not.toContain("resolveEl('#customer-briefing-dialog[open]'");
     });
 
     it('wählt für die Tour-Demo getrennte Kunden quer durchs Ruhrgebiet', () => {

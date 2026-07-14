@@ -519,8 +519,8 @@ const HELPERS = {
         const selector = `[data-action="customer-briefing"][data-id="${CSS.escape(String(customer.id))}"]`;
         const openedByClick = await clickEl(selector);
         if (!openedByClick) openBriefingDialog(customer);
-        const briefing = await resolveEl('#customer-briefing-dialog[open]', 3000);
-        if (!briefing) throw new Error('Das Kundenbriefing konnte nicht geöffnet werden.');
+        const briefing = document.getElementById('customer-briefing-dialog');
+        if (!briefing?.open) throw new Error('Das Kundenbriefing konnte nicht geöffnet werden.');
         await sleep(500);
     },
     async closeCustomerBriefing() {
