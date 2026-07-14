@@ -100,42 +100,64 @@ function renderManual() {
     footer.querySelector('[data-briefing-fallback]')?.addEventListener('click', openFallback);
 }
 
+function expertManualPath() {
+    return `<section class="briefing-path-simple">
+        <span class="briefing-kicker">Einfach · sofort nutzbar</span>
+        <h3>Prompt in Corporate Copilot verwenden</h3>
+        <p>Kein technisches Setup nötig: TourFuchs kopiert den vorbereiteten Prompt und öffnet Microsoft 365 Copilot. Sie fügen ihn dort ein und senden ihn selbst ab.</p>
+        <p class="briefing-manual-note"><b>Ihre Kontrolle:</b> Erst beim Absenden werden die im Prompt sichtbaren Kundendaten an Microsoft übergeben. Copilot kann nur interne Microsoft-365-Inhalte einbeziehen, auf die Ihr Arbeitskonto zugreifen darf.</p>
+        <button type="button" class="primary briefing-path-action" data-briefing-fallback>Prompt kopieren &amp; Copilot öffnen</button>
+        ${promptDetails()}
+    </section>`;
+}
+
+function wireManualFallback() {
+    body.querySelector('[data-briefing-fallback]')?.addEventListener('click', openFallback);
+}
+
 function renderSetup(errorText = '') {
     const saved = loadCopilotConfig();
     body.innerHTML = `${identityHtml(currentCustomer)}
-        <div class="briefing-state briefing-setup">
-            <span class="briefing-kicker">Profi · Automatisierung</span>
-            <h3>Microsoft-Verbindung einrichten</h3>
-            <p>Für die automatische Anmeldung braucht TourFuchs die Kennungen einer von Ihrer IT registrierten <b>Entra-SPA</b>. Es wird kein Client Secret benötigt oder gespeichert.</p>
-            ${errorText ? `<p class="briefing-error" role="alert">${escapeHtml(errorText)}</p>` : ''}
-            <label class="briefing-field">Client-ID der Anwendung
-                <input id="briefing-client-id" type="text" autocomplete="off" spellcheck="false" value="${escapeHtml(saved.clientId)}" placeholder="00000000-0000-0000-0000-000000000000">
-            </label>
-            <label class="briefing-field">Tenant-ID oder Tenant-Domäne
-                <input id="briefing-tenant-id" type="text" autocomplete="off" spellcheck="false" value="${escapeHtml(saved.tenantId)}" placeholder="contoso.onmicrosoft.com">
-            </label>
-            <div class="briefing-redirect">
-                <span>Redirect-URI für die Entra-SPA</span>
-                <code>${escapeHtml(getCopilotRedirectUri())}</code>
-                <button type="button" data-copy-redirect>URI kopieren</button>
-            </div>
-            <p class="muted small">Die Copilot Chat API ist weiterhin Microsoft-Preview. Für den ersten Test kann eine Administratorfreigabe der angeforderten Graph-Berechtigungen erscheinen.</p>
-            <label class="briefing-consent">
-                <input id="briefing-consent" type="checkbox">
-                <span>Ich möchte die unten genannten Daten für dieses Briefing an meinen Microsoft 365 Copilot übergeben.</span>
-            </label>
-            ${promptDetails()}
+        <div class="briefing-state briefing-profi-entry">
+            ${expertManualPath()}
+            <details class="briefing-expert-path"${errorText ? ' open' : ''}>
+                <summary>
+                    <b>Expertenfall: Briefing direkt in TourFuchs</b>
+                    <span>Optionale Entra-Verbindung Ihrer Organisation einrichten</span>
+                </summary>
+                <div class="briefing-expert-content briefing-setup">
+                    <span class="briefing-kicker">Profi · Automatisierung</span>
+                    <h3>Microsoft-Verbindung einrichten</h3>
+                    <p>Für die automatische Anmeldung braucht TourFuchs die Kennungen einer von Ihrer IT registrierten <b>Entra-SPA</b>. Es wird kein Client Secret benötigt oder gespeichert.</p>
+                    ${errorText ? `<p class="briefing-error" role="alert">${escapeHtml(errorText)}</p>` : ''}
+                    <label class="briefing-field">Client-ID der Anwendung
+                        <input id="briefing-client-id" type="text" autocomplete="off" spellcheck="false" value="${escapeHtml(saved.clientId)}" placeholder="00000000-0000-0000-0000-000000000000">
+                    </label>
+                    <label class="briefing-field">Tenant-ID oder Tenant-Domäne
+                        <input id="briefing-tenant-id" type="text" autocomplete="off" spellcheck="false" value="${escapeHtml(saved.tenantId)}" placeholder="contoso.onmicrosoft.com">
+                    </label>
+                    <div class="briefing-redirect">
+                        <span>Redirect-URI für die Entra-SPA</span>
+                        <code>${escapeHtml(getCopilotRedirectUri())}</code>
+                        <button type="button" data-copy-redirect>URI kopieren</button>
+                    </div>
+                    <p class="muted small">Die Copilot Chat API ist weiterhin Microsoft-Preview. Für den ersten Test kann eine Administratorfreigabe der angeforderten Graph-Berechtigungen erscheinen.</p>
+                    <label class="briefing-consent">
+                        <input id="briefing-consent" type="checkbox">
+                        <span>Ich möchte die genannten Daten für dieses Briefing an meinen Microsoft 365 Copilot übergeben.</span>
+                    </label>
+                    <button type="button" class="primary briefing-path-action" data-briefing-save>Verbindung speichern &amp; Briefing erstellen</button>
+                </div>
+            </details>
         </div>`;
     fillPromptPreview();
-    setFooter(`
-        <button type="button" data-briefing-fallback>Prompt kopieren &amp; Copilot öffnen</button>
-        <button type="button" class="primary" data-briefing-save>Speichern &amp; Briefing erstellen</button>`);
+    setFooter('');
+    wireManualFallback();
     body.querySelector('[data-copy-redirect]')?.addEventListener('click', async () => {
         const ok = await copyText(getCopilotRedirectUri());
         emit('toast', { type: ok ? 'success' : 'error', text: ok ? 'Redirect-URI kopiert.' : 'Kopieren nicht möglich.' });
     });
-    footer.querySelector('[data-briefing-fallback]')?.addEventListener('click', openFallback);
-    footer.querySelector('[data-briefing-save]')?.addEventListener('click', () => {
+    body.querySelector('[data-briefing-save]')?.addEventListener('click', () => {
         try {
             const consent = body.querySelector('#briefing-consent');
             if (!consent?.checked) throw new Error('Bitte bestätigen Sie zuerst die Datenübergabe an Microsoft 365 Copilot.');
@@ -144,6 +166,7 @@ function renderSetup(errorText = '') {
                 tenantId: body.querySelector('#briefing-tenant-id')?.value
             });
             rememberConsent();
+            warmupCopilotAuth().catch(() => {});
             startBriefing();
         } catch (error) {
             renderSetup(error.message);
@@ -152,29 +175,45 @@ function renderSetup(errorText = '') {
 }
 
 function renderConsent() {
+    const consentChecked = hasConsent() ? ' checked' : '';
     body.innerHTML = `${identityHtml(currentCustomer)}
-        <div class="briefing-state">
-            <span class="briefing-kicker">Profi · Microsoft 365 Copilot</span>
-            <h3>Aktuelles Kundenwissen abrufen</h3>
-            <p>TourFuchs übergibt Kundenname, Kundennummer, Ort, Hauptansprechpartner und den aktuellen Tourkontext. Copilot durchsucht nur Inhalte, auf die Ihr Arbeitskonto zugreifen darf.</p>
-            <p class="briefing-privacy"><b>Nicht übertragen:</b> die vollständige Kundenliste, Telefonnummer, E-Mail-Adresse, Umsatz oder Kartenkoordinaten.</p>
-            <label class="briefing-consent">
-                <input id="briefing-consent" type="checkbox">
-                <span>Ich möchte diese Daten für das Briefing an Microsoft 365 Copilot übergeben.</span>
-            </label>
-            ${promptDetails()}
+        <div class="briefing-state briefing-profi-entry">
+            ${expertManualPath()}
+            <details class="briefing-expert-path">
+                <summary>
+                    <b>Expertenfall: Briefing direkt in TourFuchs</b>
+                    <span>Microsoft-Verbindung ist eingerichtet</span>
+                </summary>
+                <div class="briefing-expert-content">
+                    <span class="briefing-kicker">Profi · Microsoft 365 Copilot</span>
+                    <h3>Aktuelles Kundenwissen automatisch abrufen</h3>
+                    <p>TourFuchs übergibt Kundenname, Kundennummer, Ort, Hauptansprechpartner und den aktuellen Tourkontext. Copilot durchsucht nur Inhalte, auf die Ihr Arbeitskonto zugreifen darf.</p>
+                    <p class="briefing-privacy"><b>Nicht übertragen:</b> die vollständige Kundenliste, Telefonnummer, E-Mail-Adresse, Umsatz oder Kartenkoordinaten.</p>
+                    <label class="briefing-consent">
+                        <input id="briefing-consent" type="checkbox"${consentChecked}>
+                        <span>Ich möchte diese Daten für das Briefing an Microsoft 365 Copilot übergeben.</span>
+                    </label>
+                    <div class="briefing-expert-actions">
+                        <button type="button" data-briefing-config>Verbindung ändern</button>
+                        <button type="button" class="primary" data-briefing-start>Briefing direkt erstellen</button>
+                    </div>
+                </div>
+            </details>
         </div>`;
     fillPromptPreview();
-    setFooter(`
-        <button type="button" data-briefing-fallback>Prompt kopieren &amp; Copilot öffnen</button>
-        <button type="button" class="primary" data-briefing-start>Briefing erstellen</button>`);
-    footer.querySelector('[data-briefing-fallback]')?.addEventListener('click', openFallback);
-    footer.querySelector('[data-briefing-start]')?.addEventListener('click', () => {
+    setFooter('');
+    wireManualFallback();
+    body.querySelector('[data-briefing-config]')?.addEventListener('click', () => {
+        clearCopilotConfig();
+        renderSetup();
+    });
+    body.querySelector('[data-briefing-start]')?.addEventListener('click', () => {
         if (!body.querySelector('#briefing-consent')?.checked) {
             emit('toast', { type: 'info', text: 'Bitte zuerst die Datenübergabe bestätigen.' });
             return;
         }
         rememberConsent();
+        warmupCopilotAuth().catch(() => {});
         startBriefing();
     });
 }
@@ -336,11 +375,7 @@ export function openCustomerBriefing(customer) {
         renderManual();
     } else if (flow === 'setup') {
         renderSetup();
-    } else if (!hasConsent()) {
-        warmupCopilotAuth().catch(() => {});
-        renderConsent();
     } else {
-        warmupCopilotAuth().catch(() => {});
-        startBriefing();
+        renderConsent();
     }
 }

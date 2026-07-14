@@ -32,6 +32,7 @@ import { openSetupDialog, showRecoveryCodeForDemo } from './lockVault.js';
 import { flyToCustomer, fitToCustomers, fitTourRoute, focusMapArea, closeMapPopups } from '../features/map.js';
 import { showMapView, captureSheetForDemo, expandSheetForDemo, restoreSheetAfterDemo, applyDepth } from './sidebar.js';
 import { showKeyStepForDemo } from './safeTransfer.js';
+import { openCustomerBriefing as openBriefingDialog } from './customerBriefing.js';
 
 const ROUTING_CONSENT_KEY = 'gf_routing_consent';
 
@@ -499,10 +500,34 @@ const HELPERS = {
         await clickEl('#simulation-map-discard');
         await sleep(600);
     },
-    // ---- Story 5: Chancen & Abhaken ----
+    // ---- Story 5: Chancen & Kundenbriefing ----
     async chancenOn() {
         await clickEl('.seg[data-view="chancen"]');
         await sleep(700);
+    },
+    async openCustomerBriefing() {
+        const stopId = state.tour.stops[0];
+        const customer = state.customers.find((item) => item.id === stopId)
+            || scopedWithCoords().find((item) => item.id !== state.tour.start?.customerId);
+        if (!customer) throw new Error('Kein geeigneter Kunde für die Briefing-Demo gefunden.');
+
+        showMapView();
+        await sleep(isMobileView() ? 700 : 350);
+        flyToCustomer(customer, true);
+        await sleep(1600);
+
+        const selector = `[data-action="customer-briefing"][data-id="${CSS.escape(String(customer.id))}"]`;
+        const openedByClick = await clickEl(selector);
+        if (!openedByClick) openBriefingDialog(customer);
+        const briefing = await resolveEl('#customer-briefing-dialog[open]', 3000);
+        if (!briefing) throw new Error('Das Kundenbriefing konnte nicht geöffnet werden.');
+        await sleep(500);
+    },
+    async closeCustomerBriefing() {
+        moveOverlaysInto(document.body);
+        const briefing = document.getElementById('customer-briefing-dialog');
+        if (briefing?.open) briefing.close();
+        await sleep(400);
     },
     async checkVisit() {
         const id = state.tour.stops[0];
@@ -572,6 +597,8 @@ function cleanup(story) {
     if (qr?.open) qr.close();
     const recv = document.getElementById('safe-receive-dialog');
     if (recv?.open) recv.close();
+    const briefing = document.getElementById('customer-briefing-dialog');
+    if (briefing?.open) briefing.close();
     const vd = document.getElementById('vault-dialog');
     if (vd?.open) vd.close();
     const mp = document.getElementById('mobile-preview');

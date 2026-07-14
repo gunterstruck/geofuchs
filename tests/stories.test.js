@@ -101,6 +101,16 @@ describe('Showcase-Stories: Guardrail', () => {
         expect(vault.steps.some((step) => step.t === 'say' && step.sel === '#recovery-code')).toBe(true);
     });
 
+    it('verbindet die Kundenauswahl mit einem sicheren Copilot-Briefing', () => {
+        const briefing = STORIES.find((story) => story.id === 'chancen');
+
+        expect(briefing.title).toContain('Sofort gebrieft');
+        expect(briefing.steps.some((step) => step.key === 'openCustomerBriefing')).toBe(true);
+        expect(briefing.steps.some((step) => step.sel === '[data-briefing-fallback]')).toBe(true);
+        expect(briefing.steps.some((step) => step.key === 'closeCustomerBriefing')).toBe(true);
+        expect(briefing.steps.some((step) => step.key === 'checkVisit')).toBe(false);
+    });
+
     it('wählt für die Tour-Demo getrennte Kunden quer durchs Ruhrgebiet', () => {
         const customers = [
             { id: 'start', name: 'Start Oberhausen', lat: 51.47, lng: 6.85 },

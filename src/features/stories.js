@@ -115,23 +115,27 @@ export const STORIES = [
     {
         id: 'chancen',
         icon: '🎯',
-        title: 'Wen besuche ich zuerst?',
-        blurb: 'Fällige Kunden filtern und unterwegs abhaken.',
+        title: 'Spontaner Termin? Sofort gebrieft',
+        blurb: 'Passenden Kunden finden und mit Copilot vorbereitet starten.',
         needsData: true,
         mutatesTour: true,
-        restoresVisit: true,
         steps: [
             { t: 'run', key: 'ensureDemo' },
             { t: 'run', key: 'gotoTour' },
-            { t: 'say', text: '„Chancen" zeigt nur fällige und überfällige Kunden.', sel: '.seg[data-view="chancen"]', ms: 2200 },
+            { t: 'say', text: 'Du bist unterwegs und ein spontaner Kundentermin wird möglich.', ms: 2200 },
+            { t: 'say', text: '„Chancen" zeigt dir dafür nur fällige und überfällige Kunden.', sel: '.seg[data-view="chancen"]', ms: 2400 },
             { t: 'run', key: 'chancenOn' },
             { t: 'wait', ms: 1400 },
             { t: 'run', key: 'pickBezirkAll' },
             { t: 'run', key: 'pickStart' },
             { t: 'run', key: 'addTwoSuggestions' },
-            { t: 'say', text: 'Und unterwegs einfach abhaken …', sel: '#tour-stops', ms: 1900 },
-            { t: 'run', key: 'checkVisit' },
-            { t: 'say', text: 'Erledigt – der Besuchsstatus springt sofort auf grün.', ms: 2600 }
+            { t: 'say', text: 'TourFuchs hat einen passenden Kunden in der Nähe gefunden. Jetzt kurz vorbereiten.', sel: '#tour-stops', ms: 2600 },
+            { t: 'run', key: 'openCustomerBriefing' },
+            { t: 'say', text: 'Kein Setup nötig: Der kompakte Kunden-Prompt ist sofort vorbereitet.', sel: '.briefing-path-simple', ms: 2800 },
+            { t: 'say', text: 'Du prüfst ihn und entscheidest selbst, wann Copilot geöffnet und der Prompt abgesendet wird.', sel: '[data-briefing-fallback]', ms: 3200 },
+            { t: 'say', text: 'Copilot kann dabei nur interne Inhalte einbeziehen, auf die dein Arbeitskonto zugreifen darf.', sel: '.briefing-manual-note', ms: 3200 },
+            { t: 'run', key: 'closeCustomerBriefing' },
+            { t: 'say', text: 'Der nächste Kunde steht fest. Das aktuelle Gesprächsbriefing auch.', ms: 2500 }
         ]
     },
     {
@@ -309,6 +313,7 @@ export const CRITICAL_SELECTORS = [
     '#simulation-map-discard',
     '[data-simulation-view]',
     '.seg[data-view="chancen"]',
+    '#customer-briefing-dialog',
     '.tab-button[data-tab="daten"]',
     '#vault-controls',
     '#btn-vault-toggle',

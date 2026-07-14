@@ -110,4 +110,20 @@ describe('Kundenbriefing', () => {
         expect(briefingSource).toContain("flow === 'manual'");
         expect(html).toContain('id="customer-briefing-dialog"');
     });
+
+    it('zeigt im Profi zuerst den einfachen Weg und startet nie ungefragt', () => {
+        const source = readFileSync(resolve(process.cwd(), 'src/ui/customerBriefing.js'), 'utf8');
+        const setup = source.slice(source.indexOf('function renderSetup'), source.indexOf('function renderConsent'));
+        const automatic = source.slice(source.indexOf('function renderConsent'), source.indexOf('function renderLoading'));
+        const opener = source.slice(source.indexOf('export function openCustomerBriefing'));
+
+        for (const view of [setup, automatic]) {
+            expect(view.indexOf('${expertManualPath()}')).toBeGreaterThanOrEqual(0);
+            expect(view.indexOf('${expertManualPath()}')).toBeLessThan(view.indexOf('briefing-expert-path'));
+            expect(view).toContain('wireManualFallback();');
+        }
+        expect(source).toContain('class="primary briefing-path-action" data-briefing-fallback');
+        expect(opener).toContain('renderConsent();');
+        expect(opener).not.toContain('startBriefing();');
+    });
 });
