@@ -82,6 +82,7 @@ export const CONFIG = {
     },
 
     plzCentroidsUrl: '/geodata/plz-centroids.json',
+    plzPlacesUrl: '/geodata/plz-places.json',
 
     regionStyle: {
         default: {

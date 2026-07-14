@@ -5,7 +5,7 @@
  */
 
 import * as XLSX from 'xlsx';
-import { loadPlzCentroids } from './geocode.js';
+import { loadPlzCentroids, loadPlzPlaces } from './geocode.js';
 
 /** Interne Felder mit deutschen Labels und Erkennungs-Synonymen */
 export const FIELDS = [
@@ -542,9 +542,7 @@ export function exportCustomers(customers) {
  * (Voronoi) aller echten deutschen PLZ zu Bezirks-Ankern. So füllt sich ganz
  * Deutschland; die Färbung hängt am Vertriebsbezirk.
  */
-export async function demoCustomers() {
-    const centroids = await loadPlzCentroids();
-
+export function createDemoCustomers(centroids, places) {
     // Bezirks-Anker (Name, Vertriebsgruppe, optionaler VB, Position)
     const anchors = [
         // Nord (inkl. West)
@@ -570,6 +568,7 @@ export async function demoCustomers() {
     // Jede PLZ dem nächstgelegenen Anker zuordnen (Voronoi -> zusammenhängende Bezirke)
     const pools = anchors.map(() => []);
     for (const plz in centroids) {
+        if (!places[plz]) continue;
         const [la, ln] = centroids[plz];
         let best = 0, bestD = Infinity;
         for (let a = 0; a < anchors.length; a++) {
@@ -615,7 +614,7 @@ export async function demoCustomers() {
                 name,
                 strasse: `${pick(strassen)} ${1 + Math.floor(rnd() * 120)}`,
                 plz,
-                ort: '',
+                ort: places[plz] || '',
                 vb: anchor.vb,
                 channel: 'Digital',
                 gruppe: anchor.gruppe,
@@ -632,4 +631,9 @@ export async function demoCustomers() {
         }
     });
     return out;
+}
+
+export async function demoCustomers() {
+    const [centroids, places] = await Promise.all([loadPlzCentroids(), loadPlzPlaces()]);
+    return createDemoCustomers(centroids, places);
 }

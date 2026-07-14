@@ -911,7 +911,8 @@ export function customerPopupHtml(customer) {
     const isDest = state.tour.destination?.customerId === customer.id;
     // Kompakter Kopf: Adresse einzeilig, Hierarchie und Umsatz in einer Zeile,
     // Kundennummer neben den Namen – damit ohne Scrollen mehr sichtbar ist.
-    const addr = [customer.strasse, `${customer.plz} ${customer.ort}`.trim()]
+    const place = [customer.plz, customer.ort].map((value) => String(value ?? '').trim()).filter(Boolean).join(' ');
+    const addr = [customer.strasse, place]
         .filter(Boolean).map(escapeHtml).join(' · ');
     const hierarchy = [customer.channel, customer.gruppe, customer.bezirk]
         .filter(Boolean).map(escapeHtml).join(' › ');

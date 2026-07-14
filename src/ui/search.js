@@ -9,6 +9,26 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
 ));
 
+export function normalizeSearchText(value) {
+    return String(value ?? '')
+        .trim()
+        .toLocaleLowerCase('de-DE')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/ß/g, 'ss');
+}
+
+export function searchCustomers(customers, query, limit = 8) {
+    const q = normalizeSearchText(query);
+    if (q.length < 2) return [];
+    return customers.filter((customer) => (
+        normalizeSearchText(customer?.name).includes(q)
+        || normalizeSearchText(customer?.ort).includes(q)
+        || String(customer?.plz ?? '').startsWith(q)
+        || normalizeSearchText(customer?.nummer) === q
+    )).slice(0, limit);
+}
+
 export function initSearch() {
     const input = document.getElementById('global-search');
     const results = document.getElementById('search-results');
@@ -16,14 +36,9 @@ export function initSearch() {
     const close = () => { results.innerHTML = ''; results.style.display = 'none'; };
 
     input.addEventListener('input', () => {
-        const q = input.value.trim().toLowerCase();
+        const q = normalizeSearchText(input.value);
         if (q.length < 2) { close(); return; }
-        const hits = state.customers.filter((c) =>
-            c.name.toLowerCase().includes(q) ||
-            c.ort.toLowerCase().includes(q) ||
-            c.plz.startsWith(q) ||
-            c.nummer.toLowerCase() === q
-        ).slice(0, 8);
+        const hits = searchCustomers(state.customers, q);
 
         if (hits.length === 0) {
             results.innerHTML = '<div class="result-empty">Keine Treffer</div>';

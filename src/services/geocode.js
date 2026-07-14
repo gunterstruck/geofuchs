@@ -12,6 +12,7 @@ import { CONFIG } from '../core/config.js';
 import { loadGeocodeCache, saveGeocodeCache } from './storage.js';
 
 let plzCentroids = null;
+let plzPlaces = null;
 
 export async function loadPlzCentroids() {
     if (plzCentroids) return plzCentroids;
@@ -19,6 +20,28 @@ export async function loadPlzCentroids() {
     if (!response.ok) throw new Error('PLZ-Koordinaten konnten nicht geladen werden.');
     plzCentroids = await response.json();
     return plzCentroids;
+}
+
+export async function loadPlzPlaces() {
+    if (plzPlaces) return plzPlaces;
+    const response = await fetch(CONFIG.plzPlacesUrl);
+    if (!response.ok) throw new Error('PLZ-Ortsnamen konnten nicht geladen werden.');
+    const data = await response.json();
+    plzPlaces = data.places || data;
+    return plzPlaces;
+}
+
+export async function enrichPlacesByPlz(customers) {
+    const places = await loadPlzPlaces();
+    let updated = 0;
+    for (const customer of customers) {
+        if (String(customer.ort ?? '').trim()) continue;
+        const place = places[String(customer.plz ?? '').trim()];
+        if (!place) continue;
+        customer.ort = place;
+        updated++;
+    }
+    return updated;
 }
 
 /**

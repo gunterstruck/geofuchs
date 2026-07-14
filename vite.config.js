@@ -43,7 +43,8 @@ export default defineConfig({
                     'geodata/kreise.geojson',
                     'geodata/plz1.geojson',
                     'geodata/plz2.geojson',
-                    'geodata/plz-centroids.json'
+                    'geodata/plz-centroids.json',
+                    'geodata/plz-places.json'
                 ],
                 maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
                 runtimeCaching: [

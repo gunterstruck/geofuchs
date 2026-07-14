@@ -10,7 +10,7 @@ import { CONFIG } from './core/config.js';
 import { state, on, emit, setCustomers, datasetSnapshot } from './core/state.js';
 import { loadDataset, saveDataset, loadSettings, hasStoredDataset } from './services/storage.js';
 import { isEnabled as vaultEnabled, isLocked as vaultLocked, removeVaultMeta } from './services/vault.js';
-import { geocodeByPlz } from './services/geocode.js';
+import { enrichPlacesByPlz, geocodeByPlz } from './services/geocode.js';
 import { initMap } from './features/map.js';
 import { initSidebar, applyMode, autoRevealIfEmpty } from './ui/sidebar.js';
 import { initImportWizard } from './ui/importWizard.js';
@@ -57,12 +57,21 @@ async function restorePersistedState() {
     const dataset = await loadDataset();
     if (dataset?.territories) state.territories = dataset.territories;
     if (dataset?.customers?.length) {
+        let enrichedDemoPlaces = 0;
+        if (dataset.fileName === 'Demo-Daten') {
+            try {
+                enrichedDemoPlaces = await enrichPlacesByPlz(dataset.customers);
+            } catch (error) {
+                console.warn('Ortsnamen älterer Demodaten konnten nicht ergänzt werden:', error);
+            }
+        }
         // Sicherheitsnetz: falls ältere Datensätze ohne Koordinaten gespeichert wurden
         await geocodeByPlz(dataset.customers);
         setCustomers(dataset.customers, {
             fileName: dataset.fileName,
             importedAt: dataset.importedAt
         });
+        if (enrichedDemoPlaces > 0) await saveDataset(datasetSnapshot());
 
         // Persistierte Sichtbarkeiten anwenden
         if (settings?.repVisibility) {
