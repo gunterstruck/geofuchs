@@ -808,7 +808,9 @@ function tryAutoOffer() {
     }
 
     const hasCustomers = state.customers.length > 0;
-    if (hasCustomers && state.fileName && state.fileName !== 'Demo-Daten') {
+    if (!hasCustomers) {
+        clearShowcaseImportCompleted();
+    } else if (state.fileName && state.fileName !== 'Demo-Daten') {
         markShowcaseImportCompleted();
     }
 

@@ -92,6 +92,8 @@ describe('Showcase-Onboarding', () => {
         expect(showcase).toContain('AUTO_OFFER_DELAY_MS = 5000');
         expect(showcase).toContain("on('app:ready', scheduleAutoOffer)");
         expect(showcase).toContain("on('dataset:cleared', restartAutoOfferAfterDataClear)");
+        expect(showcase).toContain('if (!hasCustomers)');
+        expect(showcase).toContain('clearShowcaseImportCompleted()');
         expect(showcase).toContain('showStoryCompletion(story)');
         expect(importWizard).toContain('markShowcaseImportCompleted()');
         expect(main).toContain("emit('app:ready')");
