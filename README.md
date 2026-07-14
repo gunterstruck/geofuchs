@@ -79,6 +79,7 @@ Beim Import werden die Zeilen geprüft. **Gültige Zeilen werden importiert**, p
 - [Ausführliches Schulungshandbuch](./docs/schulung-tourfuchs.md)
 - [Kurzanleitung für Anwender](./docs/kurzanleitung-tourfuchs.md)
 - [Wissensbasis für den Guide-Bot](./docs/guide-ki-wissensbasis.md) – aufgabenorientiert mit dokumentierten Klickpfaden, aktueller Funktionsstand
+- [PDF-Fassung der Guide-Wissensbasis](./TourFuchs_KI-Agent_Wissensbasis.pdf) – gut lesbare Referenz für Review, Schulung und Weitergabe
 - [Lokaler Test des Copilot-Kundenbriefings](./docs/copilot-briefing.md) – Entra-Konfiguration, Berechtigungen und Testablauf
 
 ---

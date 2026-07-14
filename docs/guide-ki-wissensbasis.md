@@ -1,565 +1,2082 @@
-# TourFuchs Vertrieb – Wissensbasis für den Guide-Bot
+# TourFuchs Vertrieb - Wissensbasis für den KI-Guide
 
-**Stand: 10.07.2026** · Basiert auf dem aktuellen Funktionsstand der App.
-Dieses Dokument ist die Wissensgrundlage für den TourFuchs-Guide (Custom-Bot).
-Es ist aufgabenorientiert aufgebaut: Jeder Abschnitt beantwortet eine Nutzerfrage
-eigenständig und enthält den **Klickpfad** mit den exakten Beschriftungen aus der App.
+**Version 2.0 · Stand: 14.07.2026 · App-Version: 3.0.0**
 
-**Klickpfad-Konvention:** `Modus → Tab → Schaltfläche` – Beschriftungen stehen in
-Anführungszeichen genau so, wie sie in der App erscheinen (inklusive Symbol).
-Beispiel: `Gebietsplanung → Tab „🗺️ Gebiete" → „📊 Gebiets-Cockpit öffnen"`.
+**Zweck:** Verbindliche Produkt-, Bedien-, Schulungs- und Supportgrundlage für
+einen angepassten TourFuchs-Guide. Die Markdown-Datei ist die primäre
+Wissensquelle für KI-Systeme. Die PDF-Fassung dient der menschlichen Prüfung und
+Weitergabe.
 
----
+**Quellenpriorität:** aktueller App-Code und sichtbare Beschriftungen vor älteren
+Screenshots, Präsentationen oder Schulungsunterlagen. Bei einem Widerspruch gilt
+dieses Dokument nur für den oben genannten Stand.
 
-## 1. Was ist TourFuchs Vertrieb?
+**Klickpfad-Konvention:** `Modus -> Tab -> Bereich -> Aktion`. Sichtbare
+Beschriftungen stehen in Anführungszeichen. Beispiel:
+`"Gebietsplanung" -> Tab "Gebiete" -> "Gebiets-Cockpit öffnen"`.
 
-TourFuchs ist eine installierbare Web-App (PWA) für den Außendienst in Deutschland.
-Sie beantwortet zwei Kernfragen:
-
-1. **„Welcher Vertriebsbezirk betreut welche Kunden?"** – Excel-/CSV-Liste hochladen,
-   Kunden erscheinen auf der Deutschlandkarte, Gebiete werden nach Betriebsbezirken eingefärbt.
-2. **„Wen besuche ich als Nächstes?"** – Startpunkt wählen, Vorschläge erhalten,
-   Tour zusammenstellen, Reihenfolge optimieren, in Google Maps navigieren.
-
-**Grundprinzipien (immer gültig):**
-- **Lokal-first:** Keine Anmeldung, keine Cloud. Alle Kundendaten bleiben im Browser
-  des Geräts (IndexedDB). Es gibt keinen TourFuchs-Server, der Daten empfängt.
-- **Betriebsbezirk ist die führende Ebene.** Er steuert Färbung, Cockpit, Tourfilter
-  und Simulation. Die Vertriebsgruppe ist die empfohlene übergeordnete Vergleichsebene.
-- **Desktop und Smartphone haben verschiedene Aufgaben:** Desktop = Import,
-  Gebietsplanung, Cockpit, Simulation. Smartphone = Karte, Tour, Navigation.
-  Komplexe Gebietsplanung ist mobil bewusst ausgeblendet.
-- **Die Tour plant der Nutzer selbst.** TourFuchs macht Vorschläge (Umkreis, entlang
-  der Tour, überfällige zuerst), aber es gibt keinen Automatik-Knopf, der die Tour
-  ungefragt baut. Das ist eine bewusste Produktentscheidung.
+**Begriffsregel:** Die aktuelle App verwendet sichtbar **Vertriebsbezirk**. Der
+Import akzeptiert **Betriebsbezirk** als Synonym. Der Guide soll in Antworten den
+aktuellen UI-Begriff **Vertriebsbezirk** verwenden und den alten Begriff nur bei
+der Einordnung fremder Dateien erwähnen.
 
 ---
 
-## 2. Oberfläche: Modi, Tabs, Topbar
+## Inhaltsübersicht
 
-**Topbar (oben):** Menü-Schalter „☰", TourFuchs-Logo, Suchfeld
-„Kunde, Ort, PLZ suchen…", Mobile-Vorschau „📱" (Desktop), Info „ⓘ".
-
-**Ansichtstiefe (ganz oben im Bedienpanel):** beschrifteter Umschalter
-**„🌱 Basis" / „🛠️ Profi"** – die aktive Stufe ist hervorgehoben, die andere
-ausgegraut. Dies ist eine **globale** Achse (gilt in beiden Fokus-Modi, mobil wie
-Desktop):
-- **🌱 Basis** (Standard beim ersten Start): zeigt nur das Wesentliche und hält den
-  ersten Eindruck ruhig. Im Kunden-Popup z. B. nur Umsatz, Adresse, Kontakt,
-  „Als Start", „Zur Tour" und „✓ Heute besucht" – ohne Rhythmus/Zuletzt-Zeile,
-  Kundennummer, „Als Ziel" oder „Kopieren".
-- **🛠️ Profi**: blendet alle Komfort- und Feinsteuerungs-Werkzeuge ein
-  (z. B. Chancen/fällige Kunden, Ziel, Vorschlagsmodus, Druck/Export, Besuchs­rhythmus
-  und Kundennummer im Popup, „Als Ziel", „Kopieren").
-
-Die Wahl wird gespeichert (`gf_app_depth`). Bestandsnutzer mit früher aktiviertem
-Tour-Experten-Modus (`gf_tour_expert`) starten automatisch in **Profi**.
-Live-Vorführungen laufen immer in Profi, damit alle Funktionen zeigbar sind, und
-stellen danach die vorherige Stufe wieder her.
-
-**Fokuswechsel (darunter im Bedienpanel):** zwei Schaltflächen
-- **„🚗 Außendienst"** – Alltag: Karte, Tour, Kunden. Tabs: „📄 Daten", „Filter", „Tour".
-- **„🗺️ Gebietsplanung"** – Analyse: Flächen, Cockpit, Simulation. Tabs: „📄 Daten", „Filter", „🗺️ Gebiete".
-
-Auf dem Smartphone sitzen **„🌱 Basis / 🛠️ Profi"** und die Tabs **„Karte" / „Tour"**
-in einem festen Streifen **ganz oben** (direkt unter der Suchleiste), damit sie
-immer sichtbar bleiben. Darunter füllt die Karte den Bildschirm; das Tour-Panel
-liegt als Bottom-Sheet über der Karte und wird am **grünen Griff** kontinuierlich
-mit dem Finger aufgezogen. Ein Tipp auf **„Tour"** öffnet das Sheet, **„Karte"**
-schließt es wieder.
-
-Zieht man das Blatt im **Karte**-Tab auf, erscheint der Begleiter **„In der Nähe"**:
-die nächstgelegenen Kunden – bezogen auf die **Kartenmitte** oder den **GPS-Standort**
-(Umschalter im Kopf) – mit Entfernung und Umsatz. Ein Tipp auf eine Zeile fliegt zum
-Kunden (Karte in den Vordergrund, Popup öffnet); **➕** hängt ihn an die Tour. In
-**Basis** schlicht (Name, Ort, Entfernung, Umsatz); in **Profi** zusätzlich
-Status-Punkt (fällig/überfällig) und „davon X fällig". Die Liste aktualisiert sich
-beim Verschieben der Karte.
-
-Wenn ein Nutzer eine Schaltfläche nicht findet, zuerst prüfen: richtige
-Ansichtstiefe (**Profi** blendet die Werkzeuge ein), richtiger Fokus-Modus,
-richtiger Tab.
+1. Auftrag und Antwortverhalten des Guides
+2. Produktkonzept und Product-Owner-Highlights
+3. Zielgruppen, Geräte und Funktionsmatrix
+4. Oberfläche und Panel-Bedienung
+5. Onboarding beim ersten Start
+6. Live-Demos
+7. Daten laden, importieren und aktualisieren
+8. Karte, Suche und Kunden-Popup
+9. Kundenbriefing mit Microsoft 365 Copilot
+10. Tourplanung im Außendienst
+11. Tour vom Desktop aufs Smartphone übergeben
+12. Mobile Bedienung
+13. Gebietsplanung, Cockpit und Simulation
+14. Datentresor und sicherer Geräteumzug
+15. PWA-Installation und Updates
+16. Datenschutz und Datenflüsse
+17. Klickpfad-Bibliothek
+18. Diagnosebäume und Fehlerbilder
+19. Häufige Fragen mit Musterantworten
+20. Mini-Schulungen
+21. Geführte Dialoge für den Guide
+22. Agentenregeln und Wissensgrenzen
+23. Empfohlener Systemprompt
+24. Prüfungsfragen mit Soll-Antworten
+25. Glossar
+26. Pflege und Änderungsprotokoll
+27. Schnellreferenz
 
 ---
 
-## 3. Installation als App (PWA)
+## 1. Auftrag und Antwortverhalten des Guides
 
-**Desktop (Chrome/Edge):**
-1. TourFuchs im Browser öffnen.
-2. Browser-Menü → „App installieren".
+Der TourFuchs-Guide hilft Anwenderinnen und Anwendern, TourFuchs zu verstehen,
+sicher zu bedienen und den nächsten sinnvollen Schritt zu finden. Er ist kein
+allgemeiner Vertriebsberater und kein Ersatz für CRM-, Datenschutz-, Rechts- oder
+IT-Sicherheitsberatung.
 
-**Android (Chrome):**
-1. TourFuchs im Browser öffnen.
-2. Menü (⋮) → „App installieren" bzw. „Zum Startbildschirm hinzufügen".
+Der Guide soll:
 
-**iPhone (Safari):**
-1. TourFuchs in Safari öffnen.
-2. Teilen-Symbol → „Zum Home-Bildschirm".
+- Nutzen und Bedienkonzept verständlich erklären.
+- sichtbare Bedienelemente mit ihren aktuellen Namen nennen.
+- kurze, eindeutige Klickpfade ausgeben.
+- Desktop und Smartphone sowie Basis und Profi unterscheiden.
+- Screenshots anhand tatsächlich sichtbarer Elemente einordnen.
+- typische Bedienfehler systematisch diagnostizieren.
+- lokale Verarbeitung und bewusst ausgelöste externe Datenflüsse trennen.
+- vor dauerhaften oder löschenden Aktionen warnen.
+- beim Kundenbriefing den manuellen Basisweg und den optionalen Profiweg korrekt
+  auseinanderhalten.
+- bei Bedarf eine kurze, rollenbezogene Mini-Schulung anbieten.
 
-**Problem „alter App-Name wird angezeigt":** alte PWA vom Homescreen entfernen,
-Browser neu laden, App neu installieren.
+Der Guide soll nicht:
 
-**Updates:** TourFuchs prüft beim Start, in Intervallen und beim Fokuswechsel auf
-Updates. Bei verfügbarem Update erscheint ein Hinweis mit Aktualisieren-Option.
-Lokale Daten bleiben bei Updates erhalten.
+- behaupten, reale Kundendaten oder den aktuellen Bildschirm zu sehen, wenn diese
+  Informationen nicht bereitgestellt wurden.
+- erfundene Funktionen, Menüpunkte, Kundeninformationen oder Fahrzeiten nennen.
+- behaupten, TourFuchs synchronisiere Daten automatisch zwischen Geräten.
+- eine Live-Demo mit einem Video verwechseln; sie bedient die echte App.
+- eine Simulation als bereits gespeicherte Änderung darstellen.
+- eine Straßenroute oder Microsoft-Copilot-Antwort als garantiert verfügbar
+  darstellen.
+- Nutzende zum Löschen anleiten, ohne vorher einen Export zu empfehlen.
+- für eine Diagnose komplette sensible Kundendatensätze im Chat anfordern.
 
----
+### 1.1 Empfohlenes Antwortformat
 
-## 4. Demo-Daten laden (empfohlener Einstieg)
+1. Direkte Antwort in ein bis zwei Sätzen.
+2. `Klickpfad:` mit den sichtbaren Beschriftungen.
+3. `Ergebnis:` Was danach auf dem Bildschirm zu sehen ist.
+4. Nur wenn relevant: `Wichtig:` Voraussetzung, Speicherwirkung oder
+   Datenschutzfolge.
 
-**Klickpfad:** Tab „📄 Daten" → **„✨ App in 60 Sekunden erleben"**
+Beispiel:
 
-Lädt flächendeckende Demo-Daten (fiktive Kunden mit Bezirken, Gruppen, Umsätzen und
-Besuchsrhythmen). Ideal zum Ausprobieren ohne echte Kundendaten. Eigene Daten können
-jederzeit danach geladen werden.
+> Das spontane Kundenbriefing ist bereits im Basis-Modus verfügbar.
+>
+> **Klickpfad:** Kundenmarker -> "Briefing" -> "Prompt kopieren & Copilot
+> öffnen".
+>
+> **Ergebnis:** TourFuchs kopiert den vorbereiteten Prompt und öffnet Microsoft
+> 365 Copilot. Der Nutzer fügt ihn dort ein und sendet ihn selbst ab.
+>
+> **Wichtig:** Erst beim Absenden in Copilot werden die im Prompt sichtbaren Daten
+> an Microsoft übergeben.
 
----
+### 1.2 Sinnvolle Rückfragen
 
-## 5. Excel-/CSV-Import
+Nur fragen, wenn die Antwort davon abhängt:
 
-### 5.1 Vorlage herunterladen
-**Klickpfad:** Tab „📄 Daten" → **„📋 Excel-Vorlage herunterladen"**
+- Desktop/Laptop oder Smartphone?
+- Basis oder Profi?
+- Außendienst oder Gebietsplanung?
+- Demo-Daten oder eigene Daten?
+- Nur prüfen oder dauerhaft übernehmen?
+- Luftlinie oder Straßenroute?
+- Manuelles Briefing oder direkte Entra-Verbindung?
 
-### 5.2 Pflicht- und empfohlene Spalten
-- **Pflicht:** Kundenname, PLZ (für die Karte), **Betriebsbezirk**
-- **Empfohlen:** Straße & Hausnummer, Ort, Kundennummer, Umsatz, Vertriebsgruppe,
-  Ansprechpartner, Telefon, E-Mail, Besuchsrhythmus (Wochen), Letzter Besuch
-- Spaltennamen werden automatisch erkannt (auch Synonyme wie „Firma", „Bezirk",
-  „Jahresumsatz"); die Zuordnung wird im Dialog **„Spalten zuordnen"** geprüft.
-
-### 5.3 Importieren
-**Klickpfad:** Tab „📄 Daten" → **„📤 Excel- oder CSV-Liste hochladen"** →
-Datei wählen oder per Drag & Drop ablegen → Dialog „Spalten zuordnen" prüfen →
-**„Importieren"** → Dialog „Import abgeschlossen" kontrollieren.
-
-- CSV wird robust eingelesen (Semikolon, Komma oder Tab; UTF-8 und Windows-1252).
-- Beim Upload muss bestätigt werden, dass die Daten verarbeitet werden dürfen (Compliance).
-- **Fehlerhafte Zeilen** landen nicht in der Karte, sondern in einer herunterladbaren
-  Fehlerliste: im Ergebnis-Dialog **„⬇ Fehlerliste (.xlsx)"**. Erkannt werden u. a.
-  Dubletten, fehlender Betriebsbezirk, widersprüchliche Gebietszuordnungen,
-  unbekannte Landkreise/PLZ.
-
-### 5.4 Umsatz-Formate
-Der Import versteht Umsätze als Excel-Zahl sowie als Text in deutschem Format
-(`1.234,56`), englischem Format (`1,234.56`) und ohne Gruppierung (`45000`, `45.5`).
-Währungszeichen werden ignoriert. Die **Umsatzspalte wird spaltenweit einheitlich**
-gelesen: Erkennt TourFuchs eindeutige deutsche Tausenderpunkte (z. B. `189.245`),
-wird die ganze Spalte deutsch interpretiert (`350.070` → 350 070 €, nicht 350,07).
-Nennt die **Überschrift** eine Einheit (`T€`, `TEUR`, `Tsd €`, `Mio €`), wird
-entsprechend ×1000 bzw. ×1 000 000 in volle Euro umgerechnet. In beiden Fällen
-zeigt der Import-Dialog einen **Hinweis mit der erkannten Gesamtsumme** zum Prüfen.
-
-### 5.5 Neue Liste / Delta-Import
-**Klickpfad:** Tab „📄 Daten" → **„📤 Andere Excel- oder CSV-Liste laden"**
-Beim erneuten Import werden bestehende Kunden über die Kundennummer, sonst über
-Name + PLZ wiedererkannt; Besuchshistorie und Kontakte werden zusammengeführt.
-
-### 5.6 Flächenzeilen (Gebiete ohne Kunden zuordnen)
-Eine Zeile **ohne Kundenname**, aber mit Spalte „Gebiet (LK/PLZ)" und einem
-Betriebsbezirk, ordnet ein ganzes Gebiet zu – z. B. `Oberhausen` (Landkreis),
-`46` (alle 46xxx) oder `46045` (genau dieses PLZ-Gebiet). So lassen sich weiße
-Flecken für Neukunden reservieren. Alternativ interaktiv über das Gebiets-Popup
-auf der Karte oder im Cockpit (Häkchen „Auch Gebiete ohne Kunden einbeziehen").
-
-### 5.7 Adressgenaue Verortung (optional)
-**Klickpfad:** Tab „📄 Daten" → **„🎯 Adressen exakt verorten"**
-Standard ist die Offline-Verortung über PLZ-Koordinaten. Diese optionale Funktion
-sendet die Adresse (Straße, PLZ, Ort – keine Namen, kein Umsatz) an den Dienst
-Nominatim (OpenStreetMap) und ist gedrosselt. Nur nach bewusstem Klick.
-
-### 5.8b Datentresor (Verschlüsselung mit PIN)
-**Wann wird die PIN vergeben? (Onboarding)**
-- **Beim Import eigener Daten** (Excel/CSV) führt die App direkt zur PIN-Vergabe – eigene Kundendaten sollen verschlüsselt liegen. Die PIN dort festlegen + **Wiederherstellungscode notieren** (wird nur einmal angezeigt!).
-- **Beispieldaten (Demo)** werden **nie** verschlüsselt und verlangen keine PIN. Lädt man die Demo, während ein Tresor aktiv ist, wird dieser (nach Rückfrage) deaktiviert.
-- **„Daten löschen"** deaktiviert auch den Tresor – ohne Daten gibt es nichts zu schützen.
-- **Jederzeit selbst einrichten:** über das **🔓-Symbol oben in der Kopfzeile** (auch auf dem Handy immer erreichbar) oder Tab „📄 Daten" → Bereich **„🔐 Datentresor"** → **„🔐 Tresor aktivieren (PIN)"**.
-
-- Ist der Tresor aktiv, werden die Kundendaten **AES-256-verschlüsselt** lokal gespeichert. Der Schlüssel wird aus der PIN abgeleitet und **nie gespeichert** – ohne PIN sind die Daten unlesbar.
-- **Bei jedem App-Start** (und nach Inaktivität) erscheint der **Sperrbildschirm**; erst nach PIN-Eingabe sind die Daten da.
-- **PIN vergessen?** Auf dem Sperrbildschirm „Wiederherstellungscode nutzen" → den bei der Einrichtung notierten Code eingeben. Die Daten werden entsperrt und du wirst **direkt zur Vergabe einer neuen PIN** geführt (die alte ist ja vergessen; „PIN ändern" verlangt die alte und ist dafür nicht der Weg). Ohne PIN **und** ohne Code sind die Daten endgültig verloren (kein Zurücksetzen durch den Betreiber – keine Hintertür).
-- **Zu viele Fehlversuche** löschen die lokalen Daten (Schutz gegen Ausprobieren).
-- **Face/Touch ID (optional):** Bei aktivem, entsperrtem Tresor → **„👤 Face/Touch ID einrichten"** (verlangt einmalig die PIN). Danach zeigt der Sperrbildschirm **„👤 Mit Face/Touch ID entsperren"**. Die PIN bleibt als Rückfallweg; entfernen mit **„👤 Face/Touch ID entfernen"**. Nur verfügbar, wenn Gerät/Browser einen Plattform-Authenticator mit PRF unterstützen. Biometrie verlässt nie das Gerät.
-- **Auto-Lock-Zeit:** Bei aktivem Tresor unter **„Automatisch sperren nach"** wählbar (1/5/15 min, 1 h oder „Nie/nur manuell").
-- **Topbar-Schloss (Kopfzeile):** ohne Tresor **🔓** = „einrichten"; bei aktivem, entsperrtem Tresor **🔐** = „jetzt sperren". Weitere Steuerung im Tab „Daten": **„PIN ändern"**, **„Tresor deaktivieren"** (verlangt PIN; danach wieder unverschlüsselt).
-- Grenze (ehrlich): schützt verlorenes/gestohlenes Gerät und die Datei – nicht ein bereits entsperrtes, mit Schadsoftware befallenes Gerät.
-
-### 5.8c Sicherer Umzug (verschlüsselt auf ein anderes Gerät)
-Damit bringt man den kompletten Kundenbestand verschlüsselt von einem Gerät auf ein anderes (z. B. Desktop → Diensthandy). **Datei und Schlüssel reisen getrennt** – das ist der Sicherheitskern.
-- **Senden (Desktop):** Tab „📄 Daten" → Bereich **„🧳 Sicherer Umzug"** → **„🧳 Verschlüsselt exportieren (Datei + QR)"**. Es wird eine verschlüsselte Datei **`.tfsafe`** heruntergeladen und ein **Schlüssel-QR** am Bildschirm angezeigt.
-- **Empfangen (Handy):** Tab „📄 Daten" → **„📥 Daten empfangen"** (auch im Start-/Leerzustand als **„📥 Daten von anderem Gerät empfangen"** verfügbar). Schritt 1: die `.tfsafe`-Datei wählen. Schritt 2: den **Schlüssel-QR** scannen (oder als Text einfügen). Danach wird man **direkt zum Tresor-Setup geführt**, damit die Daten sofort geschützt sind.
-- **Warum sicher:** Die Datei ist AES-256-GCM-verschlüsselt und ohne Schlüssel wertlos; der Schlüssel geht nur per Bildschirm→Kamera, nie übers Netz und **nicht als Link**. Ein falscher/fremder Schlüssel oder eine beschädigte Datei werden erkannt und abgewiesen.
-- **Wichtig für Anwender:** Datei und Schlüssel-QR **getrennt** aufbewahren. Wer beides hat, kann entschlüsseln.
-
-### 5.8 Export und Löschen
-- **„💾 Als Excel exportieren"** – kompletter Datenbestand als Excel-Datei.
-  Vor größeren Änderungen oder dem Löschen immer empfehlen!
-- **„🗑 Daten löschen"** – entfernt alle lokalen Daten nach Bestätigung.
+Nicht rückfragen, wenn ein Screenshot oder die Nutzerbeschreibung den Kontext
+eindeutig zeigt.
 
 ---
 
-## 6. Karte bedienen
+## 2. Produktkonzept und Product-Owner-Highlights
 
-### 6.1 Suche
-Suchfeld oben: „Kunde, Ort, PLZ suchen…" – findet Kunden nach Name, Ort, PLZ oder
-Kundennummer und fliegt sie an.
+### 2.1 Produkt in einem Satz
 
-### 6.2 Kundenmarker und Popup
-Kunden erscheinen als Marker (bei vielen Kunden als Cluster-Zahlen). Klick/Tipp auf
-einen Marker zeigt: Name, Adresse, Hierarchie (Channel › Gruppe › Bezirk), Umsatz,
-Ansprechpartner mit Telefon/E-Mail, Besuchsstatus und Aktionen
-(„➕ Zur Tour", „📋 Kopieren").
+TourFuchs macht eigene Kunden- und Vertriebsdaten räumlich und unmittelbar
+handlungsfähig: Kundenkarte, Gebietsplanung, Tour und aktuelles internes
+Microsoft-365-Wissen kommen in einer installierbaren, lokal-first PWA zusammen.
 
-### 6.3 Kartenstil
-Umschalter auf der Karte: **„Standard"** (Voreinstellung), **„Hell"** (gut für
-Datenanalyse), **„Satellit"**. Die Wahl wird gespeichert.
+### 2.2 Die zwei Kernfragen
 
-### 6.4 Gebietsflächen einfärben
-**Klickpfad:** `„🗺️ Gebietsplanung" → Tab „🗺️ Gebiete"` →
-- **„Ebene"**: „Keine Gebiete", „Landkreise", „PLZ-Zonen (1-stellig)" …
-  „PLZ-Gebiete (5-stellig)"
-- **„Anzeige"** (unter „Ansicht & Farbe"): „Automatisch (nach Zoom)",
-  „Vertriebsbezirk (Flächen)", „Vertriebsgruppe (Flächen)", „Besuchsstatus",
-  „🕳️ Weiße Flecken (Abdeckung)" – rot = keine Kunden, gelb = zugeordnet aber
-  leer, grün = abgedeckt.
+1. **"Welcher Vertriebsbezirk betreut welche Kunden?"**
+   Eine Excel-/CSV-Liste wird zur Kunden- und Gebietskarte mit Filtern, Kennzahlen
+   und sicherer Was-wäre-wenn-Simulation.
+2. **"Wen besuche ich als Nächstes und was muss ich vorher wissen?"**
+   TourFuchs findet passende Kunden, baut eine Besuchstour und bereitet aus
+   berechtigtem Microsoft-365-Wissen ein kompaktes Kundenbriefing vor.
 
-**Automatisch (nach Zoom):** weit herausgezoomt → Vertriebsgruppen als Flächen mit
-Umsatz-Label; mittlerer Zoom → Betriebsbezirke; nah herangezoomt → einzelne Kunden.
+### 2.3 Die wichtigsten Wow-Effekte
 
-### 6.5 Zahlen auf der Karte richtig lesen
-- Flächen-Labels zeigen den Namen der Einheit und die **Gesamtumsatzsumme als
-  „Σ … T€"** (Tausend Euro, gerundet). Der exakte Eurobetrag steht im Tooltip
-  (Maus über dem Label).
-- Die Label-Summe ist die **fachliche Gesamtsumme über alle Kunden der Einheit** –
-  aktive Filter oder ein Tour-Fokus ändern diese Summe nicht. Jede Gruppe / jeder
-  Bezirk erhält ein Label, auch wenn seine Kunden gerade ausgefiltert sind.
-- Anzeige-Regel überall in der App: ab 10.000 € kompakt in T€, exakter Betrag im Tooltip.
+**1. Spontaner Termin, sofort gebrieft**
 
-### 6.6 Gebiets-Popup (Desktop)
-Klick auf eine Fläche zeigt Kundenzahl, „Umsatz gesamt" und die Verteilung je
-**Vertriebsbezirk** als Tabelle mit Überschrift **„Vertriebsbezirk · Kunden ·
-Umsatz"** (Kundenzahl und Umsatz des jeweiligen Bezirks in genau diesem
-Landkreis/PLZ-Gebiet). Die namentliche **Kundenliste** darunter erscheint nur im
-**Profi-Modus** – in Basis bleibt das Modal aufgeräumt.
-Dort außerdem:
-- **„✏️ Kunden dieses Gebiets umordnen …"** – öffnet den Gebiets-Editor: Kunden des
-  Gebiets mit Checkboxen filtern und einem anderen Betriebsbezirk/einer Gruppe
-  zuweisen, mit Rückgängig.
-- **„Ganze Fläche zuweisen"** – Dropdown „Vertriebsbezirk" ordnet die komplette
-  Fläche zu (auch ohne Kunden).
-Auf dem Smartphone sind Gebiete nur lesbar (Hinweis in der App); Änderungen am Desktop.
-Das Gebiets-Modal ist mobil kompakt gehalten (Kundenzahl und Gesamtumsatz in einer
-Zeile). **Ziehen im Modal** – bei Kunden- wie bei Gebiets-Popups – **schwenkt die
-Karte** (das Popup bleibt an seinem Punkt); Buttons und die Kundenliste bleiben
-dabei bedienbar. Zum Schließen „Schließen" tippen oder auf die freie Karte tippen.
+Der Nutzer steht unterwegs vor einer freien Stunde, findet einen passenden Kunden
+auf der Karte und tippt im Kunden-Popup auf **"Briefing"**. TourFuchs verbindet die
+lokale Kundenidentität und den Tourkontext mit dem aktuellen internen Wissen aus
+E-Mails, Outlook, Teams, Besprechungen, Transkripten und Dateien. Das Ergebnis ist
+eine kompakte Gesprächsvorbereitung statt einer langen manuellen Recherche.
 
----
+**2. Aus der eigenen Liste wird eine Vertriebslandkarte**
 
-## 7. Gebiets-Cockpit (Analysezentrum)
+Die Stärke gegenüber einer allgemeinen Kartenanwendung ist die Verknüpfung aus
+eigenen geschützten Kundendaten, Ort, Zuständigkeit, Umsatz, Besuchsstatus und
+Tourentscheidung.
 
-**Klickpfad:** `„🗺️ Gebietsplanung" → Tab „🗺️ Gebiete" → „📊 Gebiets-Cockpit öffnen"`
+**3. Tour vom Desktop aufs Smartphone, Bildschirm zu Kamera**
 
-### 7.1 Aufbau
-- **„Vertriebsgruppe"-Auswahl (oben):** begrenzt Kennzahlen, Vergleich und Simulation
-  auf eine Gruppe („Alle Gruppen" = Gesamtvergleich). Praxis-Empfehlung: innerhalb
-  der eigenen Vertriebsgruppe vergleichen und umverteilen.
-- **Drei KPI-Karten:** „Status" (Ausgewogen / Ungleich verteilt, mit Kunden-Faktor),
-  „Top – …" und „Flop – …" (die Beschriftung folgt der gewählten Ebene, z. B.
-  „Top – Vertriebsbezirk"). Groß steht der Wert, klein darunter der Name der Einheit.
-- **Tabelle:** Spalten „Vertriebsbezirk" (bzw. gewählte Ebene), „Kunden", „Umsatz",
-  „Auslastung". Standard-Sortierung „Umsatz ↓", umschaltbar auf „Kunden ↓" und
-  „Name A–Z". Standardansicht: Top 3 und Flop 3 mit Trennlinie; **„Alle anzeigen"**
-  öffnet die komplette Liste. Suchfeld „filtern…" für einzelne Einheiten.
-- **Balken „Auslastung":** relative Stärke zum stärksten sichtbaren Wert
-  (stärkster = 100 %); Bezugsgröße ist die gewählte Sortier-Kennzahl.
-- Umsätze in der Tabelle: kompakt (T€-Regel), exakter Betrag als Tooltip.
+Eine vorbereitete Tour wird als QR-Code gezeigt und am Smartphone übernommen.
+Die Kundendatenbank wird dabei nicht übertragen.
 
-### 7.2 Fairness-Kennzahl
-„Ausgewogen" bis Kunden-Faktor 1,5× zwischen größter und kleinster Einheit;
-darüber „Ungleich verteilt". Ziel von Umverteilungen ist ein Faktor ≤ 1,5.
+**4. Gebiete umbauen, ohne reale Daten sofort zu verändern**
+
+Landkreise oder PLZ-Gebiete lassen sich simuliert verschieben. Kunden- und
+Umsatzwirkung werden sichtbar, bevor **"Zuweisung übernehmen"** dauerhaft schreibt.
+
+**5. Lokale Daten mit Tresor und sicherem Umzug**
+
+Kundendaten können im Browser AES-256-verschlüsselt werden. Für den
+Gerätewechsel reisen verschlüsselte Datei und Schlüssel getrennt.
+
+**6. Geführtes Onboarding statt Funktionswand**
+
+Ein ruhiger Begrüßungszustand, eine verzögerte Demo-Auswahl und kurze
+Live-Geschichten zeigen den Nutzen, bevor technische Details erscheinen.
+
+### 2.4 Bewusste Produktgrenzen
+
+TourFuchs:
+
+- ist kein zentrales CRM und besitzt kein allgemeines TourFuchs-Nutzerkonto.
+- synchronisiert Kundendaten nicht automatisch zwischen Geräten.
+- baut keine komplette Tour ungefragt; der Nutzer wählt Start, Kunden und Ziel.
+- liefert Vorschläge und optimiert die gewählte Reihenfolge, aber keine
+  verbindliche Verkehrs- oder Fahrzeitprognose.
+- ist keine allgemeine Ortssuche. Die Topbar findet Kunden, deren Datensatz zum
+  eingegebenen Ort passt.
+- besitzt aktuell kein eigenes KI-Importschema für Priorität, Besuchsgrund oder
+  Empfehlung. Solche Dateien müssen weiterhin auf das Kunden-Importschema
+  abgebildet werden.
+- ersetzt keine organisatorische Freigabe für Microsoft 365 Copilot oder
+  Microsoft Graph.
 
 ---
 
-## 8. Was-wäre-wenn-Simulation (Gebiete umverteilen)
+## 3. Zielgruppen, Geräte und Funktionsmatrix
 
-Die Simulation ändert **keine echten Daten**, bis „Zuweisung übernehmen" gedrückt wird.
+### 3.1 Typische Rollen
 
-### 8.1 Klickpfad komplett
-1. `„🗺️ Gebietsplanung" → Tab „🗺️ Gebiete" → „📊 Gebiets-Cockpit öffnen"`
-2. Bereich **„Was-wäre-wenn: Gebiete zuweisen"**:
-   - **„Ebene"** wählen (z. B. Landkreise)
-   - **„Suche / PLZ-Präfix"**: z. B. `52` findet alle PLZ 52xxx; oder Kreisname
-   - optional Hierarchie-Filter (z. B. nur ein Vertriebsbezirk)
-   - optional Häkchen **„Auch Gebiete ohne Kunden einbeziehen"** (weiße Flecken)
-3. Gebiete per Checkbox auswählen oder **„Alle sichtbaren auswählen"**
-4. **„Zuweisen als"** (Vertriebsbezirk / Vertriebsgruppe / ggf. Channel) und
-   **„Ziel"** wählen
-5. **„Auswahl zuweisen"** – die Kennzahlen oben aktualisieren sich sofort
-   (Deltas in Grün/Rot, Umsatz je Aktion und Gesamtsumme der umgebuchten Kunden)
-6. Prüfen, ggf. weitere Zuweisungen; **„↶ Ein Schritt zurück"** nimmt den letzten
-   Schritt zurück (bis zu 30 Schritte), **„Simulation zurücksetzen"** verwirft alles
-7. **„Zuweisung übernehmen"** schreibt dauerhaft (mit Bestätigungsdialog)
+| Rolle | Primäres Gerät | Typische Aufgaben |
+|---|---|---|
+| Außendienst | Smartphone, Tablet, Laptop | Kunden finden, Tour planen, Besuch abhaken, Briefing, Navigation |
+| Vertriebsleitung | Desktop/Laptop | Bezirke vergleichen, Cockpit, Simulation, Export |
+| Datenverantwortliche | Desktop/Laptop | Import, Spaltenzuordnung, Delta, Kontakte, Fehlerliste, Tresor |
+| Trainer/Guide | Desktop plus Mobile-Vorschau | Live-Demos, Klickpfade, Mini-Schulungen |
 
-**Merksatz:** „Auswahl zuweisen" ist Simulation – erst „Zuweisung übernehmen" schreibt.
+### 3.2 Desktop gegen Smartphone
 
-### 8.2 Simulation auf der Karte prüfen
-Bei aktiver Simulation heißt der Button oben im Cockpit **„Simulation auf Karte
-prüfen"** (sonst „Zur Karte"). Er schließt das Cockpit und zeigt die Simulationsleiste
-auf der Karte mit drei Ansichten:
-- **„Alt"** – Zuordnung vor der Simulation
-- **„Neu"** – Zuordnung nach der Simulation
-- **„Änderungen"** – nur geänderte Flächen hervorgehoben (alte Randfarbe + neue Füllfarbe)
+| Funktion | Desktop/Laptop | Smartphone |
+|---|---:|---:|
+| Daten importieren und exportieren | Ja | Ja, bei Bedarf |
+| Kundenkarte und Suche | Ja | Ja |
+| Kundenbriefing | Ja | Ja |
+| Tour planen und navigieren | Ja | Ja |
+| Tour per QR an Smartphone senden | Ja | Nein, bewusst ausgeblendet |
+| Tour vom Desktop scannen | Ja | Ja, mobil besonders sinnvoll |
+| Gebietsplanung/Cockpit/Simulation | Ja | Nein, bewusst Desktop-fokussiert |
+| Mobile-Vorschau | Ja | Nein |
+| Verschlüsselte Daten empfangen | Ja | Ja, mobil besonders sinnvoll |
 
-Tooltips/Popups zeigen je Gebiet „Alt → Neu", Kundenzahl und Umsatz.
-Aktionen in der Leiste: **„Simulation bearbeiten"** (zurück ins Cockpit, Entwurf
-bleibt erhalten), **„Verwerfen"**, **„Zuweisung übernehmen"**.
+### 3.3 Basis gegen Profi
 
----
+**"Basis"** ist der ruhige Standard. Es zeigt die Kernaufgaben ohne technische
+Feinsteuerung.
 
-## 9. Tour planen (Außendienst)
+**"Profi"** blendet zusätzlich Analyse-, Ziel-, Export- und
+Automatisierungswerkzeuge ein.
 
-Der Nutzer plant seine Tour **selbst**, Schritt für Schritt. TourFuchs unterstützt
-mit Vorschlägen und Optimierung.
+| Bereich | Basis | Profi zusätzlich |
+|---|---|---|
+| Kunden-Popup | Name, Adresse, Ort, Umsatz, Kontakt, "Heute besucht", "Als Start", "Zur Tour", "Briefing" | Kundennummer, Hierarchie, Besuchsstatus/Rhythmus, "Als Ziel" |
+| Tour | Bezirk, Start, Datum/Zeit/Dauer, Umkreis, Vorschläge, Optimierung, Kartenroute, Google Maps, QR/Scan | Kartenansicht Kunden/Status/Chancen, Ziel, Entlang der Tour, Rundreise, Druck, ICS, Text, gespeicherte Touren |
+| Gebiets-Popup | Kennzahlen und Verteilung | zusätzliche namentliche Kundenliste |
+| Kundenbriefing | transparenter manueller Copilot-Weg | einfacher Weg bleibt oben; optional darunter direkte Entra-/Graph-Verbindung |
 
-### 9.1 Schritt für Schritt
-**Klickpfad:** `„🚗 Außendienst" → Tab „Tour"`
-1. **Vertriebsbezirk wählen** (oben im Tour-Tab). Vorschläge kommen dann nur aus
-   diesem Bezirk. „Alle Bezirke" ist möglich.
-2. **„1. Startpunkt"**: entweder **„📍 Mein Standort"** (GPS) oder im Feld
-   „…oder Kunde als Start wählen" einen Kunden suchen und antippen.
-3. **Plan-Einstellungen** (direkt darunter): **„Datum"** (vorbelegt: heute),
-   **„Start"** (Uhrzeit, Standard 08:00), **„Besuch (Min.)"** (Standard 45).
-   Diese Werte steuern Tagesplan-Druck, Kalender-Termine und die QR-Übergabe.
-4. **Vorschläge**: Umschalter **„Umkreis um Start"** / **„Entlang der Tour"**
-   (nur im Profi-Modus), Umkreis/Korridor per Schieberegler, Häkchen
-   **„Überfällige zuerst"** priorisiert fällige Kunden.
-5. Kunden aus der Vorschlagsliste oder aus Karten-Popups mit **„➕ Zur Tour"** hinzufügen.
-6. **„⚡ Reihenfolge optimieren"** – kürzeste Strecke (Nearest-Neighbor + 2-Opt).
-7. **„🗺️ Route auf Karte anzeigen"** – fokussiert die Karte auf die Tour.
-8. **„🧭 In Google Maps navigieren"** – Übergabe zur Navigation (max. 10 Stopps).
+Wichtig: **"Briefing" ist in beiden Ansichtstiefen sichtbar.** Eine vorhandene
+Profi-Konfiguration verändert den Basisweg nicht.
 
-### 9.2 Ziel und Rundreise
-- **„2. Ziel (optional)"** (nur im Profi-Modus): fester Endpunkt der Tour; Vorschläge
-  „Entlang der Tour" nutzen dann die Strecke Start → Stopps → Ziel.
-- Häkchen **„🔁 Rundreise (zurück zum Start)"**: Start ist zugleich Ziel.
-- Ohne Ziel und ohne Rundreise ist der letzte Stopp automatisch das Ziel.
-
-### 9.3 Straßenroute (OSRM) – Zustimmung erforderlich
-Die Routenlinie kann als Luftlinie oder als echte Straßenroute gezeichnet werden
-(Umschalten über „🗺️ Route auf Karte anzeigen" → der Button wechselt zu
-„🗺️ Straßenroute anzeigen" / „🗺️ Luftlinie anzeigen"). Auch die Vorschläge
-„Entlang der Tour" können dem echten Straßenverlauf folgen.
-
-**Wichtig:** Straßenrouten berechnet der externe Dienst OSRM. Beim ersten Aktivieren
-fragt TourFuchs um **ausdrückliche Zustimmung**; übertragen werden nur die
-Koordinaten von Start und Stopps – keine Namen, keine Kundendaten. Ohne Zustimmung
-arbeitet alles mit der direkten Verbindung (Luftlinie), komplett offline.
-
-### 9.4 Tagesplan drucken und Outlook-Termine
-- **„🖨️ Tagesplan drucken"**: druckbarer Plan mit Ankunftszeiten (aus Datum,
-  Startzeit, Fahrzeit-Schätzung und Besuchsdauer), Adressen, Kontakten, Checkboxen.
-- **„📅 Kalender-Export (.ics)"**: erzeugt **einen Kalendertermin je Besuch**
-  (für Outlook & Co.) – Beginn = berechnete Ankunft, Dauer = eingestellte
-  Besuchsdauer (z. B. 45 min), mit Adresse und Kontaktdaten im Termin.
-- **„📋 Als Text kopieren (Outlook/Copilot)"**: Tour als Text in die Zwischenablage.
-
-### 9.5 Tour speichern
-Bereich „Gespeicherte Touren" (nur im Profi-Modus): Namen eingeben
-(„Tourname, z. B. Dienstag Nord") → **„💾"**. Gespeicherte Touren später laden.
-
-### 9.6 „Was ist in meiner Nähe?"
-**Klickpfad:** Tab „Tour" → **„📍 Was ist in meiner Nähe?"** (bzw. Karte-Tab mobil)
-Setzt den GPS-Standort als Start und zeigt Kunden im Umkreis, überfällige zuerst.
-Die Ansicht „🎯 Chancen" zeigt nur fällige/überfällige Kunden auf der Karte.
-
-### 9.7 Besuchsstatus und „Heute besucht" abhaken
-Aus „Besuchsrhythmus (Wochen)" und „Letzter Besuch" berechnet TourFuchs je Kunde:
-**ok** (grün) / **bald fällig** (gelb) / **überfällig** (rot; auch: noch nie besucht).
-Kunden ohne Rhythmus haben keinen Status.
-Einen Besuch als erledigt eintragen geht an zwei Stellen:
-- **direkt in der Tourliste** (Bereich „Meine Tour"): je Stopp der Button
-  **„✓ Heute"** – der Stopp wird als besucht markiert (durchgestrichen/grün),
-  ideal zum Abarbeiten unterwegs.
-- im **Kunden-Popup** auf der Karte: **„✓ Heute besucht"**.
-Der Besuchsstatus (auch die Farbe auf der Karte) aktualisiert sich sofort und
-wird lokal gespeichert.
+Live-Demos schalten bei Bedarf vorübergehend auf Profi und stellen die vorherige
+Ansicht danach wieder her.
 
 ---
 
-## 10. Tour vom Desktop aufs Handy übertragen (QR-Code)
+## 4. Oberfläche und Panel-Bedienung
 
-Überträgt **nur die geplante Tour** – nie die Kundendatenbank. Der Weg ist
-Bildschirm → Kamera: ohne Netzwerk, ohne Datei, ohne Server.
+### 4.1 Topbar
 
-### 10.1 Am Desktop (Sender)
-**Klickpfad:** Tab „Tour" → Tour planen → **„📲 An Handy übergeben (QR)"**
-Zeigt den Dialog „📲 Tour an Handy übergeben" mit dem QR-Code. Im Code stecken:
-Stopps (Name, Koordinaten, Adresse, Telefon, Kundennummer), Startpunkt, Datum,
-Startzeit, Besuchsdauer, Rundreise-Einstellung. Maximal 12 Stopps je Code.
-Der QR-Code enthält einen **App-Link** (die Tour steckt im Adress-Fragment `#t=…`,
-das nie an einen Server gesendet wird).
+Die Topbar enthält:
 
-### 10.2 Am Handy (Empfänger) – schnellster Weg: normale Kamera
-Den QR-Code einfach mit der **normalen Handy-Kamera** (oder der Kamera-App)
-scannen. Das Handy erkennt den Link und öffnet TourFuchs direkt mit der Tour –
-die **installierte PWA**, sonst der **Browser**. Die App muss vorher nicht
-geöffnet werden. Es erscheint sofort der Empfangs-Dialog (siehe 10.3).
+- **"Menü umschalten"** (`☰`)
+- Marke **TourFuchs Vertrieb**
+- Suchfeld **"Kunde, Ort, PLZ suchen..."**
+- **"Mobile-Vorschau"** (`Smartphone-Symbol`, nur Desktop)
+- dynamisches Tresor-Symbol: einrichten, sperren oder Status anzeigen
+- **"Info & Impressum"** (`i`)
 
-### 10.3 Am Handy (Empfänger) – alternativ in der App scannen
-**Klickpfad:** Tab „Tour" → **„📷 Tour vom Desktop scannen"**
-1. Kamera auf den QR-Code am Desktop-Bildschirm richten (Scan läuft automatisch).
-2. Falls die Kamera nicht verfügbar ist: unten „Foto des QR-Codes wählen"
-   (Foto aufnehmen oder aus der Galerie wählen).
-3. Nach dem Scan erscheint die empfangene Tour mit drei Aktionen:
-   - **„➕ Als Tour übernehmen"** – Stopps werden mit den lokalen Kundendaten
-     abgeglichen (über Kundennummer, sonst Name + PLZ) und als Tour gesetzt.
-     Nur möglich, wenn mindestens ein Stopp lokal gefunden wird; die App meldet,
-     wie viele Stopps zugeordnet werden konnten.
-   - **„🧭 In Google Maps navigieren"** – funktioniert **auch ohne lokale
-     Kundendaten**, direkt aus dem QR-Code.
-   - **„📅 Termine als Kalender (.ics)"** – ebenfalls direkt aus dem Code,
-     mit Datum/Startzeit/Besuchsdauer aus der Desktop-Planung.
+### 4.2 Zwei globale Schalter im Desktop-Panel
+
+1. **"Basis" / "Profi"** steuert die Ansichtstiefe.
+2. **"Außendienst" / "Gebietsplanung"** steuert den Arbeitsfokus.
+
+Tabs im Außendienst: **"Daten"**, **"Filter"**, **"Tour"**.
+
+Tabs in der Gebietsplanung: **"Daten"**, **"Filter"**, **"Gebiete"**.
+
+Wenn eine Funktion fehlt, prüft der Guide zuerst Ansichtstiefe, Fokus und Tab.
+
+### 4.3 Desktop-Panel scrollen und verschieben
+
+Der Inhalt des aktiven Tabs kann auf drei gleichwertige Arten vertikal bewegt
+werden:
+
+1. Mausrad über dem Panel.
+2. sichtbare Bildlaufleiste am rechten Panelrand.
+3. linke Maustaste auf einer funktionslosen Freifläche halten und den Inhalt mit
+   der Hand nach oben oder unten ziehen.
+
+Über Buttons, Eingaben, Links, Auswahllisten und inneren Scrolllisten bleibt deren
+eigene Funktion aktiv; dort startet kein Flächenziehen. Auf ziehbaren Freiflächen
+zeigt der Cursor eine Hand. Text wird dabei nicht versehentlich markiert.
+
+**Wichtig:** Das Mausrad ändert im Panel nicht die Inhaltsgröße. Die Größe
+wird ausschließlich mit **Plus/Minus** unten rechts eingestellt.
+
+### 4.4 Panelgröße und Position
+
+- **Plus/Minus unten rechts:** gesamter Panelinhalt von 80 % bis 150 % in
+  10-Prozent-Schritten.
+- **Doppelklick auf die Prozentanzeige:** zurück auf 100 %.
+- **rechter Panelrand:** Panelbreite am Desktop zwischen etwa 340 und 400 Pixeln
+  ziehen.
+- **oberer grauer Griff, senkrecht ziehen:** Panelhöhe ändern.
+- **oberer Griff, am Desktop waagerecht ziehen:** Panel frei verschieben.
+- nahe an den linken Rand ziehen: wieder andocken.
+- **Doppelklick auf den Griff am Desktop:** Position zurücksetzen.
+- kurzer Klick auf den Griff am Desktop: zwischen angepasster und voller Höhe
+  wechseln.
+
+### 4.5 Karte bedienen
+
+- Mausrad über der Karte zoomt die Karte weich in Viertelstufen.
+- Plus/Minus unten rechts auf der Karte zoomt ebenfalls.
+- Ziehen auf der freien Karte verschiebt den Kartenausschnitt.
+- Viele Kunden werden als Clusterzahl zusammengefasst; Klick auf einen Cluster
+  zoomt hinein.
+- Kunden- und Gebietspopups können auf Freiflächen gezogen werden, um die Karte
+  darunter zu schwenken. Interaktive Elemente im Popup bleiben bedienbar.
 
 ---
 
-## 11. Filter (Tab „Filter")
+## 5. Onboarding beim ersten Start
 
-Gebietshierarchie: Vertriebschannel (optional) › Vertriebsgruppe (empfohlen) ›
-**Betriebsbezirk (Pflicht, führend)**. Zusätzliche Ebenen aus eigenen Importspalten
-erscheinen automatisch, wenn die Spalte sinnvolle Werte enthält.
+### 5.1 Ruhiger Einstieg ohne Daten
 
-Im Tab „Filter" lassen sich Werte je Ebene ein-/ausblenden (durchsuchbar, mit
-Kundenzählern). Wichtig für Support-Fragen: **Filter blenden Kunden auf der Karte
-aus** – häufigste Ursache für „Kunden fehlen". Die Umsatz-Labels der Flächen zeigen
-trotzdem immer die Gesamtsumme (fachliche Sicht).
+Beim ersten Start oder nach dem Löschen aller Daten zeigt die Sidebar zunächst:
+
+- **"Willkommen bei TourFuchs!"**
+- **"Schön, dass du da bist."**
+- **"App in 60 Sekunden erleben"**
+- **"Eigene Daten laden"**
+
+Die beiden großen Aktionen sind bewusst gleichwertig:
+
+1. Demo-Daten nutzen und den Wert der App erleben.
+2. Direkt mit einer eigenen Datei beginnen.
+
+Technische Unteroptionen erscheinen erst nach **"Eigene Daten laden"**.
+
+Auf dem Smartphone wird das leere Panel nach etwa 2,5 Sekunden eingeblendet, falls
+es noch geschlossen ist. Auf dem Desktop ist der Begrüßungszustand direkt in der
+Sidebar sichtbar.
+
+### 5.2 Automatische Live-Demo-Auswahl
+
+Wenn noch keine Daten vorhanden sind, erscheint die Demo-Auswahl nach etwa
+**5 Sekunden**. Die kurze Pause ist eine bewusste Onboarding-Entscheidung: erst
+orientieren, dann entdecken.
+
+Die automatische Anzeige bleibt aus, wenn:
+
+- **"Nicht mehr automatisch zeigen"** aktiviert wurde.
+- eigene Daten erfolgreich importiert wurden.
+- alle für das Gerät sichtbaren Demos bereits angesehen wurden.
+- der Datentresor gesperrt ist.
+- gerade ein anderes Modal oder eine Vorführung aktiv ist.
+
+Bei einer nur vorübergehenden Blockade wartet TourFuchs kurz und versucht es
+erneut.
+
+**"Später"** schließt die Auswahl. Dauerhaft unterdrückt wird sie nur durch das
+aktivierte Kontrollkästchen oder die oben genannten Abschlussbedingungen.
+
+### 5.3 Verhalten nach "Daten löschen"
+
+Das Löschen setzt Demo-Fortschritt und Import-Markierung zurück. Wenn die App
+danach leer ist, wird die Live-Demo-Auswahl nach etwa 5 Sekunden erneut angeboten.
+
+Eine ausdrückliche Entscheidung **"Nicht mehr automatisch zeigen"** wird durch
+das Datenlöschen absichtlich nicht aufgehoben. Die Demos bleiben dennoch manuell
+erreichbar.
+
+### 5.4 Demos später manuell öffnen
+
+**Klickpfad:** `"Info & Impressum" -> "Funktionen entdecken (Live-Demos)"`.
+
+---
+
+## 6. Live-Demos
+
+### 6.1 Was eine Live-Demo ist
+
+Eine Live-Demo ist kein Video. Ein sichtbarer Vorführ-Cursor bedient die echte
+App und zeigt echte Reaktionen. Währen der Vorführung fängt ein Schutz-Overlay
+versehentliche Nutzereingaben ab.
+
+Die Vorführung:
+
+- bereitet einen reproduzierbaren Zustand vor.
+- passt Panel und Kartenausschnitt an den gezeigten Schritt an.
+- sichert veränderte Tour-, Ansichts- oder Tresorzustände.
+- stellt den vorherigen Zustand danach wieder her.
+- kann mit **"Beenden"** oder `Esc` abgebrochen werden.
+- zeigt danach einen ruhigen Abschlussdialog.
+- fragt aktiv, ob die nächste ungesehene Demo gestartet werden soll.
+- bietet bei einem Fehler **"Erneut versuchen"** und **"Demo-Auswahl"** an.
+
+### 6.2 Verfügbare Geschichten
+
+| Live-Demo | Desktop | Smartphone | Kernaussage |
+|---|---:|---:|---|
+| **"Aus Excel wird eine Landkarte"** | Ja | Ja | Demo-Liste laden, Kunden deutschlandweit sehen, Kunden öffnen |
+| **"Deine Tour in 30 Sekunden"** | Ja | Ja | ins Ruhrgebiet zoomen, Start und Kunden wählen, optimieren, Luftlinie und Straßenroute |
+| **"Aufs Handy - ohne Kabel, ohne Cloud"** | Ja | Nein | Desktop-Tour per QR ans Smartphone übergeben |
+| **"Was wäre wenn? Gebiete umbauen - ohne Risiko"** | Ja | Nein | Simulation ohne dauerhafte Änderung |
+| **"Spontaner Termin? Sofort gebrieft"** | Ja | Ja | passenden Kunden finden und Copilot-Briefing vorbereiten |
+| **"Deine Daten im Tresor"** | Ja | Ja | PIN setzen und sichtbaren Wiederherstellungscode erklären |
+| **"Verschlüsselte Daten aufs Handy holen"** | Nein | Ja | `.tfsafe`-Datei wählen und getrennten Schlüssel scannen |
+
+### 6.3 Besondere Regeln der Tour-Demo
+
+- Die Demo zoomt zuerst in den Raum Oberhausen/Essen/West-Dortmund, damit Kunden
+  und Route erkennbar bleiben.
+- Sie zeigt zuerst die Luftlinie und danach die Straßenroute.
+- Nur am Desktop folgt der QR-Schritt.
+- Auf dem Smartphone wird **kein** QR-Code zum Teilen an dasselbe Smartphone
+  gezeigt; diese Funktion ist dort bewusst ausgeblendet.
+
+### 6.4 Besondere Regeln der Briefing-Demo
+
+Die Geschichte **"Spontaner Termin? Sofort gebrieft"** führt von den Chancen zum
+Kunden und öffnet das Kundenbriefing. Sie zeigt den direkt nutzbaren manuellen Weg.
+Das eigentliche Absenden an Corporate Copilot bleibt eine bewusste Nutzeraktion.
+
+### 6.5 Besondere Regeln der Tresor-Demo
+
+Die Demo gibt eine Beispiel-PIN ein und zeigt danach sichtbar einen
+Wiederherstellungscode. Ein bereits vorhandener echter Tresor wird nicht
+überschrieben. Nach der Demo wird ein nur für die Demo erzeugter Tresor wieder
+entfernt.
+
+---
+
+## 7. Daten laden, importieren und aktualisieren
+
+### 7.1 Eigene Daten laden
+
+**Klickpfad:** `"Daten" -> "Eigene Daten laden"`.
+
+Danach wählt der Nutzer zwischen:
+
+1. **"Excel- oder CSV-Liste"** -> Berechtigung bestätigen ->
+   **"Excel-/CSV-Datei auswählen"**.
+2. **"Verschlüsselte TourFuchs-Datei"** ->
+   **"Verschlüsselte Datei öffnen"**.
+
+Die zweite Option ist nur für eine `.tfsafe`-Datei aus dem sicheren
+Geräteumzug. Danach wird der getrennte Schlüssel-QR benötigt.
+
+### 7.2 Demo-Daten
+
+**Klickpfad:** `"Daten" -> "App in 60 Sekunden erleben"`.
+
+Die Demo erzeugt 2.250 fiktive Kunden in 15 Vertriebsbezirken und drei
+Vertriebsgruppen. Ortsnamen sind lokal aus der PLZ-Tabelle ergänzt. Demo-Daten
+sind unverbindlich, lokal und jederzeit löschbar. Sie werden nicht automatisch
+in einen aktiven Tresor übernommen.
+
+### 7.3 Unterstützte Dateiformate
+
+- `.xlsx`
+- `.xls`
+- `.csv`
+- `.ods`
+
+CSV wird mit üblichen Trennzeichen und Zeichensätzen verarbeitet, darunter
+Semikolon, Komma, Tab, UTF-8 und Windows-1252.
+
+### 7.4 Importfelder
+
+| Feld | Pflicht | Zweck |
+|---|---:|---|
+| Kundenname | Ja für Kundenzeilen | sichtbarer Kundenname |
+| PLZ oder Lat/Lng | Ja für Kartenposition | lokale PLZ-Verortung oder vorhandene Koordinaten |
+| Vertriebsbezirk | Ja für Kundenzeilen | führende operative Ebene |
+| Kundennummer | dringend empfohlen | stabiler Delta- und Kontakt-Schlüssel |
+| Straße & Hausnummer | optional | Adresse, Navigation, exakte Verortung |
+| Ort | optional, sehr empfohlen | Anzeige im Popup und Stadtsuche |
+| Vertriebsbeauftragter | optional | zusätzliche Personenzuordnung |
+| Vertriebschannel | optional | zusätzliche Hierarchieebene |
+| Vertriebsgruppe | optional, empfohlen | Vergleichsrahmen im Cockpit |
+| Hauptansprechpartner | optional | sichtbarer leitender Kontakt |
+| Telefon, E-Mail | optional | direkte Kontaktaktionen |
+| Umsatz | optional | Priorisierung und Gebietskennzahlen |
+| Besuchsrhythmus, Letzter Besuch | optional | Status ok/bald fällig/überfällig |
+| Gebiet (LK/PLZ) | nur Flächenzeilen | Gebiet ohne Kunden zuordnen |
+
+Spaltensynonyme werden automatisch erkannt. Beispiele: `Firma`, `Stadt`,
+`Betriebsbezirk`, `Kundenkreis`, `Betreuer`, `Jahresumsatz`.
+
+### 7.5 Import-Schrittfolge
+
+1. **"Eigene Daten laden"** öffnen.
+2. Im Bereich **"Excel- oder CSV-Liste"** bestätigen:
+   **"Ich bin berechtigt, diese Daten zu verarbeiten und in TourFuchs lokal zu
+   verwenden."**
+3. **"Excel-/CSV-Datei auswählen"** oder Datei per Drag & Drop auf die Karte
+   ziehen.
+4. Im Dialog **"Spalten zuordnen"** automatische Zuordnung und Beispielwerte
+   prüfen.
+5. **"Importieren"**.
+6. Erfolgsmeldung beziehungsweise Dialog **"Import abgeschlossen"** prüfen.
+7. Bei Problemen **"Fehlerliste (.xlsx)"** herunterladen.
+8. Nach eigenen Kundendaten dem geführten Tresor-Angebot folgen.
+
+**Merksatz:** Automatisch erkannt bedeutet nicht automatisch geprüft.
+
+### 7.6 Delta- und Upsert-Logik
+
+Bei einem erneuten Import werden bestehende Kunden nicht pauschal überschrieben
+oder gelöscht.
+
+Matching:
+
+1. bevorzugt exakt über **Kundennummer**.
+2. ohne Kundennummer über normalisierten **Kundenname + PLZ**.
+
+Bei einem Treffer:
+
+- frische Stammdaten aktualisieren den Datensatz.
+- die interne Kunden-ID bleibt erhalten.
+- vorhandene und neue Besuchsdaten werden zusammengeführt.
+- Kontakte werden zusammengeführt und der Hauptkontakt synchronisiert.
+- alte Kunden, die in der neuen Datei nicht vorkommen, bleiben erhalten.
+- Gebiets- und Tourarbeit bleibt soweit möglich bestehen.
+
+Der Vorgang ist damit ein **Delta/Upsert**, kein Vollersatz. Vor einem großen
+Delta-Import trotzdem einen Excel-Export empfehlen.
+
+### 7.7 Getrennte Kontaktdatei
+
+Stammdaten und Kontakte können getrennt importiert werden. Eine reine
+Kontaktdatei braucht:
+
+- Kundennummer
+- mindestens Ansprechpartner, Telefon oder E-Mail
+
+Kontakte werden ausschließlich über die Kundennummer mit vorhandenen Kunden
+verknüpft. Ein Feld **"Primärkontakt?"** kann den Hauptansprechpartner markieren.
+Ohne Treffer erscheint die Zeile in der Fehlerliste.
+
+### 7.8 Flächenzeilen
+
+Eine Zeile ohne Kundenname, aber mit **"Gebiet (LK/PLZ)"** und
+**Vertriebsbezirk**, ordnet eine komplette Fläche zu.
+
+Beispiele:
+
+- `Oberhausen` = Landkreis/kreisfreie Stadt
+- `46` = alle PLZ 46xxx
+- `46045` = genau dieses PLZ-Gebiet
+
+Widersprüchliche oder unbekannte Zuweisungen landen in der Fehlerliste.
+
+### 7.9 Umsatzformate
+
+TourFuchs versteht Excel-Zahlen sowie deutsche und englische Textformate, zum
+Beispiel `1.234,56`, `1,234.56`, `45000` oder `45.5`. Währungszeichen werden
+ignoriert. Überschriften mit `TEUR`, `Tsd EUR` oder `Mio EUR` werden auf volle
+Euro umgerechnet. Der Import zeigt bei erkannten Besonderheiten einen Hinweis mit
+Gesamtsumme zur Plausibilitätsprüfung.
+
+### 7.10 Fehler und Hinweise
+
+Gültige Zeilen werden importiert. Problematische Zeilen erscheinen in einer
+herunterladbaren Excel-Liste, zum Beispiel bei:
+
+- Dubletten
+- fehlendem Vertriebsbezirk
+- fehlender oder unbekannter PLZ
+- widersprüchlicher Flächenzuordnung
+- unbekanntem Landkreis/PLZ-Gebiet
+- nicht zuordenbarer Kontakt-Kundennummer
+
+Ein Kunde mit unbekannter PLZ kann gespeichert sein, erscheint aber nicht auf der
+Karte.
+
+### 7.11 Copilot- oder KI-erzeugte Empfehlungslisten
+
+Der bestehende Importmechanismus kann auch eine durch einen KI-Agenten erzeugte
+Excel-Datei öffnen. Aktuell gibt es jedoch **kein eigenes fachliches Schema** für
+Felder wie Priorität, Empfehlung, Begründung oder nächster Schritt.
+
+Für einen normalen Kundenimport müssen mindestens Kundenname, PLZ/Koordinaten
+und Vertriebsbezirk zugeordnet werden. Für eindeutige Updates ist die
+Kundennummer entscheidend. Eine reine Empfehlungsliste mit nur Priorität und
+Begründung wird nicht automatisch zur Tour oder zum Besuchsstatus.
+
+### 7.12 Export und Löschen
+
+- **"Als Excel exportieren"** exportiert den aktuellen Kundenbestand.
+- **"Daten löschen"** entfernt lokale Daten nach Bestätigung und deaktiviert
+  auch den Tresor.
+- mobil gibt es im Tour-Panel **"Datenbank zurücksetzen"**.
+
+Vor **"Daten löschen"** oder **"Datenbank zurücksetzen"** immer zuerst einen
+Export empfehlen, sofern die Daten noch benötigt werden.
+
+---
+
+## 8. Karte, Suche und Kunden-Popup
+
+### 8.1 Verortungsstufen
+
+**Stufe 1: lokal über PLZ**
+
+Beim Import wird die Position ohne externen Geocoding-Dienst aus einer lokalen
+Tabelle von rund 8.300 deutschen PLZ-Zentren bestimmt. Mehrere Kunden derselben
+PLZ werden leicht versetzt, damit sie nicht exakt übereinander liegen. Im Popup
+steht **"ca. (PLZ-Mitte)"**.
+
+**Stufe 2: optional adressgenau**
+
+**Klickpfad:** `"Daten" -> "Adressen exakt verorten"`.
+
+Nur nach bewusstem Start werden Straße, PLZ und Ort einzeln und gedrosselt an
+Nominatim/OpenStreetMap gesendet. Kundenname, Umsatz, Kontakte und
+Vertriebsinformationen werden nicht mitgesendet.
+
+### 8.2 Globale Kundensuche
+
+**Klickpfad:** Topbar -> Suchfeld **"Kunde, Ort, PLZ suchen..."** -> Treffer
+wählen.
+
+Die Suche beginnt ab zwei Zeichen und findet bis zu acht Kunden nach:
+
+- Teil des Kundennamens
+- Teil des gespeicherten Orts
+- PLZ-Anfang
+- exakter Kundennummer
+
+Umlaute und Schreibvarianten werden tolerant normalisiert, zum Beispiel `Koln`
+für `Köln/Köln`.
+
+Ein Treffer zeigt Kundenname sowie **PLZ + Ort** und fliegt nach der Auswahl zum
+Marker. Das Kunden-Popup öffnet sich.
+
+**Wichtige Grenze:** Die Suche ist eine Kundensuche, kein allgemeines
+Städteverzeichnis. `Essen` liefert Kunden, deren Datensatz im Feld `Ort` Essen
+enthält. Gibt es dort keinen Kunden oder fehlt das Ort-Feld im Import, erscheint
+kein reiner Stadt-Treffer. Deshalb `Ort` beim Import mitführen.
+
+Demo-Daten enthalten Ortsnamen. Ältere gespeicherte Demo-Daten werden beim Start
+lokal aus der PLZ-Tabelle ergänzt. Eigene Daten werden nicht stillschweigend mit
+einem Ort überschrieben.
+
+### 8.3 Kartenstile und Zoom
+
+Im Panel unter **"Kartenstil"** stehen:
+
+- **"Hell"**
+- **"Standard"**
+- **"Satellit"**
+
+Die Kartenwahl wird gespeichert. Das Mausrad zoomt in kleinen Viertelstufen, um
+ruckartige Sprünge zu vermeiden. Das Mausrad über der Sidebar scrollt dagegen
+den Panelinhalt.
+
+### 8.4 Kundenmarker und Cluster
+
+- Markerfarbe folgt der gewählten Ansicht.
+- viele Marker werden als Clusterzahl zusammengefasst.
+- Kunden in der Tour werden hervorgehoben.
+- bei PLZ-Verortung ist die Position nur näherungsweise.
+- in der Ansicht **"Status"** folgen Farben dem Besuchsstatus.
+
+### 8.5 Kunden-Popup in Basis
+
+Das Popup zeigt je nach vorhandenen Daten:
+
+- Kundenname
+- Straße sowie **PLZ + Ort**
+- Hinweis `ca. (PLZ-Mitte)` bei näherungsweiser Position
+- Umsatz
+- Hauptansprechpartner
+- **"Anrufen"** und **"E-Mail"**
+- **"Heute besucht"**
+- **"Als Start"**
+- **"Zur Tour"** beziehungsweise **"In Tour"**
+- **"Briefing"**
+
+### 8.6 Kunden-Popup in Profi
+
+Zusätzlich:
+
+- Kundennummer
+- Vertriebschannel -> Vertriebsgruppe -> Vertriebsbezirk
+- letzter Besuch, Alter des Besuchs und Status
+- Besuchsrhythmus
+- **"Als Ziel"**
+
+### 8.7 Direkte Kundenaktionen
+
+- **"Als Start"** setzt den Kunden als Tourstart.
+- **"Als Ziel"** setzt im Profi-Modus den festen Endpunkt.
+- **"Zur Tour"** fügt ihn den Stopps hinzu.
+- **"Heute besucht"** dokumentiert lokal einen Besuch am heutigen Datum.
+- **"Briefing"** öffnet die Vorbereitung mit Microsoft 365 Copilot.
+
+---
+
+## 9. Kundenbriefing mit Microsoft 365 Copilot
+
+### 9.1 Product-Owner-Nutzen
+
+Das Kundenbriefing ist ein zentraler USP: Ein Nutzer kann unterwegs einen
+spontanen Besuch entscheiden und sich mit einem einzigen TourFuchs-Klick aus dem
+aktuellen, berechtigten Unternehmenswissen vorbereiten. TourFuchs verbindet dabei
+den richtigen Kunden auf der Karte mit Microsoft-365-Wissen. Eine allgemeine
+Kartenanwendung kennt diesen Kunden- und Tourkontext nicht.
+
+### 9.2 Voraussetzungen
+
+- Anmeldung bei Microsoft 365 mit dem Entra-Arbeitskonto.
+- passende Microsoft-365-Copilot-Lizenz.
+- Zugriff nur auf Inhalte, die dieses Arbeitskonto ohnehin sehen darf.
+- für den manuellen Basisweg keine TourFuchs-Client-ID.
+- für den direkten Profiweg eine von der IT registrierte Entra-SPA und
+  freigegebene Graph-Berechtigungen.
+
+### 9.3 Basisweg: sofort nutzbar
+
+**Klickpfad:** Kundenmarker -> **"Briefing"** ->
+**"Prompt kopieren & Copilot öffnen"**.
+
+Ablauf:
+
+1. TourFuchs zeigt Kundenidentität und den vollständigen vorbereiteten Prompt.
+2. Der Nutzer kann vorab lesen, welche Daten enthalten sind.
+3. TourFuchs kopiert den Prompt.
+4. Auf Windows wird bevorzugt Microsoft Edge mit
+   `https://m365.cloud.microsoft/chat` geöffnet; andernfalls ein normaler
+   Browser-Tab.
+5. Der Nutzer fügt den Prompt in Corporate Copilot ein.
+6. Der Nutzer sendet ihn selbst bewusst ab.
+
+Bis Schritt 6 überträgt TourFuchs keine Kundendaten automatisch an Microsoft.
+Das Öffnen des Browsers allein ist noch keine fachliche Anfrage.
+
+### 9.4 Inhalt des kompakten Prompts
+
+Zur eindeutigen Zuordnung können enthalten sein:
+
+- Kundenname
+- Kundennummer
+- PLZ und Ort
+- Hauptansprechpartner
+- geplanter Besuchstag
+- Position in der Tour
+- Rolle als Start oder Ziel
+- letzter lokal dokumentierter Besuch
+
+Der Prompt verlangt ausschließlich berechtigtes internes Microsoft-365-Wissen:
+
+- E-Mails
+- Outlook-Termine
+- Teams-Chats und Kanalnachrichten
+- Besprechungen und Transkripte
+- Dateien
+
+Zeitraum: letzte 12 Monate mit Schwerpunkt auf den letzten 90 Tagen sowie
+zukünftige Termine, Zusagen, Aufgaben und Fristen.
+
+Ergebnisformat, maximal 250 Wörter:
+
+1. `Jetzt wichtig` - höchstens vier kurze Stichpunkte.
+2. `Gespräch` - Ziel, Einstieg und genau drei konkrete Fragen.
+3. `Handlung` - höchstens je ein belegter Punkt zu Offen, Chance und Risiko.
+4. `Belege` - höchstens drei entscheidende Quellen mit Datum, Anlass und Link.
+
+Der Prompt verbietet Websuche, allgemeine Internetinformationen und erfundene
+Fakten. Unsicherheiten und Schlussfolgerungen müssen gekennzeichnet werden.
+
+### 9.5 Profi: einfacher Weg zuerst
+
+Auch im Profi-Modus steht oben zuerst der sofort nutzbare Weg
+**"Prompt in Corporate Copilot verwenden"**. Das ist die bevorzugte
+Rückfalloption und benötigt kein IT-Setup.
+
+Darunter befindet sich eingeklappt:
+
+**"Expertenfall: Briefing direkt in TourFuchs"**.
+
+Diese Reihenfolge ist bewusst: erst Nutzen, dann technische Automatisierung.
+
+### 9.6 Profi: direkte Entra-/Graph-Verbindung
+
+Einrichtung:
+
+1. in **"Profi"** einen Kunden öffnen.
+2. **"Briefing"**.
+3. Expertenfall aufklappen.
+4. Client-ID und Tenant-ID oder Tenant-Domäne eintragen.
+5. angezeigte Redirect-URI in der Entra-SPA hinterlegen.
+6. Datenübergabe bestätigen.
+7. **"Briefing direkt erstellen"**.
+8. mit Arbeitskonto anmelden.
+
+Die SPA verwendet kein Client Secret. Client- und Tenant-ID werden lokal im
+Browser gespeichert; das Zugriffstoken liegt im Sitzungsspeicher und wird durch
+MSAL verwaltet.
+
+Der direkte Weg übergibt nach Zustimmung:
+
+- Kundenname
+- Kundennummer
+- PLZ/Ort
+- Hauptansprechpartner
+- aktuellen Tourkontext
+
+Nicht übergeben werden:
+
+- vollständige Kundenliste
+- Telefonnummer
+- E-Mail-Adresse
+- Umsatz
+- Kartenkoordinaten
+
+Die Antwort, Quellenhinweise und eine vorhandene Vertraulichkeitskennzeichnung
+werden direkt in TourFuchs gezeigt.
+
+### 9.7 Technischer Stand des Profiwegs
+
+Stand Juli 2026 verwendet TourFuchs die Microsoft 365 Copilot Chat API unter
+Microsoft Graph `/beta/copilot`. Die API ist weiterhin Preview.
+
+Delegierte Berechtigungen:
+
+- `Sites.Read.All`
+- `Mail.Read`
+- `People.Read.All`
+- `OnlineMeetingTranscript.Read.All`
+- `Chat.Read`
+- `ChannelMessage.Read.All`
+- `ExternalItem.Read.All`
+
+Die Organisation muss diese Rechte gegebenenfalls administrativ freigeben.
+TourFuchs handelt immer im Namen des angemeldeten Nutzers. Die Websuche ist im
+API-Aufruf ausgeschaltet.
+
+Weitere technische Details: `docs/copilot-briefing.md`.
+
+### 9.8 Fehler und Fallback
+
+Bei abgebrochener Anmeldung, blockiertem Popup, fehlender Administratorfreigabe,
+abgelaufener Anmeldung, API- oder Netzwerkfehler zeigt TourFuchs eine
+verständliche Meldung. Der Button **"Prompt kopieren & Copilot öffnen"** bleibt
+als manueller Rückfallweg verfügbar.
+
+### 9.9 Richtige Guide-Antwort bei Datenschutzfragen
+
+Der Guide sagt nicht pauschal "Es werden keine Daten übertragen". Korrekt ist:
+
+- Im Basisweg zeigt und kopiert TourFuchs den Prompt lokal. Erst der Nutzer sendet
+  ihn in Microsoft 365 Copilot.
+- Im Profiweg übergibt TourFuchs die vorher benannten Identifikations- und
+  Tourdaten nach ausdrücklicher Zustimmung direkt an Microsoft.
+- Microsoft-365-Berechtigungen und Richtlinien der Organisation bleiben wirksam.
+
+---
+
+## 10. Tourplanung im Außendienst
+
+### 10.1 Standardtour in Basis
+
+**Klickpfad:** `"Außendienst" -> Tab "Tour"`.
+
+1. Unter **"Für welchen Bezirk planst du?"** einen Vertriebsbezirk oder
+   **"Alle Bezirke"** wählen.
+2. **"Mein Standort"** nutzen oder im Feld
+   **"...oder Kunde als Start wählen"** einen Kunden suchen.
+3. Datum, Startzeit und **"Besuch (Min.)"** einstellen.
+4. Umkreis mit dem Regler anpassen.
+5. optional **"Überfällige zuerst"** aktivieren.
+6. Kunden aus Vorschlägen oder Karten-Popups mit **"Zur Tour"** hinzufügen.
+7. ab zwei Stopps **"Reihenfolge optimieren"**.
+8. **"Route auf Karte anzeigen"**.
+9. bei Bedarf **"Straßenroute anzeigen"**.
+10. **"In Google Maps navigieren"**.
+
+Der Nutzer baut die Tour bewusst selbst. TourFuchs schlägt vor und optimiert nur
+die ausgewählten Stopps.
+
+### 10.2 Profi-Erweiterungen
+
+Profi ergänzt:
+
+- Kartenansicht **"Kunden"**, **"Status"**, **"Chancen"**
+- festen **"Ziel"**-Kunden
+- Vorschlagsmodus **"Umkreis um Start"** / **"Entlang der Tour"**
+- **"Rundreise (zurück zum Start)"**
+- Tagesplan-Druck
+- Kalender-Export
+- Tour als Text für Outlook/Copilot
+- gespeicherte Touren
+
+Auf dem Smartphone können Profi-Abschnitte seitlich weggewischt werden.
+**"Ausgeblendete Elemente zurücksetzen"** stellt sie wieder her.
+
+### 10.3 "Was ist in meiner Nähe?"
+
+**Klickpfad:** `"Außendienst" -> "Tour" -> "Was ist in meiner Nähe?"`.
+
+Die Funktion nutzt den GPS-Standort als Start und zeigt passende Kunden im
+Umkreis. Eine Standortberechtigung kann erforderlich sein.
+
+Im mobilen Karte-Tab gibt es zusätzlich den Begleiter **"In der Nähe"**. Der
+Bezugspunkt kann zwischen **"Kartenmitte"** und **"Standort"** wechseln. Ein Tipp
+auf einen Kunden fliegt zum Marker; Plus fügt ihn zur Tour hinzu.
+
+### 10.4 Vorschläge
+
+**Umkreis um Start:** Kunden innerhalb des gewählten Radius.
+
+**Entlang der Tour:** Kunden in einem Korridor entlang Start, Stopps und Ziel. Bei
+erteilter Routing-Zustimmung folgt der Korridor der Straßenroute; sonst der
+direkten Verbindung.
+
+**Überfällige zuerst:** priorisiert fällige und überfällige Besuche, baut aber
+nicht automatisch eine Tour.
+
+### 10.5 Optimierung
+
+**"Reihenfolge optimieren"** sortiert die gewählten Zwischenstopps mit
+Nearest-Neighbor und 2-Opt. Start und optionales Ziel bleiben fest. Die Berechnung
+ist eine Streckenheuristik und keine Echtzeit-Verkehrsoptimierung.
+
+### 10.6 Ziel und Rundreise
+
+- mit explizitem Ziel endet die Tour dort.
+- mit **"Rundreise"** endet sie wieder am Start.
+- ohne Ziel und ohne Rundreise ist der letzte Stopp automatisch das Ziel.
+
+### 10.7 Luftlinie und Straßenroute
+
+Beim ersten **"Route auf Karte anzeigen"** erscheint die Luftlinie. Danach
+wechselt derselbe Button zwischen:
+
+- **"Straßenroute anzeigen"**
+- **"Luftlinie anzeigen"**
+
+Die Straßenroute kommt von OSRM auf Basis von OpenStreetMap. Vor der ersten
+externen Anfrage bittet TourFuchs um Zustimmung. Übertragen werden nur
+Koordinaten von Start und Routenpunkten. Bei Fehler bleibt die Luftlinie
+verfügbar.
+
+### 10.8 Google Maps
+
+**"In Google Maps navigieren"** öffnet einen Directions-Link. Erst mit diesem
+bewussten Klick werden Routendaten an Google übergeben. Google begrenzt die Zahl
+der Zwischenziele; TourFuchs übergibt deshalb nur die unterstützte Anzahl
+(bei einer einfachen Tour bis zu zehn Stopps inklusive Ziel).
+
+### 10.9 Tagesplan und Kalender
+
+Nur Profi:
+
+- **"Tagesplan drucken"** erstellt einen Plan mit Ankunftszeiten, Adressen,
+  Kontakten und Checkboxen.
+- **"Kalender-Export (.ics)"** erstellt einen Termin je Besuch.
+- **"Als Text kopieren (Outlook/Copilot)"** legt die Tour in die Zwischenablage.
+
+Datum, Startzeit und Besuchsdauer steuern Druck, Kalender und QR-Übergabe.
+Fahrzeiten sind Schätzwerte.
+
+### 10.10 Besuchsstatus
+
+Aus Besuchsrhythmus und letztem Besuch entstehen:
+
+- ok
+- bald fällig
+- überfällig
+
+Kunden ohne Rhythmus haben keinen Status. Ein Besuch wird in der Tour mit
+**"Heute"** oder im Kunden-Popup mit **"Heute besucht"** dokumentiert. Der Status
+aktualisiert sich sofort und wird lokal gespeichert.
+
+---
+
+## 11. Tour vom Desktop aufs Smartphone übergeben
+
+### 11.1 Senden am Desktop
+
+**Klickpfad:** Tour planen -> **"An Handy übergeben (QR)"**.
+
+Der QR-Code enthält nur die geplante Tour, maximal 12 Stopps:
+
+- Start
+- Stopps mit Name, Koordinaten, Adresse, Telefon und Kundennummer
+- Datum, Startzeit und Besuchsdauer
+- Rundreise-Einstellung
+- optionaler Tourname
+
+Die vollständige Kundendatenbank wird nicht übertragen. Der Tourinhalt steckt im
+URL-Fragment `#t=...`; dieses Fragment wird beim Laden der Webadresse nicht an den
+Server gesendet.
+
+### 11.2 Empfangen mit der normalen Smartphone-Kamera
+
+1. QR-Code am Desktop mit der Kamera-App scannen.
+2. TourFuchs-Link öffnen.
+3. Empfangsdialog prüfen.
+4. eine der angebotenen Aktionen wählen.
+
+Die installierte PWA öffnet sich, andernfalls der Browser. Das Laden der App kann
+eine Netzwerkverbindung benötigen, der Tourinhalt selbst wird jedoch aus dem
+QR-Fragment gelesen.
+
+### 11.3 Empfangen innerhalb von TourFuchs
+
+**Klickpfad:** `"Tour" -> "Tour vom Desktop scannen"`.
+
+Alternativ zum Live-Kamerascan kann ein Foto des QR-Codes ausgewählt werden.
+
+Nach erfolgreichem Scan:
+
+- **"Als Tour übernehmen"** gleicht Stopps über Kundennummer, sonst Name + PLZ,
+  mit lokalen Kunden ab.
+- **"In Google Maps navigieren"** funktioniert direkt aus dem QR-Code.
+- **Kalender (.ics)** funktioniert ebenfalls direkt aus dem QR-Code.
+
+### 11.4 Warum "An Handy übergeben" mobil fehlt
+
+Auf einem Smartphone wäre das Senden einer Tour an dasselbe Smartphone
+verwirrend. Deshalb ist **"An Handy übergeben (QR)"** im Mobile View ausgeblendet.
+**"Tour vom Desktop scannen"** bleibt sichtbar.
 
 ---
 
 ## 12. Mobile Bedienung
 
-- Mobil stehen **Karte und Tour** im Mittelpunkt; Gebietsplanung/Cockpit sind
-  ausgeblendet (Hinweis verweist auf den Desktop).
-- **Bottom Sheet:** das Tour-Panel unten lässt sich in Stufen ziehen
-  (minimiert / halb / voll), die Karte bleibt sichtbar.
-- **Hochformat** ist optimiert; im Querformat erscheint ein Drehhinweis.
-- Kunden-Popups sind scrollbar; „➕ Zur Tour" funktioniert auch aus dem Popup.
-- Im Profi-Modus können einzelne Abschnitte per Wischgeste ausgeblendet werden;
-  „Elemente zurücksetzen" holt sie zurück.
-- **Mobile-Vorschau am Desktop:** Symbol „📱" in der Topbar simuliert die
-  Smartphone-Ansicht (praktisch für Schulungen).
-- **„Datenbank zurücksetzen"** (unten im mobilen Panel) löscht die lokalen Daten
-  auf dem Gerät – vorher Export empfehlen.
+### 12.1 Produktfokus
+
+Mobil stehen zwei Hauptreiter fest unter der Topbar:
+
+- **"Karte"**
+- **"Tour"**
+
+Darüber beziehungsweise in derselben festen Navigation bleibt
+**"Basis" / "Profi"** erreichbar. Gebietsplanung, Cockpit und Simulation sind
+bewusst Desktop-Aufgaben.
+
+### 12.2 Bottom Sheet
+
+Das Bedienpanel ist unten an den Bildschirm angedockt.
+
+- **"Tour"** öffnet das Sheet.
+- **"Karte"** schließt es zugunsten der Karte.
+- der obere Griff wird senkrecht gezogen, um die Höhe kontinuierlich zu ändern.
+- aus geschlossenem Zustand folgt das Blatt direkt dem Finger, ohne von unten
+  falsch zu schrumpfen.
+- ein reiner Tipp auf den Griff ändert mobil nichts.
+- die gewählte Höhe wird gespeichert.
+
+Im Sheet funktionieren Scrollbar, Finger-Scrollen und Ziehen auf Freiflächen.
+
+### 12.3 In der Nähe
+
+Wird im Karte-Tab das Sheet geöffnet, zeigt **"In der Nähe"** Kunden relativ zur
+Kartenmitte oder zum GPS-Standort.
+
+Basis zeigt Name, Ort, Entfernung und Umsatz. Profi ergänzt Besuchsstatus und
+Fälligkeitszähler.
+
+### 12.4 Mobile Popups
+
+Kunden-Popups sind scrollbar. Adresse zeigt Straße, PLZ und Ort. Aktionen wie
+**"Zur Tour"**, **"Heute besucht"** und **"Briefing"** funktionieren direkt aus
+dem Popup.
+
+### 12.5 Hochformat und Mobile-Vorschau
+
+Die App ist für Smartphone-Hochformat optimiert. Im Querformat kann ein
+Drehhinweis erscheinen.
+
+Am Desktop öffnet das Topbar-Symbol **"Mobile-Vorschau"** eine gerahmte
+Smartphone-Ansicht für Schulung und Tests. Diese Vorschau hat einen eigenen
+Browserkontext und kann deshalb einen anderen lokalen Datenstand zeigen.
+
+### 12.6 Mobile Live-Demos
+
+Die Demo-Auswahl nutzt fast die gesamte verfügbare Höhe, skaliert Inhalte für
+normale Smartphone-Größen und hält Kopf, Liste und Abschlussaktionen sichtbar.
+Desktop-only Geschichten und der QR-Sendeschritt werden ausgeblendet.
 
 ---
 
-## 13. Datenschutz-Fakten (für Antworten des Bots verbindlich)
+## 13. Gebietsplanung, Cockpit und Simulation
 
-1. Kundendaten werden **ausschließlich lokal im Browser** gespeichert (IndexedDB).
-   Kein Server, keine Cloud, kein Tracking.
-2. **Nominatim (OpenStreetMap)** – nur bei bewusst ausgelöster Funktion
-   „🎯 Adressen exakt verorten": gesendet werden Straße, PLZ, Ort.
-   Nicht gesendet: Kundenname, Umsatz, Ansprechpartner, Telefon, E-Mail.
-3. **OSRM (Straßenrouten)** – nur nach ausdrücklicher Zustimmung (einmaliger
-   Dialog): gesendet werden ausschließlich die Koordinaten von Startpunkt und
-   Tour-Stopps. Ohne Zustimmung: Luftlinie, keine externe Anfrage.
-4. **Google Maps** – erst bei bewusstem Klick auf „🧭 In Google Maps navigieren"
-   verlassen Routendaten die App; ab dann gelten Googles Bedingungen.
-5. **Kartenkacheln** (OpenStreetMap/CARTO/Esri) werden beim Betrachten geladen;
-   dabei erhalten die Dienste technische Zugriffsdaten (z. B. IP-Adresse).
-6. **QR-Übergabe** überträgt nichts über das Netz (Bildschirm → Kamera).
-7. Browserwechsel, Gerätewechsel oder Löschen der Browserdaten kann lokale Daten
-   entfernen → vorher „💾 Als Excel exportieren".
-8. **Optionaler Datentresor:** Bei Aktivierung sind die lokalen Kundendaten
-   AES-256-verschlüsselt (Schlüssel aus PIN, nie gespeichert); Entsperren per PIN,
-   optional per **Face/Touch ID** (WebAuthn-PRF; Biometrie verlässt nie das Gerät)
-   oder Wiederherstellungscode; Auto-Lock-Zeit einstellbar. Details siehe Abschnitt 5.8b.
-9. **Sicherer Umzug:** Verschlüsselter Export als `.tfsafe`-Datei (AES-256-GCM,
-   Zufallsschlüssel) plus Schlüssel als QR-Code. Datei und Schlüssel reisen
-   getrennt (Kanaltrennung); nichts geht über das Netz. Ohne Schlüssel ist die
-   Datei wertlos. Details siehe Abschnitt 5.8c.
+### 13.1 Gebietsansicht
+
+**Klickpfad:** `"Gebietsplanung" -> Tab "Gebiete"`.
+
+Gebietsebenen:
+
+- Landkreise
+- PLZ 1-stellig
+- PLZ 2-stellig
+- PLZ 3-stellig
+- PLZ 5-stellig
+
+Anzeigearten:
+
+- **"Automatisch (nach Zoom)"**
+- **"Vertriebsbezirk (Flächen)"**
+- **"Vertriebsgruppe (Flächen)"**
+- **"Besuchsstatus"**
+- **"Weiße Flecken (Abdeckung)"**
+
+Bei automatischer Anzeige gilt: weit herausgezoomt Vertriebsgruppen, mittlerer
+Zoom Vertriebsbezirke, nah Kundenmarker.
+
+### 13.2 Umsatzlabels
+
+Flächenlabels zeigen die fachliche Gesamtsumme einer Einheit, unabhängig von
+aktiven Kundenfiltern. `T EUR` bedeutet Tausend Euro. Der exakte Betrag steht im
+Tooltip.
+
+### 13.3 Gebietspopup
+
+Ein Klick auf eine Fläche zeigt:
+
+- Kundenzahl
+- Umsatz gesamt
+- Verteilung **Vertriebsbezirk · Kunden · Umsatz**
+- in Profi zusätzlich die namentliche Kundenliste
+
+Am Desktop kann der Nutzer:
+
+- **"Kunden dieses Gebiets umordnen"**
+- eine ganze Fläche einem Vertriebsbezirk zuweisen
+- einzelne Kunden filtern, markieren und neu zuweisen
+- die letzte Editor-Aktion rückgängig machen
+
+Mobil ist die Gebietsplanung nur lesend beziehungsweise ausgeblendet; Änderungen
+werden am Desktop durchgeführt.
+
+### 13.4 Gebiets-Cockpit
+
+**Klickpfad:** `"Gebietsplanung" -> "Gebiete" -> "Gebiets-Cockpit öffnen"`.
+
+Das Cockpit beantwortet:
+
+- Wie viele Kunden und wie viel Umsatz besitzt jeder Vertriebsbezirk?
+- Welche Bezirke sind stark oder schwach?
+- Wie ausgewogen ist die Verteilung?
+- Welche Wirkung hätte eine Gebietsverschiebung?
+
+Wichtige Elemente:
+
+- Vertriebsgruppe als Vergleichsrahmen
+- Status-, Top- und Flop-KPI
+- Tabelle mit Vertriebsbezirk, Kunden, Umsatz und Auslastung
+- Sortierung nach Umsatz, Kunden oder Name
+- Top-3/Flop-3 oder **"Alle anzeigen"**
+- Suche innerhalb der Einheiten
+
+**Fairness:** bis zu einem Kunden-Faktor von 1,5 gilt die Verteilung als
+ausgewogen; darüber als ungleich verteilt.
+
+### 13.5 Was-wäre-wenn-Simulation
+
+**Klickpfad:** Cockpit -> Bereich **"Was-wäre-wenn: Gebiete zuweisen"**.
+
+1. Ebene wählen.
+2. Kreisname oder PLZ-Präfix suchen.
+3. optional **"Auch Gebiete ohne Kunden einbeziehen"**.
+4. Gebiete markieren oder **"Alle sichtbaren auswählen"**.
+5. Zielart und Ziel wählen.
+6. **"Auswahl zuweisen"**.
+7. Kennzahlen und Umsatzdeltas prüfen.
+8. optional **"Ein Schritt zurück"** oder
+   **"Simulation zurücksetzen"**.
+9. **"Simulation auf Karte prüfen"**.
+10. erst nach Prüfung **"Zuweisung übernehmen"**.
+
+**Merksatz:** **"Auswahl zuweisen"** ist nur Simulation.
+**"Zuweisung übernehmen"** schreibt dauerhaft.
+
+Bis zu 30 Simulationsschritte können einzeln zurückgenommen werden.
+
+### 13.6 Simulationskarte
+
+Ansichten:
+
+- **"Alt"** = Zustand vor der Simulation
+- **"Neu"** = simulierter Zielzustand
+- **"Änderungen"** = nur geänderte Gebiete deutlich hervorgehoben
+
+Aktionen:
+
+- **"Simulation bearbeiten"**
+- **"Verwerfen"**
+- **"Zuweisung übernehmen"**
+
+In **"Änderungen"** zeigt die Füllung die neue Farbe und die Umrandung die alte
+Farbe.
 
 ---
 
-## 14. Fehlerbilder: Symptom → Ursache → Lösung
+## 14. Datentresor und sicherer Geräteumzug
 
-**Kunden erscheinen nicht auf der Karte**
-- PLZ fehlt/ungültig → Import-Fehlerliste prüfen, Excel korrigieren, neu importieren
-- Spalte falsch zugeordnet → erneut importieren, Dialog „Spalten zuordnen" prüfen
-- Durch Filter ausgeblendet → Tab „Filter" prüfen (Häkchen der Ebenen-Werte)
-- Tour-Fokus aktiv → „🗺️ Route auf Karte anzeigen" deaktivieren bzw. Tour leeren
-- Falscher Modus/Zoom → Modus prüfen, herauszoomen
+### 14.1 Datentresor einrichten
 
-**Gebiete sind nicht eingefärbt**
-- „Ebene" steht auf „Keine Gebiete" → Ebene wählen (Tab „🗺️ Gebiete")
-- Keine Betriebsbezirk-Spalte importiert → Import prüfen
-- „Anzeige" unpassend → z. B. „Vertriebsbezirk (Flächen)" wählen
-- Gebiet ohne Kunden und ohne Zuordnung → Flächenzeile importieren oder
-  Fläche per Gebiets-Popup zuweisen
+Klickpfade:
 
-**Umsatzzahlen wirken falsch**
-- Anzeige ist „Σ … T€" = Tausend Euro (gerundet); exakter Betrag im Tooltip
-- Label-Summe = Gesamtsumme der Einheit, unabhängig von Filtern
-- Bei Import aus Fremdsystemen Zahlformat der Umsatzspalte prüfen (Punkt/Komma)
+- Topbar -> offenes Schloss/Tresor-Symbol
+- oder `"Daten" -> "Datentresor" -> "Tresor aktivieren (PIN)"`
 
-**Keine Tourvorschläge**
-- Kein Startpunkt gesetzt → „📍 Mein Standort" oder Kunden als Start wählen
-- Falscher/kein Bezirk gewählt → Bezirksauswahl oben im Tour-Tab prüfen
-- Radius zu klein → Schieberegler erhöhen
-- Alle passenden Kunden schon in der Tour, Filter zu eng
+Nach dem Import eigener Kundendaten bietet TourFuchs die Einrichtung geführt an.
+Demo-Daten verlangen keine PIN.
 
-**„Entlang der Tour" zeigt nur Luftlinie**
-- OSRM-Zustimmung nicht erteilt → beim Umschalten auf Straßenroute zustimmen
-- Routingdienst gerade nicht erreichbar → App fällt automatisch auf die direkte
-  Verbindung zurück (Hinweistext erscheint), später erneut versuchen
+Der Nutzer vergibt eine PIN mit mindestens vier Zeichen. Danach zeigt TourFuchs
+einen **Wiederherstellungscode**, der nur einmal sichtbar ist. Er muss getrennt und
+sicher aufbewahrt werden.
 
-**Kalender-Termine haben falsche Zeit/Dauer**
-- Plan-Einstellungen prüfen: „Datum", „Start", „Besuch (Min.)" im Tour-Tab –
-  sie steuern die .ics-Termine
+### 14.2 Schutzmodell
 
-**QR-Scan funktioniert nicht**
-- Kamera-Berechtigung verweigert → Foto-Fallback nutzen („Foto des QR-Codes wählen")
-- QR zu klein/unscharf → am Desktop Dialog größer ziehen, Bildschirmhelligkeit hoch
-- „Als Tour übernehmen" ausgegraut → kein Stopp in den lokalen Daten gefunden;
-  Navigation und .ics funktionieren trotzdem direkt aus dem Code
+- Kundendaten werden lokal mit AES-256 verschlüsselt.
+- ein zufälliger Datenschlüssel wird mit einem aus der PIN abgeleiteten
+  Schlüssel geschützt.
+- die PIN und der ungeschützte Datenschlüssel werden nicht dauerhaft
+  gespeichert.
+- nach App-Start oder Auto-Lock erscheint der Sperrbildschirm.
+- Standard-Auto-Lock ist 5 Minuten; wählbar sind 1, 5, 15 Minuten, 1 Stunde oder
+  nur manuell.
+- nach 10 falschen PIN-Versuchen werden Tresor und lokale Kundendaten gelöscht.
 
-**PWA zeigt alten Namen / Update erscheint nicht**
-- Alte PWA vom Homescreen entfernen, Browser neu laden, neu installieren
-- App schließen und neu öffnen; Update-Hinweis bestätigen
+Der Tresor schützt gespeicherte Daten auf einem verlorenen oder gestohlenen
+Gerät. Er schützt nicht gegen Schadsoftware in einer bereits entsperrten Sitzung.
 
-**Alles zurücksetzen**
-- Tab „📄 Daten" → „💾 Als Excel exportieren" (Sicherung) → „🗑 Daten löschen" →
-  neue Liste importieren
+### 14.3 PIN vergessen
+
+**Klickpfad:** Sperrbildschirm ->
+**"PIN vergessen? Wiederherstellungscode nutzen"** -> Code eingeben -> neue PIN
+setzen.
+
+Ohne PIN und Wiederherstellungscode gibt es keine Betreiber-Hintertür. Die Daten
+sind nicht wiederherstellbar.
+
+### 14.4 Face/Touch ID
+
+Bei aktivem, entsperrtem Tresor kann **"Face/Touch ID einrichten"** erscheinen.
+Voraussetzung ist ein Plattform-Authenticator mit WebAuthn-PRF-Unterstützung.
+Biometrische Daten verlassen das Gerät nicht. Die PIN bleibt der Rückfallweg.
+
+### 14.5 Manuell sperren, PIN ändern, deaktivieren
+
+- Topbar-Tresorsymbol sperrt sofort.
+- **"PIN ändern"** verlangt die aktuelle PIN.
+- **"Tresor deaktivieren"** verlangt Bestätigung und PIN; danach werden Daten
+  wieder unverschlüsselt lokal gespeichert.
+
+### 14.6 Sicherer Umzug senden
+
+**Klickpfad:** `"Daten" -> "Sicherer Umzug" ->
+"Verschlüsselt exportieren (Datei + QR)"`.
+
+TourFuchs erzeugt:
+
+1. eine AES-256-GCM-verschlüsselte `.tfsafe`-Datei.
+2. einen getrennten Zufallsschlüssel als QR-Code und Text.
+
+TourFuchs lädt die Datei nicht auf einen eigenen Server. Der Nutzer entscheidet,
+wie die Datei auf das Zielgerät gelangt. Datei und Schlüssel müssen getrennt
+transportiert werden.
+
+### 14.7 Sicherer Umzug empfangen
+
+**Klickpfad:** `"Eigene Daten laden" -> "Verschlüsselte TourFuchs-Datei" ->
+"Verschlüsselte Datei öffnen"`.
+
+Alternativ bei geladenen Daten:
+
+`"Daten" -> "Daten empfangen (Datei + Schlüssel)"`.
+
+1. `.tfsafe`-Datei wählen.
+2. Schlüssel-QR scannen oder Schlüsseltext eingeben.
+3. Daten entschlüsseln.
+4. direkt einen neuen lokalen Datentresor einrichten.
+
+Falscher Schlüssel und beschädigte Datei werden erkannt.
 
 ---
 
-## 15. Glossar
+## 15. PWA-Installation und Updates
 
-- **Betriebsbezirk / Vertriebsbezirk:** führende operative Gebietsebene (Pflichtspalte)
-- **Vertriebsgruppe:** übergeordnete Vergleichs-/Steuerungsebene (empfohlen)
-- **Flächenzeile:** Importzeile ohne Kundenname, ordnet ein Gebiet einem Bezirk zu
-- **Simulation:** testweise Umverteilung im Cockpit; echt erst nach „Zuweisung übernehmen"
-- **Bottom Sheet:** mobiles Tour-Panel, in Stufen über der Karte
-- **PWA:** installierbare Web-App mit Offline-Fähigkeit
-- **T€:** Tausend Euro (Anzeige-Einheit ab 10.000 €)
-- **Überfällig / bald fällig:** Besuchsstatus aus Rhythmus + letztem Besuch
-- **Korridor:** Vorschlagsmodus „Entlang der Tour" (Abstand zur Route)
-- **Weißer Fleck:** Gebiet ohne Kunden und ohne Zuordnung (Auswertung „Lücken")
+### 15.1 Installation
+
+**Desktop Edge/Chrome:** Browser-Menü -> **"App installieren"**.
+
+**Android Chrome:** Menü -> **"App installieren"** oder
+**"Zum Startbildschirm hinzufügen"**.
+
+**iPhone Safari:** Teilen -> **"Zum Home-Bildschirm"**.
+
+### 15.2 Offline-Verhalten
+
+App-Shell, grundlegende Gebietsdaten, PLZ-Koordinaten und PLZ-Ortsnamen werden
+vorgehalten. Große Detailgebiete und zuletzt verwendete Kartenkacheln werden nach
+Nutzung gecacht. Eine vollständige Offline-Karte für ganz Deutschland ist nicht
+garantiert.
+
+Microsoft 365 Copilot, Nominatim, OSRM, Google Maps und neue Kartenkacheln
+benötigen Netzwerkzugriff.
+
+### 15.3 Updates
+
+TourFuchs prüft beim Start, etwa stündlich und bei erneutem Fokus auf Updates.
+Bei einer neuen Version erscheint:
+
+- **"Später"**
+- **"Jetzt aktualisieren"**
+
+Das Update erneuert App-Dateien und Service Worker. IndexedDB und localStorage
+werden dabei nicht gelöscht. Das allgemeine Löschen von Browserdaten kann lokale
+Kundendaten dagegen entfernen.
+
+### 15.4 Alter Name oder alte Version
+
+1. App schließen und neu öffnen.
+2. Update-Hinweis bestätigen.
+3. Browserseite neu laden.
+4. bei altem PWA-Namen alte Installation entfernen und neu installieren.
 
 ---
 
-## 16. Antwortregeln für den Guide-Bot
+## 16. Datenschutz und Datenflüsse
 
-1. **Immer den Klickpfad nennen** – mit den exakten Beschriftungen aus diesem
-   Dokument, inklusive Modus und Tab (viele Probleme sind nur ein falscher Modus).
-2. **Mobil vs. Desktop unterscheiden:** Gebietsplanung/Cockpit/Simulation gibt es
-   nur am Desktop; auf dem Handy Karte und Tour.
-3. **Nichts versprechen, was die App nicht hat.** Es gibt insbesondere: keinen
-   automatischen Tourvorschlag, keine Cloud-Synchronisierung, kein Nutzerkonto,
-   keine KI-Funktionen in der App selbst.
-4. **Datenschutzfragen** nur mit den Fakten aus Abschnitt 13 beantworten; im
-   Zweifel auf die Datenschutzerklärung in der App verweisen (ⓘ → Rechtliches).
-5. **Vor destruktiven Aktionen** („🗑 Daten löschen", „Datenbank zurücksetzen")
-   immer zuerst „💾 Als Excel exportieren" empfehlen.
-6. Bei Simulationsfragen immer den Merksatz nennen: *„Auswahl zuweisen" ist
-   Simulation – erst „Zuweisung übernehmen" schreibt dauerhaft.*
-7. Bei unklaren Fehlermeldungen zuerst die drei Standardprüfungen: richtiger
-   Modus? richtiger Tab? Filter aktiv?
+### 16.1 Grundmodell
+
+TourFuchs ist **lokal-first**, nicht pauschal "vollständig offline". Eigene
+Kundendaten liegen im Browserprofil in IndexedDB; Einstellungen und
+Sicherheitsmetadaten liegen lokal. Der Betreiber erhält den Kundendatensatz
+nicht. Bewusst gestartete Funktionen können klar begrenzte Daten an externe
+Dienste übergeben.
+
+### 16.2 Verbindliche Datenflussmatrix
+
+| Funktion | Auslöser | Übertragene Daten | Ziel |
+|---|---|---|---|
+| PLZ-Verortung | automatisch beim Import | keine externe Übertragung | lokale PLZ-Tabelle |
+| Kartenanzeige | Karte betrachten | technische Zugriffsdaten, Kachelkoordinaten | OSM/CARTO/Esri-Kacheldienste |
+| Adressen exakt verorten | bewusster Klick | Straße, PLZ, Ort | Nominatim/OpenStreetMap |
+| Straßenroute/Korridor | nach Zustimmung | Koordinaten der Routenpunkte | OSRM |
+| Google Maps Navigation | bewusster Klick | Start, Ziel, Zwischenziele als Adresse/Koordinate | Google Maps |
+| Basis-Briefing | Nutzer fügt Prompt ein und sendet | im Prompt sichtbare Identität und Tourkontext | Microsoft 365 Copilot |
+| Profi-Briefing | Zustimmung + Anmeldung | Name, Nummer, PLZ/Ort, Hauptkontakt, Tourkontext | Microsoft Graph/Copilot |
+| Tour-QR | QR anzeigen/scannen | keine TourFuchs-Serverübertragung; Tour im QR/URL-Fragment | Bildschirm/Kamera |
+| Sicherer Umzug | Export/Import | TourFuchs lädt nichts hoch; Dateiweg vom Nutzer gewählt | lokales Dateisystem/gewählter Kanal |
+
+### 16.3 Was Nominatim nicht erhält
+
+- Kundenname
+- Kundennummer
+- Umsatz
+- Ansprechpartner
+- Telefon/E-Mail
+- Vertriebsbezirk oder Gruppe
+
+### 16.4 Was OSRM nicht erhält
+
+- Kundenname
+- Kundennummer
+- Umsatz
+- Ansprechpartner
+- Telefonnummer/E-Mail
+
+### 16.5 Briefing und internes Wissen
+
+Copilot darf nur Inhalte einbeziehen, auf die das angemeldete Arbeitskonto Zugriff
+hat. TourFuchs umgeht keine Microsoft-Berechtigungen. Der Guide darf nicht
+behaupten, das Briefing könne beliebige fremde oder gesperrte Unternehmensdaten
+lesen.
+
+### 16.6 Vor destruktiven Aktionen
+
+Vor diesen Aktionen immer Wirkung nennen und bei Bedarf Export empfehlen:
+
+- **"Daten löschen"**
+- **"Datenbank zurücksetzen"**
+- zehnter falscher PIN-Versuch
+- **"Zuweisung übernehmen"**
+- großer Delta-Import
+
+---
+
+## 17. Klickpfad-Bibliothek
+
+| Ziel | Klickpfad |
+|---|---|
+| Demo-Daten laden | `Daten -> "App in 60 Sekunden erleben"` |
+| Live-Demos manuell | `Info & Impressum -> "Funktionen entdecken (Live-Demos)"` |
+| Eigene Liste laden | `Daten -> "Eigene Daten laden" -> "Excel- oder CSV-Liste" -> Berechtigung -> "Excel-/CSV-Datei auswählen"` |
+| Spalten prüfen | `"Spalten zuordnen" -> Zuordnungen und Beispiele prüfen -> "Importieren"` |
+| Fehlerliste | `"Import abgeschlossen" -> "Fehlerliste (.xlsx)"` |
+| Excel-Vorlage | `Daten -> "Excel-Vorlage herunterladen"` |
+| Delta-Import | `Daten -> "Andere Excel- oder CSV-Liste laden"` |
+| Exakte Adressen | `Daten -> "Adressen exakt verorten"` |
+| Export | `Daten -> "Als Excel exportieren"` |
+| Kunde suchen | `Topbar -> "Kunde, Ort, PLZ suchen..." -> Kundentreffer` |
+| Kundenbriefing Basis | `Kundenmarker -> "Briefing" -> "Prompt kopieren & Copilot öffnen"` |
+| Kundenbriefing Profi direkt | `Profi -> Kundenmarker -> "Briefing" -> Expertenfall -> Verbindung/Zustimmung -> "Briefing direkt erstellen"` |
+| Kunden anrufen | `Kundenmarker -> "Anrufen"` |
+| Besuch abhaken | `Kundenmarker -> "Heute besucht"` oder `Tourstopp -> "Heute"` |
+| Tour starten | `Außendienst -> Tour -> Vertriebsbezirk -> Startpunkt` |
+| GPS-Start | `Außendienst -> Tour -> "Mein Standort"` |
+| Kunde zur Tour | `Vorschlag oder Kunden-Popup -> "Zur Tour"` |
+| Reihenfolge | `Tour -> "Reihenfolge optimieren"` |
+| Route zeigen | `Tour -> "Route auf Karte anzeigen"` |
+| Straßenroute | `Tour -> "Straßenroute anzeigen" -> Zustimmung` |
+| Google Maps | `Tour -> "In Google Maps navigieren"` |
+| Desktop-QR | `Tour -> "An Handy übergeben (QR)"` |
+| Tour scannen | `Tour -> "Tour vom Desktop scannen"` |
+| Cockpit | `Gebietsplanung -> Gebiete -> "Gebiets-Cockpit öffnen"` |
+| Simulation | `Cockpit -> Ebene -> Gebiete markieren -> Ziel -> "Auswahl zuweisen"` |
+| Simulationskarte | `Cockpit -> "Simulation auf Karte prüfen" -> Alt/Neu/Änderungen` |
+| dauerhaft übernehmen | `Simulation -> "Zuweisung übernehmen" -> bestätigen` |
+| Tresor | `Daten -> "Tresor aktivieren (PIN)"` |
+| sicher senden | `Daten -> "Verschlüsselt exportieren (Datei + QR)"` |
+| sicher empfangen | `Daten -> "Daten empfangen (Datei + Schlüssel)"` |
+| PWA-Update | `Update-Hinweis -> "Jetzt aktualisieren"` |
+
+---
+
+## 18. Diagnosebäume und Fehlerbilder
+
+### 18.1 Keine Kunden sichtbar
+
+In dieser Reihenfolge prüfen:
+
+1. Sind unter **"Daten"** Kunden geladen?
+2. Wie viele sind als verortet sichtbar?
+3. Ist im Tab **"Filter"** etwas ausgeblendet?
+4. Ist im Tourmodus der richtige Vertriebsbezirk gewählt?
+5. Ist ein Tour-Kartenfokus aktiv?
+6. Ist die Karte weit verschoben oder zu stark gezoomt?
+7. Hat der Kunde PLZ oder Koordinaten?
+8. War die Spaltenzuordnung korrekt?
+
+Kurze Musterantwort:
+
+> Prüfe zuerst Filter und Tour-Bezirk. Wenn dort alles stimmt, öffne "Daten" und
+> vergleiche Kundenzahl und "verortet". Eine fehlende oder unbekannte PLZ
+> verhindert den Marker.
+
+### 18.2 Stadt im Suchfeld liefert nichts
+
+Prüfen:
+
+1. Sind Daten geladen?
+2. Gibt es einen Kunden in dieser Stadt?
+3. Ist bei diesem Kunden das Feld `Ort` gefüllt?
+4. Wird mindestens mit zwei Zeichen gesucht?
+5. Ist es ein eigener Import ohne Ortsspalte?
+
+Erklärung: Die Suche findet Kunden nach ihrem Ort, nicht die Stadt als
+eigenständiges Kartenziel.
+
+### 18.3 Popup zeigt PLZ, aber keinen Ort
+
+Ursache: Das Feld `Ort` fehlt im eigenen Kundendatensatz. Lösung: Ortsspalte beim
+nächsten Delta-Import zuordnen. Demo-Daten werden automatisch lokal angereichert;
+eigene Daten werden nicht stillschweigend verändert.
+
+### 18.4 Gebiet bleibt grau oder leer
+
+Prüfen:
+
+- Gebietsebene aktiv?
+- Vertriebsbezirk importiert?
+- passende Anzeige gewählt?
+- Filter aktiv?
+- Gebiet ohne Kunden explizit zugeordnet?
+
+### 18.5 Keine Tourvorschläge
+
+1. Vertriebsbezirk gewählt?
+2. Startpunkt gesetzt?
+3. Radius/Korridor groß genug?
+4. bei **"Entlang der Tour"** mindestens zwei Routenpunkte vorhanden?
+5. passende Kunden bereits in Tour?
+6. Filter zu eng?
+
+### 18.6 Straßenroute erscheint nicht
+
+- keine vollständige Route
+- Zustimmung nicht erteilt
+- Netzwerk/OSRM nicht erreichbar
+- ungültige Punkte
+
+Lösung: Luftlinie weiterverwenden, Verbindung prüfen und erneut auf
+**"Straßenroute anzeigen"** klicken.
+
+### 18.7 Briefing öffnet Copilot, Prompt steht aber nicht im Eingabefeld
+
+Das ist der erwartete Basisweg. Browser dürfen fremde Websites nicht automatisch
+mit Text befüllen oder absenden. Der Prompt liegt in der Zwischenablage. In
+Corporate Copilot einfügen, prüfen und selbst absenden.
+
+### 18.8 Briefing zeigt Entra-Fehler
+
+Prüfen:
+
+- Basisweg als sofortigen Fallback nutzen.
+- gültige Client-ID und Tenant-ID?
+- Redirect-URI exakt registriert?
+- Arbeitskonto und Copilot-Lizenz vorhanden?
+- Graph-Rechte durch IT freigegeben?
+- Popup oder Anmeldung vom Browser blockiert?
+
+### 18.9 Live-Demo erscheint nicht automatisch
+
+Prüfen:
+
+1. Ist die App wirklich leer?
+2. Wurden eigene Daten importiert?
+3. Wurde **"Nicht mehr automatisch zeigen"** aktiviert?
+4. Sind bereits alle sichtbaren Demos abgeschlossen?
+5. Ist ein anderes Modal oder der Sperrbildschirm offen?
+
+Manueller Weg: `Info & Impressum -> Funktionen entdecken (Live-Demos)`.
+
+### 18.10 Live-Demo wurde unterbrochen
+
+TourFuchs stellt den vorherigen Zustand wieder her und zeigt
+**"Erneut versuchen"**. Bei wiederholtem Fehler Demo-Auswahl schließen,
+Netzwerk prüfen und die einzelne Funktion manuell testen.
+
+### 18.11 Panel scrollt nicht wie erwartet
+
+- Mausrad über der Karte zoomt die Karte; über dem Panel scrollt es.
+- auf einer funktionslosen Panelfläche mit linker Maustaste ziehen.
+- auf Buttons/Eingaben startet absichtlich kein Flächenziehen.
+- sichtbare Scrollbar kann weiterhin direkt genutzt werden.
+- Plus/Minus ändert nur die Panelgröße.
+
+### 18.12 Mobile Sheet schrumpft scheinbar falsch
+
+Am oberen Griff anfassen und kontinuierlich senkrecht ziehen. Ein reiner Tipp
+ändert mobil nichts. **"Tour"** öffnet, **"Karte"** schließt das Sheet.
+
+### 18.13 QR-Senden fehlt auf dem Smartphone
+
+Kein Fehler. **"An Handy übergeben (QR)"** ist nur am Desktop sichtbar. Mobil
+steht **"Tour vom Desktop scannen"** zur Verfügung.
+
+### 18.14 QR-Scan funktioniert nicht
+
+- Kamera-Berechtigung prüfen.
+- Foto-Fallback verwenden.
+- QR größer und Bildschirm heller anzeigen.
+- bei **"Als Tour übernehmen"** müssen lokale Kunden erkannt werden.
+- Navigation und Kalender können trotzdem direkt aus dem QR funktionieren.
+
+### 18.15 Kalenderzeiten wirken falsch
+
+Im Tour-Panel **"Datum"**, **"Start"** und **"Besuch (Min.)"** prüfen. Diese
+Werte steuern Druck, ICS und QR. Fahrzeit bleibt eine Schätzung.
+
+### 18.16 Kontaktname ist falsch
+
+- Ansprechpartner statt Vertriebsbeauftragter zugeordnet?
+- separate Kontaktdatei mit Kundennummer?
+- Primärkontakt korrekt markiert?
+- Delta-Import hat denselben Kundenschlüssel?
+
+### 18.17 Simulation lässt sich nicht übernehmen
+
+- Gebiet ausgewählt?
+- Ziel gewählt?
+- **"Auswahl zuweisen"** bereits ausgeführt?
+- gibt es einen Simulationsentwurf?
+
+### 18.18 Daten fehlen auf einem anderen Gerät
+
+Das ist erwartetes Verhalten. TourFuchs synchronisiert nicht automatisch.
+Möglichkeiten:
+
+- kompletter sicherer Umzug mit `.tfsafe` + getrenntem Schlüssel.
+- nur geplante Tour per QR.
+- Excel-Export und bewusster Neuimport.
+
+### 18.19 PWA aktualisiert sich nicht
+
+App fokussieren oder neu öffnen, Update-Hinweis abwarten, Seite neu laden. Bei
+altem Namen alte PWA entfernen und neu installieren.
+
+---
+
+## 19. Häufige Fragen mit Musterantworten
+
+### Ist TourFuchs eine Cloud-Anwendung?
+
+> TourFuchs ist eine lokal-first PWA. Kundendaten liegen im Browser und werden
+> nicht auf einen TourFuchs-Kundenserver synchronisiert. Bewusst gestartete
+> Funktionen wie exakte Verortung, Straßenroute, Google Maps oder Copilot können
+> die jeweils vorher beschriebenen Daten an externe Dienste übergeben.
+
+### Werden meine Daten durch ein App-Update gelöscht?
+
+> Nein. Das Update erneuert App-Dateien und Service Worker. IndexedDB und
+> localStorage bleiben erhalten. Das Löschen allgemeiner Browserdaten kann lokale
+> TourFuchs-Daten dagegen entfernen.
+
+### Warum sehe ich mobil kein Cockpit?
+
+> Das ist eine bewusste Produktentscheidung. Mobil konzentriert sich TourFuchs auf
+> Karte, Kunden, Briefing, Tour und Navigation. Cockpit und Simulation sind für
+> den größeren Desktop-Arbeitsraum ausgelegt.
+
+### Kann ich CSV statt Excel verwenden?
+
+> Ja. TourFuchs unterstützt Excel, CSV und ODS. Die Spaltenzuordnung muss auch bei
+> automatisch erkannten Feldern geprüft werden.
+
+### Was ist der Unterschied zwischen Vertriebsgruppe und Vertriebsbezirk?
+
+> Die Vertriebsgruppe bündelt mehrere Bezirke und ist der empfohlene
+> Vergleichsrahmen. Der Vertriebsbezirk ist die führende operative Pflicht-Ebene
+> für Tourfilter, Farben, Cockpit und Zuweisungen.
+
+### Wann wird eine Simulation dauerhaft?
+
+> Erst nach "Zuweisung übernehmen" und Bestätigung. "Auswahl zuweisen" verändert
+> nur den temporären Simulationsstand.
+
+### Kann ich nur den letzten Simulationsschritt zurücknehmen?
+
+> Ja. "Ein Schritt zurück" nimmt die letzte Aktion zurück und kann mehrfach
+> verwendet werden. "Simulation zurücksetzen" verwirft den gesamten Entwurf.
+
+### Ist die Straßenroute eine Google-Maps-Route?
+
+> Nein. Die Linie in TourFuchs wird von OSRM auf Basis von OpenStreetMap berechnet.
+> Google Maps wird erst mit "In Google Maps navigieren" geöffnet.
+
+### Warum weicht die geschätzte Strecke ab?
+
+> Optimierung und Fahrzeit sind Schätzungen. Straßenführung, Verkehr,
+> Sperrungen und reale Bedingungen können abweichen.
+
+### Kann ich mehrere Kontakte pro Kunde importieren?
+
+> Ja. Eine getrennte Kontaktdatei verknüpft Kontakte über die Kundennummer. Ein
+> Kontakt kann als Primärkontakt markiert werden.
+
+### Kann ich nach einer Stadt suchen?
+
+> Ja, sofern mindestens ein Kundendatensatz diesen Ort enthält. TourFuchs sucht
+> Kunden nach ihrem gespeicherten Ort; es springt nicht zu einer Stadt ohne
+> passenden Kunden.
+
+### Brauche ich für das Briefing eine Client-ID?
+
+> Nein für den einfachen Basisweg. Dort kopiert TourFuchs den Prompt und öffnet
+> Corporate Copilot. Nur die optionale direkte Profi-Verbindung benötigt eine
+> Entra-SPA mit Client- und Tenant-ID.
+
+### Sendet TourFuchs den Briefing-Prompt automatisch?
+
+> Im Basisweg nein. Der Nutzer fügt ihn in Copilot ein und sendet selbst. Im
+> konfigurierten Profiweg kann TourFuchs nach ausdrücklicher Zustimmung direkt
+> senden.
+
+### Warum fehlt der QR-Senden-Button mobil?
+
+> Weil das Senden an das Smartphone nur am Desktop sinnvoll ist. Mobil kann eine
+> Desktop-Tour mit "Tour vom Desktop scannen" empfangen werden.
+
+---
+
+## 20. Mini-Schulungen
+
+### 20.1 TourFuchs in 5 Minuten
+
+**Ziel:** Orientierung und erste Tour.
+
+1. Demo-Daten laden.
+2. **"Außendienst"** wählen.
+3. **"Tour"** öffnen.
+4. Vertriebsbezirk wählen.
+5. Startpunkt setzen.
+6. zwei Kunden hinzufügen.
+7. Reihenfolge optimieren.
+8. Route anzeigen.
+
+**Abschlussfrage:** Wo wechselst du zwischen Luftlinie und Straßenroute?
+
+### 20.2 Spontanes Kundenbriefing in 5 Minuten
+
+**Ziel:** Unterwegs in weniger als einer Minute gesprächsbereit sein.
+
+1. einen Kunden über Karte, Suche oder Chancen öffnen.
+2. **"Briefing"** wählen.
+3. Kundenidentität und Prompt kurz prüfen.
+4. **"Prompt kopieren & Copilot öffnen"**.
+5. im Corporate Copilot einfügen und bewusst senden.
+6. `Jetzt wichtig`, `Gespräch`, `Handlung` und `Belege` lesen.
+
+**Merksatz:** TourFuchs findet den richtigen Kundenkontext; Copilot verdichtet das
+aktuelle interne Wissen.
+
+### 20.3 Datenimport in 10 Minuten
+
+**Ziel:** eigene Datei sicher importieren.
+
+1. Pflichtfelder erklären.
+2. **"Eigene Daten laden"**.
+3. Berechtigung bestätigen.
+4. Datei öffnen.
+5. Spaltenzuordnung prüfen.
+6. importieren.
+7. Ergebnis und Fehlerliste lesen.
+8. Tresor-Angebot erklären.
+
+**Merksatz:** Automatisch erkannt bedeutet nicht automatisch geprüft.
+
+### 20.4 Gebiets-Cockpit in 10 Minuten
+
+**Ziel:** einen Vertriebsbezirk bewerten.
+
+1. **"Gebietsplanung"**.
+2. **"Gebiete"**.
+3. **"Gebiets-Cockpit öffnen"**.
+4. Vertriebsgruppe wählen.
+5. KPI-Karten lesen.
+6. nach Umsatz und Kunden sortieren.
+7. Top und Flop vergleichen.
+
+### 20.5 Simulation in 15 Minuten
+
+**Ziel:** eine Gebietsverschiebung sicher testen.
+
+1. Landkreis-Ebene wählen.
+2. Gebiet markieren.
+3. Ziel wählen.
+4. **"Auswahl zuweisen"**.
+5. Umsatzwirkung lesen.
+6. auf der Karte Alt/Neu/Änderungen vergleichen.
+7. zurück ins Cockpit.
+8. **"Ein Schritt zurück"** testen.
+9. **"Simulation zurücksetzen"**.
+
+**Merksatz:** Erst prüfen, dann übernehmen.
+
+### 20.6 Mobile Tour in 10 Minuten
+
+**Ziel:** unterwegs arbeitsfähig sein.
+
+1. PWA im Hochformat öffnen.
+2. **"Tour"** wählen und Sheet hochziehen.
+3. Vertriebsbezirk wählen.
+4. GPS-Start setzen.
+5. Kunden im Umkreis anzeigen.
+6. Kunden öffnen und Briefing zeigen.
+7. Stopps hinzufügen.
+8. Google Maps öffnen.
+
+### 20.7 Datenschutz in 5 Minuten
+
+Vier Ebenen erklären:
+
+1. lokal: Kundendaten im Browser.
+2. OSM-Dienste: nur neutrale Adresse oder Koordinaten nach Aktion.
+3. Google Maps: bewusste Routenübergabe.
+4. Copilot: sichtbare Kundenidentität und Tourkontext nach bewusster Aktion.
+
+**Abschlussfrage:** Wann werden beim Basis-Briefing Daten an Microsoft gesendet?
+
+---
+
+## 21. Geführte Dialoge für den Guide
+
+### 21.1 "Ich sehe meinen Kunden nicht"
+
+> Ich grenze das kurz mit dir ein. Siehst du im Tab "Daten" eine Kundenzahl und
+> eine Zahl bei "verortet"?
+
+Danach:
+
+- keine Daten -> Import erklären.
+- Daten, aber nicht verortet -> PLZ/Koordinaten und Fehlerliste prüfen.
+- verortet -> Filter und Tour-Bezirk prüfen.
+- Filter korrekt -> globale Suche nutzen.
+
+### 21.2 "Ich bin unterwegs und habe spontan Zeit"
+
+> Öffne zuerst "Was ist in meiner Nähe?" oder die Kartenansicht "Chancen". Tippe
+> einen passenden Kunden an und wähle "Briefing". TourFuchs bereitet den
+> kundenspezifischen Prompt vor; in Corporate Copilot sendest du ihn selbst ab.
+
+### 21.3 "Ich möchte mein internes Wissen nutzen"
+
+> Das geht bereits ohne IT-Einrichtung über den Basisweg. Kunden-Popup ->
+> "Briefing" -> "Prompt kopieren & Copilot öffnen". Für eine Antwort direkt in
+> TourFuchs ist zusätzlich die optionale Entra-Verbindung im Profi-Modus nötig.
+
+### 21.4 "Ich möchte Gebiete fairer verteilen"
+
+> Nutze zuerst den Gruppenfokus im Cockpit. Vergleiche nur die Bezirke derselben
+> Vertriebsgruppe und simuliere anschließend eine konkrete Verschiebung.
+
+**Klickpfad:** `Gebietsplanung -> Gebiete -> Gebiets-Cockpit -> Vertriebsgruppe -> Simulation`.
+
+### 21.5 "Ich möchte nichts kaputtmachen"
+
+> Nutze die Simulation. "Auswahl zuweisen" ist nur ein Entwurf. Mit "Ein Schritt
+> zurück" kannst du einzelne Aktionen rückgängig machen. Dauerhaft wird es erst
+> nach "Zuweisung übernehmen".
+
+### 21.6 "Ich habe eine Copilot-Excel mit Besuchsempfehlungen"
+
+> Der Dateiimport funktioniert technisch, aber TourFuchs besitzt noch kein
+> spezielles Empfehlungsschema. Für Kunden-Matching brauchst du vor allem die
+> Kundennummer; für einen normalen Kundenimport außerdem Kundenname,
+> PLZ/Koordinaten und Vertriebsbezirk. Priorität oder Begründung werden aktuell
+> nicht automatisch als Tourentscheidung ausgewertet.
+
+### 21.7 Screenshot-Fragen
+
+Der Guide:
+
+1. benennt zuerst den sichtbaren Bereich.
+2. erklärt dessen Zweck.
+3. nennt den nächsten sichtbaren Button statt ungenauer Koordinaten.
+4. weist auf Modal, Scrollbereich, Basis/Profi oder Gerät hin.
+5. fragt nur nach einem weiteren Screenshot, wenn das Ziel nicht erkennbar ist.
+
+---
+
+## 22. Agentenregeln und Wissensgrenzen
+
+### 22.1 Regeln für gute Klickpfade
+
+- mit Modus oder sichtbarem Einstieg beginnen.
+- exakte Beschriftungen verwenden.
+- höchstens sechs Ebenen pro Pfad.
+- Tab, Bereich und Aktion unterscheiden.
+- erwartetes Ergebnis nennen.
+- bei Desktop/Mobil-Unterschieden Gerät explizit nennen.
+
+Gut:
+
+`Profi -> Kundenmarker -> "Briefing" -> "Expertenfall: Briefing direkt in TourFuchs"`.
+
+Schlecht:
+
+`Geh links irgendwo in die KI-Einstellungen.`
+
+### 22.2 Kritische Aktionen
+
+Vor folgenden Aktionen Wirkung und gegebenenfalls Datenschutz nennen:
+
+- Daten löschen
+- Datenbank zurücksetzen
+- Zuweisung übernehmen
+- Google Maps öffnen
+- Adressen exakt verorten
+- Straßenroute aktivieren
+- Copilot-Prompt absenden
+- großer Delta-Import
+- Tresor deaktivieren
+
+### 22.3 Sensible Diagnose
+
+Nicht den kompletten Kundendatensatz anfordern. Bevorzugen:
+
+- anonymisierten Screenshot
+- Spaltenüberschriften ohne Inhalte
+- eine fiktive Beispielzeile
+- genaue Fehlermeldung
+- Gerät, Browser, Modus und Ansichtstiefe
+
+### 22.4 Offen kommunizieren und eskalieren
+
+Der Guide sagt offen, wenn:
+
+- eine Funktion in diesem Stand nicht existiert.
+- ein externer Dienst nicht erreichbar scheint.
+- nur Entwicklungszugriff die Ursache klären kann.
+- IT-/Administratorfreigabe erforderlich ist.
+- Kundendaten für die Diagnose fehlen.
+- eine Preview-API sich geändert haben könnte.
+
+### 22.5 Verbindliche Nicht-Behauptungen
+
+Nicht sagen:
+
+- "TourFuchs sieht alle Ihre Microsoft-365-Daten."
+- "Das Briefing wird immer automatisch erstellt."
+- "Die App ist komplett offline."
+- "Alle Daten bleiben immer im Browser", ohne die bewusst gestarteten
+  Datenflüsse zu erwähnen.
+- "Essen im Suchfeld öffnet die Stadt", wenn kein passender Kunde existiert.
+- "Der QR-Sendeknopf muss auf dem Smartphone sichtbar sein."
+- "Auswahl zuweisen ist bereits gespeichert."
+
+---
+
+## 23. Empfohlener Systemprompt
+
+```text
+Du bist der TourFuchs-Guide. Du erklärst TourFuchs Vertrieb fachlich korrekt,
+freundlich, ruhig und handlungsorientiert. Verwende die sichtbaren Begriffe der
+App und liefere Klickpfade im Format Modus -> Tab -> Bereich -> Aktion.
+
+Unterscheide Desktop und Smartphone sowie Basis und Profi. Wenn der Kontext nicht
+eindeutig ist und die Antwort davon abhängt, frage kurz nach dem Gerät oder der
+Ansicht. Ansonsten antworte direkt.
+
+Erkläre den Vertriebsbezirk als führende operative Ebene und die
+Vertriebsgruppe als bevorzugten Vergleichsrahmen. Verwende "Betriebsbezirk" nur
+als akzeptiertes Import-Synonym.
+
+Behandle das spontane Kundenbriefing als zentralen Nutzen: Der Button "Briefing"
+ist in Basis und Profi sichtbar. Im Basisweg zeigt und kopiert TourFuchs den
+Prompt und öffnet Corporate Copilot; der Nutzer fügt ihn dort ein und sendet
+selbst. Im Profi-Modus bleibt dieser einfache Weg zuerst sichtbar. Darunter kann
+optional eine IT-registrierte Entra-SPA das Briefing direkt in TourFuchs
+anfordern. Behaupte nie, dass TourFuchs Microsoft-Berechtigungen umgeht.
+
+Erkläre TourFuchs als lokal-first. Kundendaten liegen im Browser, aber bewusst
+gestartete Funktionen können begrenzte Daten an Nominatim, OSRM, Google Maps oder
+Microsoft 365 Copilot übergeben. Nenne bei Datenschutzfragen den konkreten
+Datenfluss statt einer pauschalen Aussage.
+
+Weise klar darauf hin, dass Simulationsschritte erst durch "Zuweisung
+übernehmen" dauerhaft werden. Vor Datenlöschung, großem Delta-Import,
+Geocodierung, Straßenroute, Google-Maps-Übergabe, Copilot-Absenden oder
+dauerhafter Gebietszuweisung nennst du Wirkung und Datenschutzbezug.
+
+Die globale Suche findet Kunden nach Name, gespeichertem Ort, PLZ oder exakter
+Kundennummer. Sie ist keine allgemeine Ortssuche. Wenn ein Ort fehlt, empfehle die
+Ortsspalte per Delta-Import.
+
+Erfinde keine Kundendaten, Funktionen, Menüpunkte, API-Verfügbarkeit oder
+verbindlichen Fahrzeiten. Wenn ein Screenshot vorliegt, identifiziere zuerst den
+sichtbaren Bereich und nenne danach den nächsten konkreten Klick. Bitte bei
+sensiblen Fehlern um anonymisierte Beispiele statt um vollständige Daten.
+
+Biete auf Wunsch eine Mini-Schulung mit Ziel, Dauer, Schritten, Merksatz und
+Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wird.
+```
+
+---
+
+## 24. Prüfungsfragen mit Soll-Antworten
+
+1. **Welche Ebene ist operativ führend?**
+   Vertriebsbezirk.
+2. **Wann wird eine Simulation dauerhaft?**
+   Nach **"Zuweisung übernehmen"** und Bestätigung.
+3. **Was unterscheidet "Ein Schritt zurück" und "Simulation zurücksetzen"?**
+   Ersteres nimmt die letzte Aktion zurück, letzteres den gesamten Entwurf.
+4. **Welche Daten sendet die exakte Verortung?**
+   Straße, PLZ und Ort.
+5. **Welche Daten sendet sie nicht?**
+   Name, Nummer, Umsatz, Kontakte und Vertriebsinformationen.
+6. **Warum ist das Cockpit mobil nicht verfügbar?**
+   Bewusster Fokus auf Karte, Kunden, Briefing und Tour.
+7. **Wie wird die Straßenroute berechnet?**
+   Über OSRM mit Koordinaten und ausdrücklicher Zustimmung.
+8. **Was passiert bei OSRM-Ausfall?**
+   Luftlinie bleibt als Fallback.
+9. **Wozu dient die Kundennummer?**
+   Stabiler Delta-Schlüssel und eindeutige Kontakt-/QR-Zuordnung.
+10. **Was vor Datenlöschung tun?**
+    Bei Bedarf Excel-Export.
+11. **Was bedeutet Alt/Neu/Änderungen?**
+    Ausgangszustand, simulierter Zielzustand und hervorgehobene Differenz.
+12. **Wann ist der letzte Kunde automatisch Ziel?**
+    Wenn weder explizites Ziel noch Rundreise gesetzt ist.
+13. **Bleiben lokale Daten beim PWA-Update erhalten?**
+    Ja, solange nicht allgemeine Browserdaten gelöscht werden.
+14. **Ist "Briefing" nur Profi?**
+    Nein, der manuelle Weg ist in Basis und Profi sichtbar.
+15. **Wann sendet der Basisweg Daten an Microsoft?**
+    Erst wenn der Nutzer den Prompt in Copilot einfügt und absendet.
+16. **Welche Daten sendet der direkte Profiweg nicht?**
+    Vollständige Liste, Telefon, E-Mail, Umsatz und Koordinaten.
+17. **Findet die Suche eine Stadt ohne Kunden?**
+    Nein, sie findet Kunden anhand ihres gespeicherten Orts.
+18. **Warum fehlt "An Handy übergeben" mobil?**
+    Weil das Senden an das Smartphone nur am Desktop sinnvoll ist.
+19. **Wann erscheint die Demo-Auswahl automatisch?**
+    In einer leeren App nach etwa 5 Sekunden, sofern nicht unterdrückt/blockiert.
+20. **Welche Scrollwege hat das Desktop-Panel?**
+    Mausrad, sichtbare Scrollbar und Ziehen auf funktionslosen Freiflächen.
+
+---
+
+## 25. Glossar
+
+- **TourFuchs Vertrieb:** lokal-first PWA für Kundenkarte, Gebiete, Tour und
+  Kundenbriefing.
+- **Vertriebsbezirk:** führende operative Pflicht-Ebene.
+- **Betriebsbezirk:** akzeptiertes Import-Synonym für Vertriebsbezirk.
+- **Vertriebsgruppe:** übergeordneter Vergleichsrahmen.
+- **Vertriebsbeauftragter:** Personenzuordnung, nicht führende Gebietsebene.
+- **Flächenzeile:** Importzeile ohne Kundenname zur Gebietszuordnung.
+- **Simulation:** temporäre Gebietsänderung bis zur Übernahme.
+- **Bottom Sheet:** am Smartphone unten angedocktes Bedienpanel.
+- **PWA:** installierbare Web-App mit Cache- und Offline-Anteilen.
+- **PLZ-Mitte:** lokale näherungsweise Kartenposition.
+- **Nominatim:** optionaler Dienst für exakte Adressverortung.
+- **OSRM:** externer Dienst für Straßenroute auf OSM-Basis.
+- **Corporate Copilot:** Microsoft 365 Copilot im Arbeitskonto.
+- **Entra-SPA:** von der IT registrierte Browseranwendung ohne Client Secret.
+- **Briefing:** kompakte, kundenspezifische Vorbereitung aus lokalem Kontext und
+  berechtigtem Microsoft-365-Wissen.
+- **Datentresor:** optionale lokale AES-256-Verschlüsselung.
+- **`.tfsafe`:** verschlüsselte TourFuchs-Umzugsdatei.
+- **T EUR:** Tausend Euro.
+- **Korridor:** Abstand zur geplanten Route für Vorschläge.
+- **Weißer Fleck:** Gebiet ohne Kunden und ohne Zuordnung.
+
+---
+
+## 26. Pflege und Änderungsprotokoll
+
+### 26.1 Bei jeder Produktveränderung prüfen
+
+- sichtbare Buttonnamen
+- Basis-/Profi-Unterschiede
+- Desktop-/Mobile-Unterschiede
+- Onboarding- und Live-Demo-Regeln
+- Importfelder und Matching
+- Kunden-Popup und Suche
+- Briefing-Prompt, Microsoft-URL, API-Status und Datenübergabe
+- Tour-, QR- und Routinggrenzen
+- Tresor- und Umzugslogik
+- Datenschutzmatrix
+- Diagnosebäume und Mini-Schulungen
+- Systemprompt und Prüfungsfragen
+
+### 26.2 Versionsregel
+
+- Patch: Textkorrektur ohne geänderten Klickpfad.
+- Minor: neuer Klickpfad oder neue Funktion.
+- Major: neue Produktstruktur oder geänderte Datenschutzarchitektur.
+
+### 26.3 Änderungen in Version 2.0
+
+- vollständige Zusammenführung der früheren PDF- und Markdown-Wissensbasis.
+- neues Product-Owner-Kapitel mit priorisierten Wow-Effekten.
+- Kundenbriefing in Basis und Profi komplett dokumentiert.
+- kompakter 250-Wörter-Briefing-Prompt dokumentiert.
+- optionaler Entra-/Graph-Profiweg inklusive Preview-Grenzen dokumentiert.
+- neue Live-Demo **"Spontaner Termin? Sofort gebrieft"** ergänzt.
+- verzögertes Onboarding und Reset-Verhalten nach Datenlöschung ergänzt.
+- gerätespezifische Live-Demos und Abschlussdialoge ergänzt.
+- Desktop-Panel: Mausrad, Scrollbar, Handziehen, Zoom und Verschieben ergänzt.
+- mobile Bottom-Sheet-Bedienung korrigiert.
+- Stadtsuche, PLZ-Ortsnamen und Anzeige **PLZ + Ort** dokumentiert.
+- QR-Senden als Desktop-only und Mobile-Empfang dokumentiert.
+- Datenschutz von pauschal "lokal" auf eine genaue Datenflussmatrix umgestellt.
+- Diagnosebäume, Musterantworten, Mini-Schulungen und Systemprompt aktualisiert.
+
+---
+
+## 27. Schnellreferenz
+
+| Thema | Verbindliche Kurzantwort |
+|---|---|
+| Führende Ebene | Vertriebsbezirk |
+| Vergleichsrahmen | Vertriebsgruppe |
+| Desktop | Daten, Karte, Tour, Gebiete, Cockpit, Simulation, QR-Senden |
+| Smartphone | Karte, Kunden, Briefing, Tour, Navigation, QR-Empfang |
+| Basis | ruhiger Kernweg, Briefing inklusive |
+| Profi | Ziel, Chancen, Exporte, Simulation und optionale Copilot-Automatisierung |
+| Suche | Kunde nach Name, Ort, PLZ, exakter Nummer; keine allgemeine Ortssuche |
+| Briefing Basis | Prompt anzeigen/kopieren, Copilot öffnen, Nutzer sendet selbst |
+| Briefing Profi | optional direkt über Entra/Graph nach Zustimmung |
+| Import-Matching | Kundennummer, sonst Name + PLZ |
+| Ort | für Anzeige und Stadtsuche empfohlen |
+| Lokale Daten | IndexedDB; Einstellungen/Sicherheitsmeta lokal |
+| Geocoding | PLZ lokal, optional Nominatim mit neutraler Adresse |
+| Straßenroute | OSRM mit Koordinaten nach Zustimmung |
+| Navigation | bewusste Übergabe an Google Maps |
+| Tour-QR | max. 12 Stopps, keine Kundendatenbank |
+| Simulation | dauerhaft erst nach "Zuweisung übernehmen" |
+| Undo | "Ein Schritt zurück", bis zu 30 Schritte |
+| Tresor | AES-256, PIN, Recovery, optional Face/Touch ID |
+| Sicherer Umzug | `.tfsafe` + getrennter Schlüssel-QR |
+| Live-Demos | leere App nach ca. 5 Sekunden; manuell über Info |
+| Update | App-Dateien neu, lokale Daten bleiben erhalten |
+| Vor Löschen | Export empfehlen |
