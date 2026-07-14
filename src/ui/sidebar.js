@@ -663,6 +663,7 @@ async function clearAllData() {
     state.territories = {};
     setCustomers([]);
     emit('tour:changed');
+    emit('dataset:cleared');
     showToast('Daten gelöscht.', 'success');
 }
 

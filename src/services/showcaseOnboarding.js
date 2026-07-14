@@ -18,6 +18,10 @@ function writeFlag(key, provided) {
     try { store(provided)?.setItem(key, '1'); } catch { /* Speicherung ist optional */ }
 }
 
+function removeFlag(key, provided) {
+    try { store(provided)?.removeItem(key); } catch { /* Speicherung ist optional */ }
+}
+
 export function seenShowcaseIds(provided) {
     try {
         const ids = JSON.parse(store(provided)?.getItem(KEYS.seen) || '[]');
@@ -40,6 +44,10 @@ export function markShowcaseDismissed(provided) {
 
 export function markShowcaseImportCompleted(provided) {
     writeFlag(KEYS.imported, provided);
+}
+
+export function clearShowcaseImportCompleted(provided) {
+    removeFlag(KEYS.imported, provided);
 }
 
 export function markShowcaseCompleted(provided) {

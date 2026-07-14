@@ -18,6 +18,7 @@ import { saveDataset } from '../services/storage.js';
 import {
     allShowcaseStoriesSeen,
     canAutoOfferShowcase,
+    clearShowcaseImportCompleted,
     isShowcaseAutoSuppressed,
     markShowcaseCompleted,
     markShowcaseDismissed,
@@ -844,6 +845,14 @@ function scheduleAutoOffer() {
     autoOfferTimer = setTimeout(tryAutoOffer, AUTO_OFFER_DELAY_MS);
 }
 
+function restartAutoOfferAfterDataClear() {
+    clearShowcaseImportCompleted();
+    if (autoOfferTimer) clearTimeout(autoOfferTimer);
+    autoOfferTimer = null;
+    autoOfferHandled = false;
+    scheduleAutoOffer();
+}
+
 export function initShowcase() {
     dialog = document.getElementById('showcase-dialog');
     if (!dialog) return;
@@ -863,4 +872,5 @@ export function initShowcase() {
 
     // Erst nach vollständig wiederhergestelltem App-Zustand fünf Sekunden warten.
     on('app:ready', scheduleAutoOffer);
+    on('dataset:cleared', restartAutoOfferAfterDataClear);
 }
