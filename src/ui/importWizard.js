@@ -16,6 +16,7 @@ import { fitToCustomers } from '../features/map.js';
 
 let dialog = null;
 let resultDialog = null;
+let ownDataDialog = null;
 let parsed = null; // { headers, rows, fileName }
 let lastErrors = [];
 let lastFileBase = 'TourFuchs';
@@ -29,6 +30,10 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
 
 export function initImportWizard() {
     dialog = document.getElementById('import-dialog');
+    ownDataDialog = document.getElementById('own-data-dialog');
+
+    document.getElementById('btn-own-data')?.addEventListener('click', () => ownDataDialog?.showModal());
+    ownDataDialog?.querySelector('.dialog-close')?.addEventListener('click', () => ownDataDialog.close());
 
     const fileInput = document.getElementById('file-input');
     const openFilePicker = () => {
@@ -36,10 +41,14 @@ export function initImportWizard() {
             showComplianceToast();
             return;
         }
+        if (ownDataDialog?.open) ownDataDialog.close();
         fileInput.click();
     };
     document.getElementById('btn-upload').addEventListener('click', openFilePicker);
     document.getElementById('btn-upload-more')?.addEventListener('click', openFilePicker);
+    document.getElementById('btn-safe-receive-ob')?.addEventListener('click', () => {
+        if (ownDataDialog?.open) ownDataDialog.close();
+    });
     fileInput.addEventListener('change', (e) => {
         if (e.target.files[0]) handleFile(e.target.files[0]);
         fileInput.value = '';
@@ -95,6 +104,7 @@ function hasComplianceOptIn() {
 }
 
 function showComplianceToast() {
+    if (state.customers.length === 0 && ownDataDialog && !ownDataDialog.open) ownDataDialog.showModal();
     showToast('Bitte bestätigen Sie zuerst, dass Sie zur Verarbeitung der Daten berechtigt sind.', 'info', 6000);
 }
 

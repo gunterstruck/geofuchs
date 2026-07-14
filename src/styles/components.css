@@ -40,56 +40,19 @@
 .ob-greeting { margin: 0 0 4px; color: var(--color-primary-dark, #0f766e); font-weight: 700; }
 .ob-hero p { margin: 0 auto; max-width: 34ch; }
 
-.ob-steps { list-style: none; margin: 18px 0 10px; padding: 0; }
-.ob-step { position: relative; display: flex; gap: 12px; padding: 0 0 16px 0; }
-/* Verbindungslinie zwischen den Schritt-Nummern */
-.ob-step:not(:last-child)::before {
-    content: '';
-    position: absolute;
-    left: 15px; top: 34px; bottom: 4px;
-    width: 2px;
-    background: var(--color-border);
-}
-.ob-num {
-    flex-shrink: 0;
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    background: var(--color-primary);
-    color: #fff;
-    font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    z-index: 1;
-}
-.ob-body { flex: 1; min-width: 0; }
-.ob-body > b { display: block; margin-bottom: 2px; }
-.ob-body p { margin: 0 0 8px; }
-.ob-body button:not(.linklike) { width: 100%; }
-
-/* Demo-first: dominanter Primär-Button */
-.ob-demo-btn {
+/* Zwei klare, gleichwertige Einstiege: Demo oder eigene Daten */
+.ob-primary-action {
     width: 100%;
     font-size: 1.05rem;
     padding: 14px 12px;
-    margin-top: 8px;
     box-shadow: 0 2px 8px rgba(13, 148, 136, 0.28);
 }
-.ob-demo-sub { text-align: center; margin: 6px 0 14px; }
+#btn-demo { margin-top: 8px; }
+.ob-action-sub { text-align: center; margin: 6px 0 8px; }
 
-/* Mobile: Brücke zum PC */
-.ob-bridge {
-    background: var(--color-surface-2);
-    border-radius: var(--radius-l);
-    padding: 12px;
-    font-size: 0.86rem;
-    line-height: 1.4;
-    margin: 4px 0 8px;
-}
-
-/* Trenner „oder eigene Kundenliste" */
-.ob-or { display: flex; align-items: center; gap: 10px; margin: 14px 0 10px; color: var(--color-text-muted); font-size: 0.8rem; }
+/* Ruhiger Trenner zwischen den beiden Einstiegen */
+.ob-or { display: flex; align-items: center; gap: 10px; margin: 10px 0; color: var(--color-text-muted); font-size: 0.8rem; }
 .ob-or::before, .ob-or::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
-.ob-upload-btn { width: 100%; }
-.ob-upload-sub { margin: 4px 0 8px; }
 .compliance-optin {
     display: flex;
     align-items: flex-start;
@@ -119,10 +82,32 @@
     color: var(--color-primary-dark);
 }
 
-/* aufklappbare Vorbereitungs-Schritte (Show, don't tell) */
-.ob-details { margin: 8px 0; }
-.ob-details > summary { cursor: pointer; font-size: 0.86rem; color: var(--color-text-muted); padding: 4px 0; }
-.ob-details[open] > summary { margin-bottom: 8px; }
+/* Zweite Ebene: erst nach „Eigene Daten laden" technische Wege zeigen */
+.own-data-dialog {
+    width: 480px;
+    max-width: min(480px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+}
+.own-data-dialog header { margin-bottom: 2px; }
+.own-data-dialog header h2 { font-size: 1.15rem; }
+.own-data-intro { margin: 0 0 6px; }
+.own-data-options { display: grid; }
+.own-data-option {
+    padding: 14px 0;
+    border-top: 1px solid var(--color-border);
+}
+.own-data-option h3 {
+    margin: 0 0 4px;
+    font-size: 1rem;
+}
+.own-data-option p { margin: 0 0 8px; line-height: 1.4; }
+.own-data-option > .primary { width: 100%; margin-top: 4px; }
+.own-data-option .linklike {
+    display: block;
+    margin: 10px auto 0;
+    text-align: center;
+}
 
 /* Textlink-artiger Button (Vorlage) */
 .linklike {
@@ -132,10 +117,16 @@
 }
 .linklike:hover:not(:disabled) { background: transparent; color: var(--color-primary); }
 
-.ob-then { text-align: center; margin: 12px 0 4px; }
-
 /* Kontext-abhängige Sichtbarkeit im Onboarding */
-@media (max-width: 768px) { .only-desktop { display: none !important; } }
+@media (max-width: 768px) {
+    .only-desktop { display: none !important; }
+    .own-data-dialog {
+        width: calc(100vw - 16px);
+        max-width: calc(100vw - 16px);
+        max-height: calc(100dvh - 16px);
+        padding: 14px;
+    }
+}
 @media (min-width: 769px) { .only-mobile { display: none !important; } }
 
 /* kurzer Aufmerksamkeits-Puls (z. B. „In meiner Nähe" nach Demo) */

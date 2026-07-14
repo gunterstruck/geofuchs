@@ -74,50 +74,15 @@
                         <div class="ob-fox">🦊</div>
                         <h2>Willkommen bei TourFuchs!</h2>
                         <p class="ob-greeting">Schön, dass du da bist.</p>
-                        <p class="muted">Deine Kundenliste auf der Deutschlandkarte – Touren planen und Vertriebsgebiete sehen. Am schnellsten geht's mit den Beispieldaten unten.</p>
+                        <p class="muted">Entdecke TourFuchs mit Beispieldaten oder starte direkt mit deinen eigenen Daten.</p>
                     </div>
 
-                    <!-- Primär: sofort erleben -->
-                    <button id="btn-demo" class="primary ob-demo-btn">✨ App in 60 Sekunden erleben</button>
-                    <p class="muted small ob-demo-sub">Lädt Beispieldaten – 100 % lokal, unverbindlich, jederzeit wieder löschbar.</p>
+                    <button id="btn-demo" class="primary ob-primary-action">✨ App in 60 Sekunden erleben</button>
+                    <p class="muted small ob-action-sub">Beispieldaten – lokal, unverbindlich und jederzeit löschbar.</p>
 
-                    <!-- Eigene Liste hochladen – auf Desktop UND Handy verfügbar
-                         (z. B. am PC vorbereitet, am Handy hochgeladen) -->
-                    <div class="ob-or"><span>oder eigene Kundenliste</span></div>
-                    <button id="btn-upload" class="ob-upload-btn">📤 Excel- oder CSV-Liste hochladen</button>
-                    <label class="compliance-optin">
-                        <input type="checkbox" data-compliance-optin>
-                        <span>Ich bin berechtigt, diese Daten zu verarbeiten und in TourFuchs lokal zu verwenden.</span>
-                    </label>
-                    <p class="muted small ob-upload-sub only-desktop">Datei auswählen oder einfach auf die Karte ziehen.</p>
-                    <p class="muted small ob-upload-sub only-mobile">Schon am PC vorbereitet? Lade deine Liste direkt hier hoch – die Demo brauchst du dann nicht.</p>
-
-                    <!-- Verschlüsselten Umzug von einem anderen Gerät empfangen -->
-                    <div class="ob-or"><span>oder verschlüsselten Umzug</span></div>
-                    <button id="btn-safe-receive-ob" class="ob-upload-btn">📥 Daten von anderem Gerät empfangen</button>
-                    <p class="muted small ob-upload-sub">Umzugsdatei (.tfsafe) vom Desktop wählen und den Schlüssel-QR scannen.</p>
-
-                    <!-- Vorbereitungs-Schritte nur am Desktop (am Handy bereitet man selten vor) -->
-                    <details class="ob-details only-desktop">
-                        <summary>Noch keine passende Liste? So bereitest du sie vor</summary>
-                        <ol class="ob-steps">
-                            <li class="ob-step"><span class="ob-num">1</span><div class="ob-body">
-                                <b>Vorlage herunterladen</b>
-                                <p class="muted small">Beispiel-Excelliste mit allen Spalten.</p>
-                                <button id="btn-template" class="linklike">📋 Excel-Vorlage herunterladen</button>
-                            </div></li>
-                            <li class="ob-step"><span class="ob-num">2</span><div class="ob-body">
-                                <b>Mit deinen Kunden füllen</b>
-                                <p class="muted small">Pro Kunde genügen <b>Name, PLZ und Vertriebsbezirk</b>. Gruppe und weitere Ebenen sind optional.</p>
-                            </div></li>
-                            <li class="ob-step"><span class="ob-num">3</span><div class="ob-body">
-                                <b>Liste hochladen</b>
-                                <p class="muted small">Ausgefüllte Datei hochladen – oder auf die Karte ziehen.</p>
-                            </div></li>
-                        </ol>
-                    </details>
-
-                    <p class="ob-then muted small">Danach oben den Fokus wählen: <b>🚗 Außendienst</b> (Tour planen) oder <b>🗺️ Gebietsplanung</b>.</p>
+                    <div class="ob-or"><span>oder</span></div>
+                    <button id="btn-own-data" class="primary ob-primary-action">📂 Eigene Daten laden</button>
+                    <p class="muted small ob-action-sub">Excel/CSV oder verschlüsselte TourFuchs-Datei.</p>
                 </div>
 
                 <!-- Datenübersicht + Verwaltung (nur mit geladenen Daten) -->
@@ -355,6 +320,32 @@
                 <div class="mp-screen"><iframe id="mp-iframe" title="Mobile-Vorschau"></iframe></div>
             </div>
         </div>
+
+        <!-- Eigene Daten: erst hier zwischen normalem Import und sicherem Umzug wählen -->
+        <dialog id="own-data-dialog" class="own-data-dialog" aria-label="Eigene Daten laden">
+            <header>
+                <h2>📂 Eigene Daten laden</h2>
+                <button class="dialog-close" aria-label="Schließen">Schließen</button>
+            </header>
+            <p class="muted own-data-intro">Wähle die Datei, die du vorliegen hast.</p>
+            <div class="own-data-options">
+                <section class="own-data-option" aria-labelledby="own-data-list-title">
+                    <h3 id="own-data-list-title">📊 Excel- oder CSV-Liste</h3>
+                    <p class="muted small">Für deine eigene Kundenliste. TourFuchs hilft dir danach bei der Zuordnung der Spalten.</p>
+                    <label class="compliance-optin">
+                        <input type="checkbox" data-compliance-optin>
+                        <span>Ich bin berechtigt, diese Daten zu verarbeiten und in TourFuchs lokal zu verwenden.</span>
+                    </label>
+                    <button id="btn-upload" class="primary">Excel-/CSV-Datei auswählen</button>
+                    <button id="btn-template" class="linklike">📋 Noch keine Liste? Excel-Vorlage herunterladen</button>
+                </section>
+                <section class="own-data-option" aria-labelledby="own-data-safe-title">
+                    <h3 id="own-data-safe-title">🔐 Verschlüsselte TourFuchs-Datei</h3>
+                    <p class="muted small">Für eine <b>.tfsafe</b>-Datei von einem anderen Gerät. Danach scannst du den getrennten Schlüssel-QR.</p>
+                    <button id="btn-safe-receive-ob" class="primary">Verschlüsselte Datei öffnen</button>
+                </section>
+            </div>
+        </dialog>
 
         <!-- Import-Dialog: Spalten-Zuordnung -->
         <dialog id="import-dialog">
