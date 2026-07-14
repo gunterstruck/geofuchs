@@ -4,13 +4,13 @@ import { resolve } from 'node:path';
 import {
     allShowcaseStoriesSeen,
     canAutoOfferShowcase,
-    clearShowcaseImportCompleted,
     isShowcaseAutoSuppressed,
     markShowcaseCompleted,
     markShowcaseDismissed,
     markShowcaseImportCompleted,
     markShowcaseStorySeen,
     nextUnseenShowcaseStory,
+    resetShowcaseAfterDataClear,
     seenShowcaseIds
 } from '../src/services/showcaseOnboarding.js';
 
@@ -55,16 +55,22 @@ describe('Showcase-Onboarding', () => {
         expect(isShowcaseAutoSuppressed()).toBe(true);
     });
 
-    it('hebt nach bewusstem Datenlöschen nur die Import-Sperre wieder auf', () => {
+    it('setzt nach bewusstem Datenlöschen Import und Demo-Fortschritt zurück', () => {
         markShowcaseImportCompleted();
+        markShowcaseCompleted();
+        markShowcaseStorySeen('eins');
         expect(isShowcaseAutoSuppressed()).toBe(true);
-        clearShowcaseImportCompleted();
+        resetShowcaseAfterDataClear();
         expect(isShowcaseAutoSuppressed()).toBe(false);
+        expect(seenShowcaseIds()).toEqual([]);
 
         markShowcaseDismissed();
         markShowcaseImportCompleted();
-        clearShowcaseImportCompleted();
+        markShowcaseCompleted();
+        markShowcaseStorySeen('zwei');
+        resetShowcaseAfterDataClear();
         expect(isShowcaseAutoSuppressed()).toBe(true);
+        expect(seenShowcaseIds()).toEqual([]);
     });
 
     it('öffnet automatisch nur in einer freien, leeren App', () => {
@@ -93,7 +99,7 @@ describe('Showcase-Onboarding', () => {
         expect(showcase).toContain("on('app:ready', scheduleAutoOffer)");
         expect(showcase).toContain("on('dataset:cleared', restartAutoOfferAfterDataClear)");
         expect(showcase).toContain('if (!hasCustomers)');
-        expect(showcase).toContain('clearShowcaseImportCompleted()');
+        expect(showcase).toContain('resetShowcaseAfterDataClear()');
         expect(showcase).toContain('showStoryCompletion(story)');
         expect(importWizard).toContain('markShowcaseImportCompleted()');
         expect(main).toContain("emit('app:ready')");

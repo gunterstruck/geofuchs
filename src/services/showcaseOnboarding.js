@@ -46,8 +46,10 @@ export function markShowcaseImportCompleted(provided) {
     writeFlag(KEYS.imported, provided);
 }
 
-export function clearShowcaseImportCompleted(provided) {
+export function resetShowcaseAfterDataClear(provided) {
     removeFlag(KEYS.imported, provided);
+    removeFlag(KEYS.completed, provided);
+    removeFlag(KEYS.seen, provided);
 }
 
 export function markShowcaseCompleted(provided) {

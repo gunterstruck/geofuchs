@@ -18,13 +18,13 @@ import { saveDataset } from '../services/storage.js';
 import {
     allShowcaseStoriesSeen,
     canAutoOfferShowcase,
-    clearShowcaseImportCompleted,
     isShowcaseAutoSuppressed,
     markShowcaseCompleted,
     markShowcaseDismissed,
     markShowcaseImportCompleted,
     markShowcaseStorySeen,
     nextUnseenShowcaseStory,
+    resetShowcaseAfterDataClear,
     seenShowcaseIds
 } from '../services/showcaseOnboarding.js';
 import { distanceKm } from '../services/geocode.js';
@@ -799,19 +799,19 @@ function tryAutoOffer() {
     autoOfferTimer = null;
     if (autoOfferHandled) return;
 
+    const hasCustomers = state.customers.length > 0;
+    if (!hasCustomers) {
+        resetShowcaseAfterDataClear();
+    } else if (state.fileName && state.fileName !== 'Demo-Daten') {
+        markShowcaseImportCompleted();
+    }
+
     const stories = currentVisibleStories();
     const seen = seenShowcaseIds();
     const allStoriesSeen = allShowcaseStoriesSeen(stories, seen);
     if (allStoriesSeen) {
         markShowcaseCompleted();
         return;
-    }
-
-    const hasCustomers = state.customers.length > 0;
-    if (!hasCustomers) {
-        clearShowcaseImportCompleted();
-    } else if (state.fileName && state.fileName !== 'Demo-Daten') {
-        markShowcaseImportCompleted();
     }
 
     const lock = document.getElementById('vault-lock');
@@ -848,7 +848,7 @@ function scheduleAutoOffer() {
 }
 
 function restartAutoOfferAfterDataClear() {
-    clearShowcaseImportCompleted();
+    resetShowcaseAfterDataClear();
     if (autoOfferTimer) clearTimeout(autoOfferTimer);
     autoOfferTimer = null;
     autoOfferHandled = false;
