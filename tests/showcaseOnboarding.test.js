@@ -88,6 +88,20 @@ describe('Showcase-Onboarding', () => {
         }
     });
 
+    it('zeigt auf Desktop zuerst die Begrüßung und startet danach den Fünf-Sekunden-Timer', () => {
+        const stateSource = readFileSync(resolve(process.cwd(), 'src/core/state.js'), 'utf8');
+        const mainSource = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8');
+        const showcaseSource = readFileSync(resolve(process.cwd(), 'src/ui/showcase.js'), 'utf8');
+        const welcomeIndex = mainSource.indexOf('autoRevealIfEmpty();');
+        const appReadyIndex = mainSource.indexOf("emit('app:ready');");
+
+        expect(stateSource).toContain('sidebarOpen: window.innerWidth > 900');
+        expect(welcomeIndex).toBeGreaterThan(-1);
+        expect(appReadyIndex).toBeGreaterThan(welcomeIndex);
+        expect(showcaseSource).toContain('const AUTO_OFFER_DELAY_MS = 5000;');
+        expect(showcaseSource).toContain("on('app:ready', scheduleAutoOffer);");
+    });
+
     it('verdrahtet Fünf-Sekunden-Start, Importabschluss und mobiles Vollformat', () => {
         const showcase = readFileSync(resolve(process.cwd(), 'src/ui/showcase.js'), 'utf8');
         const importWizard = readFileSync(resolve(process.cwd(), 'src/ui/importWizard.js'), 'utf8');
