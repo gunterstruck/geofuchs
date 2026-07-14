@@ -118,6 +118,8 @@ describe('Showcase-Onboarding', () => {
         expect(importWizard).toContain('markShowcaseImportCompleted()');
         expect(main).toContain("emit('app:ready')");
         expect(sidebar).toContain("emit('dataset:cleared')");
+        expect(css).toContain('width: 340px');
+        expect(css).toContain('box-shadow: 0 18px 42px');
         expect(css).toContain('#showcase-dialog[open]');
         expect(css).toContain('grid-template-rows: auto minmax(0, 1fr) auto');
     });
