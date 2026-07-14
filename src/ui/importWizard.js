@@ -9,6 +9,7 @@ import { geocodeByPlz } from '../services/geocode.js';
 import { state, setCustomers, mergeCustomersDelta, emit, datasetSnapshot, setTerritory } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { saveDataset } from '../services/storage.js';
+import { markShowcaseImportCompleted } from '../services/showcaseOnboarding.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { showToast } from './toast.js';
 import { fitToCustomers } from '../features/map.js';
@@ -214,6 +215,7 @@ async function confirmImport() {
         emit('customers:changed');
     }
     await saveDataset(datasetSnapshot());
+    markShowcaseImportCompleted();
 
     lastErrors = errors;
     showImportResult({ customerCount: customers.length, contactCount: contactRows.length, areaCount, skipped, errors });

@@ -12,9 +12,20 @@
  */
 
 import { STORIES, visibleStories, visibleStorySteps, prepareShowcaseTour, selectShowcaseTour } from '../features/stories.js';
-import { state, emit, markDirty, datasetSnapshot } from '../core/state.js';
+import { state, emit, markDirty, datasetSnapshot, on } from '../core/state.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { saveDataset } from '../services/storage.js';
+import {
+    allShowcaseStoriesSeen,
+    canAutoOfferShowcase,
+    isShowcaseAutoSuppressed,
+    markShowcaseCompleted,
+    markShowcaseDismissed,
+    markShowcaseImportCompleted,
+    markShowcaseStorySeen,
+    nextUnseenShowcaseStory,
+    seenShowcaseIds
+} from '../services/showcaseOnboarding.js';
 import { distanceKm } from '../services/geocode.js';
 import { openSetupDialog, showRecoveryCodeForDemo } from './lockVault.js';
 import { flyToCustomer, fitToCustomers, fitTourRoute, focusMapArea, closeMapPopups } from '../features/map.js';
@@ -25,8 +36,9 @@ const ROUTING_CONSENT_KEY = 'gf_routing_consent';
 
 const isMobileView = () => window.matchMedia('(max-width: 768px)').matches;
 
-const SEEN_KEY = 'tf_showcase_seen';
-const DISMISS_KEY = 'tf_showcase_dismissed';
+const AUTO_OFFER_DELAY_MS = 5000;
+const AUTO_RETRY_DELAY_MS = 1000;
+const AUTO_RETRY_LIMIT = 30;
 const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 let cursorEl = null;
@@ -44,21 +56,11 @@ let priorConsent = undefined; // Routing-Zustimmung vor der Demo (zum Zurückset
 let demoVaultCreated = false; // hat DIESE Demo den Tresor angelegt? (nur dann abbauen)
 let priorDepth = null;        // Ansichtstiefe vor der Demo (zum Zurücksetzen)
 let showcaseTourPlan = null;  // reproduzierbare Start-/Stoppwahl der aktuellen Demo
+let autoOfferHandled = false;
+let autoOfferTimer = null;
+let autoRetryCount = 0;
 
 class AbortError extends Error {}
-
-// ---- Persistenz ----
-function seenIds() {
-    try { return JSON.parse(localStorage.getItem(SEEN_KEY) || '[]'); } catch { return []; }
-}
-function markSeen(id) {
-    const set = new Set(seenIds());
-    set.add(id);
-    try { localStorage.setItem(SEEN_KEY, JSON.stringify([...set])); } catch { /* egal */ }
-}
-function isDismissed() {
-    try { return localStorage.getItem(DISMISS_KEY) === '1'; } catch { return false; }
-}
 
 // ---- DOM der Show ----
 function ensureDom() {
@@ -632,6 +634,8 @@ async function play(story) {
     if (running) return;
     running = true;
     aborted = false;
+    let completed = false;
+    let failure = null;
     ensureDom();
     showcaseTourPlan = null;
     captureSheetForDemo();
@@ -655,25 +659,106 @@ async function play(story) {
             setProgress(i, steps.length);
             await runStep(steps[i]);
         }
-        markSeen(story.id);
+        markShowcaseStorySeen(story.id);
+        completed = true;
     } catch (err) {
-        if (!(err instanceof AbortError)) console.warn('Showcase-Story abgebrochen:', err);
+        if (!(err instanceof AbortError)) {
+            failure = err;
+            console.warn('Showcase-Story abgebrochen:', err);
+        }
     } finally {
         cleanup(story);
         running = false;
     }
+    if (completed) showStoryCompletion(story);
+    else if (failure) showStoryFailure(story);
+}
+
+function currentVisibleStories() {
+    const isDesktop = window.matchMedia('(min-width: 769px)').matches;
+    return visibleStories({ isDesktop });
+}
+
+function showShowcaseDialog() {
+    if (!dialog.open) dialog.showModal();
+}
+
+function startStory(story) {
+    if (!story || running) return;
+    autoOfferHandled = true;
+    if (dialog.open) dialog.close();
+    void play(story);
+}
+
+function wireOutcomeActions({ next = null, retry = null } = {}) {
+    dialog.querySelector('.sc-finish')?.addEventListener('click', () => dialog.close());
+    dialog.querySelector('.sc-overview')?.addEventListener('click', buildPanel);
+    dialog.querySelector('.sc-next')?.addEventListener('click', () => startStory(next));
+    dialog.querySelector('.sc-retry')?.addEventListener('click', () => startStory(retry));
+}
+
+function showStoryCompletion(story) {
+    const stories = currentVisibleStories();
+    const seen = seenShowcaseIds();
+    const next = nextUnseenShowcaseStory(stories, seen, story.id);
+    const allDone = allShowcaseStoriesSeen(stories, seen);
+    if (allDone) markShowcaseCompleted();
+
+    dialog.dataset.view = 'outcome';
+    dialog.innerHTML = `
+        <div class="sc-outcome-head">
+            <div class="sc-outcome-icon" aria-hidden="true">✓</div>
+            <span>Live-Demo abgeschlossen</span>
+            <h2>${allDone ? 'Alle Demos angesehen' : story.title}</h2>
+        </div>
+        <div class="sc-outcome-body">
+            <p>${allDone
+                ? 'Du kennst jetzt die wichtigsten TourFuchs-Abläufe. Starte direkt mit deinen Kunden oder öffne die Demos später erneut über die Info.'
+                : `Du hast gesehen: ${story.blurb}`}</p>
+            ${next ? `<div class="sc-next-story">
+                <span>Als Nächstes</span>
+                <div><b>${next.icon} ${next.title}</b><small>${next.blurb}</small></div>
+            </div>` : ''}
+        </div>
+        <div class="sc-outcome-actions">
+            ${allDone
+                ? '<button type="button" class="sc-overview">Demo-Auswahl</button><button type="button" class="primary sc-finish">TourFuchs verwenden</button>'
+                : '<button type="button" class="sc-finish">Für jetzt beenden</button><button type="button" class="sc-overview">Demo-Auswahl</button><button type="button" class="primary sc-next">Nächste Demo starten</button>'}
+        </div>`;
+    wireOutcomeActions({ next });
+    showShowcaseDialog();
+}
+
+function showStoryFailure(story) {
+    dialog.dataset.view = 'outcome';
+    dialog.innerHTML = `
+        <div class="sc-outcome-head sc-outcome-failed">
+            <div class="sc-outcome-icon" aria-hidden="true">!</div>
+            <span>Live-Demo unterbrochen</span>
+            <h2>${story.title}</h2>
+        </div>
+        <div class="sc-outcome-body">
+            <p>Diese Vorführung konnte nicht vollständig beendet werden. TourFuchs hat den vorherigen Zustand wiederhergestellt.</p>
+        </div>
+        <div class="sc-outcome-actions">
+            <button type="button" class="sc-finish">Beenden</button>
+            <button type="button" class="sc-overview">Demo-Auswahl</button>
+            <button type="button" class="primary sc-retry">Erneut versuchen</button>
+        </div>`;
+    wireOutcomeActions({ retry: story });
+    showShowcaseDialog();
 }
 
 // ---- Intro-Panel ----
 function buildPanel() {
-    const seen = new Set(seenIds());
-    const isDesktop = window.matchMedia('(min-width: 769px)').matches;
-    const tiles = visibleStories({ isDesktop }).map((s) => `
+    const seen = new Set(seenShowcaseIds());
+    const tiles = currentVisibleStories().map((s) => `
         <button type="button" class="sc-tile" data-story="${s.id}">
             <span class="sc-tile-icon">${s.icon}</span>
             <span class="sc-tile-body"><b>${s.title}</b><span>${s.blurb}</span></span>
             ${seen.has(s.id) ? '<span class="sc-tile-seen" title="schon gesehen">✓</span>' : '<span class="sc-tile-play">▶</span>'}
         </button>`).join('');
+    dialog.dataset.view = 'intro';
     dialog.innerHTML = `
         <div class="sc-panel-head">
             <div class="sc-panel-fox">🦊</div>
@@ -689,20 +774,74 @@ function buildPanel() {
         tile.addEventListener('click', () => {
             const story = STORIES.find((s) => s.id === tile.dataset.story);
             persistDismissChoice();
-            dialog.close();
-            if (story) play(story);
+            startStory(story);
         });
     });
     dialog.querySelector('.sc-later').addEventListener('click', () => { persistDismissChoice(); dialog.close(); });
 }
 function persistDismissChoice() {
-    const cb = document.getElementById('sc-dismiss');
-    if (cb?.checked) { try { localStorage.setItem(DISMISS_KEY, '1'); } catch { /* egal */ } }
+    const cb = dialog.querySelector('#sc-dismiss');
+    if (cb?.checked) markShowcaseDismissed();
 }
 function openPanel() {
     if (!dialog) return;
+    autoOfferHandled = true;
     buildPanel();
-    dialog.showModal();
+    showShowcaseDialog();
+}
+
+function blockingDialogOpen() {
+    return [...document.querySelectorAll('dialog[open]')].some((item) => item !== dialog);
+}
+
+function tryAutoOffer() {
+    autoOfferTimer = null;
+    if (autoOfferHandled) return;
+
+    const stories = currentVisibleStories();
+    const seen = seenShowcaseIds();
+    const allStoriesSeen = allShowcaseStoriesSeen(stories, seen);
+    if (allStoriesSeen) {
+        markShowcaseCompleted();
+        return;
+    }
+
+    const hasCustomers = state.customers.length > 0;
+    if (hasCustomers && state.fileName && state.fileName !== 'Demo-Daten') {
+        markShowcaseImportCompleted();
+    }
+
+    const lock = document.getElementById('vault-lock');
+    const locked = Boolean(lock && !lock.hidden);
+    const blocked = blockingDialogOpen();
+    const suppressed = isShowcaseAutoSuppressed();
+    const eligible = canAutoOfferShowcase({
+        suppressed,
+        hasCustomers,
+        allStoriesSeen,
+        running,
+        dialogOpen: Boolean(dialog.open),
+        locked,
+        blockingDialogOpen: blocked
+    });
+
+    if (eligible) {
+        openPanel();
+        return;
+    }
+
+    const transientBlock = !suppressed && !hasCustomers && !allStoriesSeen
+        && (running || dialog.open || locked || blocked);
+    if (transientBlock && autoRetryCount < AUTO_RETRY_LIMIT) {
+        autoRetryCount++;
+        autoOfferTimer = setTimeout(tryAutoOffer, AUTO_RETRY_DELAY_MS);
+    }
+}
+
+function scheduleAutoOffer() {
+    if (autoOfferHandled || autoOfferTimer) return;
+    autoRetryCount = 0;
+    autoOfferTimer = setTimeout(tryAutoOffer, AUTO_OFFER_DELAY_MS);
 }
 
 export function initShowcase() {
@@ -715,16 +854,13 @@ export function initShowcase() {
         openPanel();
     });
 
+    dialog.addEventListener('close', () => {
+        if (dialog.dataset.view === 'intro') persistDismissChoice();
+    });
+
     // ESC bricht eine laufende Vorführung ab (statt nur den Dialog zu schließen)
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && running) { e.preventDefault(); abortNow(); } }, true);
 
-    // Erststart am Desktop: Angebot einmal automatisch einblenden
-    const isDesktop = window.matchMedia('(min-width: 769px)').matches;
-    if (isDesktop && !isDismissed()) {
-        setTimeout(() => {
-            const lock = document.getElementById('vault-lock');
-            const locked = lock && !lock.hidden;
-            if (!running && !dialog.open && !locked) openPanel();
-        }, 1600);
-    }
+    // Erst nach vollständig wiederhergestelltem App-Zustand fünf Sekunden warten.
+    on('app:ready', scheduleAutoOffer);
 }

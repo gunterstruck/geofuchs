@@ -156,6 +156,7 @@ async function init() {
         // (host/…#t=…), direkt den Empfangs-Dialog zeigen.
         handleSharedTourFromUrl();
         autoRevealIfEmpty();
+        emit('app:ready');
     }
 
     // Migration/Konsistenz: Ein verwaister Tresor (aktiv, aber gar kein
