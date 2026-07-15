@@ -220,7 +220,7 @@ TourFuchs:
 | Tour per QR an Smartphone senden | Ja | Nein, bewusst ausgeblendet |
 | Tour vom Desktop scannen | Ja | Ja, mobil besonders sinnvoll |
 | Gebietsplanung/Cockpit/Simulation | Ja | Nein, bewusst Desktop-fokussiert |
-| Mobile-Vorschau | Ja | Nein |
+| Mobile Außendienst & Tour als Vorschau | Ja, mit einmaligem ruhigem Hinweis | Nein |
 | Verschlüsselte Daten empfangen | Ja | Ja, mobil besonders sinnvoll |
 
 ### 3.3 Basis gegen Profi
@@ -255,7 +255,7 @@ Die Topbar enthält:
 - **"Menü umschalten"** (`☰`)
 - Marke **TourFuchs Vertrieb**
 - Suchfeld **"Kunde, Ort, PLZ suchen..."**
-- **"Mobile-Vorschau"** (`Smartphone-Symbol`, nur Desktop)
+- **"Mobile Außendienst & Tour"** (`Smartphone-Symbol`, nur Desktop)
 - dynamisches Tresor-Symbol: einrichten, sperren oder Status anzeigen
 - **"Info & Impressum"** (`i`)
 
@@ -1115,9 +1115,23 @@ dem Popup.
 Die App ist für Smartphone-Hochformat optimiert. Im Querformat kann ein
 Drehhinweis erscheinen.
 
-Am Desktop öffnet das Topbar-Symbol **"Mobile-Vorschau"** eine gerahmte
-Smartphone-Ansicht für Schulung und Tests. Diese Vorschau hat einen eigenen
-Browserkontext und kann deshalb einen anderen lokalen Datenstand zeigen.
+Am Desktop öffnet das Topbar-Symbol **"Mobile Außendienst & Tour"** eine
+gerahmte Smartphone-Ansicht. Sie ist kein reiner Tourenplaner: Kundenkarte,
+Kundensuche, Kunden-Popup, Briefing, Tour und Navigation bleiben erreichbar.
+Für den schnellen Nutzennachweis startet die Vorschau im geöffneten Tour-Bereich.
+
+Sobald erstmals Kundendaten vorhanden sind und kein Dialog oder anderer
+Onboarding-Schritt die Aufmerksamkeit beansprucht, inszeniert TourFuchs diesen
+Einstieg genau einmal ruhig: Das Smartphone-Symbol wird kurz hervorgehoben, die
+fertig geladene Vorschau öffnet sich für etwa 2,6 Sekunden und schließt wieder.
+Danach zeigt ein kurzer Hinweis, wo sie erneut geöffnet werden kann. Auf einem
+leeren Erststart bleibt zunächst die Begrüßung im Vordergrund. Eine manuelle
+Nutzung unterdrückt den späteren Auto-Hinweis; bei reduzierter Bewegung wird nur
+der statische Fundorthinweis gezeigt.
+
+Die Vorschau läuft im selben TourFuchs-Ursprung und nutzt deshalb denselben lokal
+gespeicherten Datenbestand. Innerhalb des eingebetteten Smartphones wird das
+automatische Live-Demo-Angebot unterdrückt, damit kein Modal im Modal erscheint.
 
 ### 12.6 Mobile Live-Demos
 
@@ -1442,6 +1456,7 @@ Vor diesen Aktionen immer Wirkung nennen und bei Bedarf Export empfehlen:
 | Exakte Adressen | `Daten -> "Adressen exakt verorten"` |
 | Export | `Daten -> "Als Excel exportieren"` |
 | Kunde suchen | `Topbar -> "Kunde, Ort, PLZ suchen..." -> Kundentreffer` |
+| Mobile Ansicht prüfen | `Topbar -> Smartphone-Symbol "Mobile Außendienst & Tour"` |
 | Kundenbriefing Basis | `Kundenmarker -> "Briefing" -> "Prompt kopieren & Copilot öffnen"` |
 | Kundenbriefing Profi direkt | `Profi -> Kundenmarker -> "Briefing" -> Expertenfall -> Verbindung/Zustimmung -> "Briefing direkt erstellen"` |
 | Demo-Briefing | `Demo-Kundenmarker -> "Briefing" -> lokale Ergebnisvorschau -> "Verstanden"` |

@@ -1,16 +1,65 @@
 /* Wiederverwendbare Komponenten */
 
-/* Mobile-Vorschau (nur Desktop, zu Demonstrationszwecken) */
-@media (max-width: 900px) { #btn-mobile-preview { display: none; } }
-#btn-mobile-preview.active { background: var(--color-primary); color: #fff; border-radius: 50%; }
-.in-mobile-preview #btn-mobile-preview { display: none; }
-.mobile-preview { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; }
+/* Mobile Außendienst & Tour: am Desktop sichtbar, im eingebetteten Handy nicht. */
+.mobile-preview-entry { position: relative; flex: 0 0 auto; }
+@media (max-width: 900px) { .mobile-preview-entry { display: none; } }
+.in-mobile-preview .mobile-preview-entry { display: none; }
+#btn-mobile-preview {
+    border: 1px solid #99f6e4;
+    background: #f0fdfa;
+    color: var(--color-primary-dark, #0f766e);
+    transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+#btn-mobile-preview:hover { background: #ccfbf1; }
+#btn-mobile-preview.active { background: var(--color-primary); color: #fff; }
+#btn-mobile-preview.mobile-preview-target {
+    animation: mobile-preview-attention 1.05s ease-in-out 1;
+}
+#btn-mobile-preview.mobile-preview-press { transform: scale(0.9); background: var(--color-primary); }
+#btn-mobile-preview.mobile-preview-return { box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.2); }
+.mobile-preview-hint {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 5;
+    width: max-content;
+    max-width: 240px;
+    padding: 8px 10px;
+    border: 1px solid #99f6e4;
+    border-radius: 8px;
+    background: var(--color-surface, #fff);
+    box-shadow: var(--shadow-2);
+    color: var(--color-text);
+    pointer-events: none;
+    animation: mobile-preview-hint-enter 0.22s ease-out both;
+}
+.mobile-preview-hint[hidden] { display: none; }
+.mobile-preview-hint strong,
+.mobile-preview-hint span { display: block; letter-spacing: 0; }
+.mobile-preview-hint strong { font-size: 0.82rem; line-height: 1.25; }
+.mobile-preview-hint span { margin-top: 2px; color: var(--color-text-muted); font-size: 0.72rem; line-height: 1.3; }
+@keyframes mobile-preview-attention {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
+    50% { box-shadow: 0 0 0 5px rgba(13, 148, 136, 0.2); }
+}
+@keyframes mobile-preview-hint-enter {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.mobile-preview {
+    position: fixed;
+    inset: var(--topbar-height) 0 0;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 .mobile-preview[hidden] { display: none; }
 .mp-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.55); }
 .mp-frame {
     position: relative;
     width: 390px; max-width: 94vw;
-    height: min(844px, 92vh);
+    height: min(844px, calc(100dvh - var(--topbar-height) - 16px));
     background: #111827;
     border-radius: 30px;
     padding: 10px;
@@ -18,7 +67,10 @@
     display: flex; flex-direction: column;
 }
 .mp-bar { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 0.82rem; padding: 3px 6px 8px; }
-.mp-bar span { flex: 1; font-weight: 600; }
+.mp-title { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.mp-title strong, .mp-title small { letter-spacing: 0; }
+.mp-title strong { font-size: 0.82rem; line-height: 1.2; }
+.mp-title small { color: #cbd5e1; font-size: 0.68rem; line-height: 1.2; }
 .mp-btn { background: rgba(255, 255, 255, 0.16); color: #fff; border: none; border-radius: var(--radius-pill); padding: 4px 10px; cursor: pointer; font-size: 0.9rem; }
 .mp-close { min-height: 36px; padding-inline: 14px; font-weight: 700; }
 .mp-btn:hover { background: rgba(255, 255, 255, 0.3); }
@@ -35,7 +87,12 @@
     60% { transform: rotate(-7deg); }
     80% { transform: rotate(4deg); }
 }
-@media (prefers-reduced-motion: reduce) { .ob-fox { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+    .ob-fox,
+    #btn-mobile-preview.mobile-preview-target,
+    .mobile-preview-hint { animation: none; }
+    #btn-mobile-preview { transition: none; }
+}
 .ob-hero h2 { margin: 6px 0 2px; }
 .ob-greeting { margin: 0 0 4px; color: var(--color-primary-dark, #0f766e); font-weight: 700; }
 .ob-hero p { margin: 0 auto; max-width: 34ch; }

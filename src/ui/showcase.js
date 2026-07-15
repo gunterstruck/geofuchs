@@ -42,6 +42,7 @@ const AUTO_OFFER_DELAY_MS = 5000;
 const AUTO_RETRY_DELAY_MS = 1000;
 const AUTO_RETRY_LIMIT = 30;
 const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const insideMobilePreview = new URLSearchParams(location.search).has('mobilePreview');
 
 let cursorEl = null;
 let bubbleEl = null;
@@ -869,6 +870,7 @@ function tryAutoOffer() {
 }
 
 function scheduleAutoOffer() {
+    if (insideMobilePreview) return;
     if (autoOfferHandled || autoOfferTimer) return;
     autoRetryCount = 0;
     autoOfferTimer = setTimeout(tryAutoOffer, AUTO_OFFER_DELAY_MS);

@@ -531,6 +531,13 @@ export function showMapView() {
     persistSettings();
 }
 
+/** Mobil gezielt mit geöffnetem Tour-Sheet starten, optional ohne Persistenz. */
+export function showTourView(persist = false) {
+    activateTab('tour');
+    if (isMobileUi()) setSheetHeight(Math.round(window.innerHeight * (2 / 3)), persist);
+    if (persist) persistSettings();
+}
+
 function hasTourRouteForMap() {
     return state.ui.mode === 'aussendienst'
         && !!state.tour.start

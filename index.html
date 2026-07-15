@@ -21,7 +21,13 @@
                 <input id="global-search" type="search" placeholder="Kunde, Ort, PLZ suchen…" autocomplete="off">
                 <div id="search-results" class="search-results"></div>
             </div>
-            <button id="btn-mobile-preview" class="icon-button" aria-label="Mobile-Vorschau" title="Mobile-Ansicht zeigen (Demo)">📱</button>
+            <div class="mobile-preview-entry">
+                <button id="btn-mobile-preview" class="icon-button" aria-label="Mobile Außendienst und Tour ansehen" title="Mobile Außendienst &amp; Tour ansehen">📱</button>
+                <div id="mobile-preview-hint" class="mobile-preview-hint" role="status" aria-live="polite" hidden>
+                    <strong>Mobil weiterarbeiten</strong>
+                    <span>Kunden, Briefing &amp; Tour</span>
+                </div>
+            </div>
             <button id="btn-vault-toggle" class="icon-button" hidden aria-label="Tresor sperren" title="Tresor jetzt sperren">🔓</button>
             <button id="btn-info" class="icon-button" aria-label="Info & Impressum">ⓘ</button>
         </header>
@@ -313,8 +319,11 @@
             <div class="mp-backdrop" data-mp-close></div>
             <div class="mp-frame">
                 <div class="mp-bar">
-                    <span>📱 Mobile-Vorschau</span>
-                    <button id="mp-reload" class="mp-btn" title="Neu laden">↻</button>
+                    <div class="mp-title">
+                        <strong>📱 Mobile Außendienst &amp; Tour</strong>
+                        <small>Kunden, Briefing und Tour im Taschenformat</small>
+                    </div>
+                    <button id="mp-reload" class="mp-btn" title="Neu laden" aria-label="Mobile Vorschau neu laden">↻</button>
                     <button class="mp-btn mp-close" data-mp-close title="Schließen">Schließen</button>
                 </div>
                 <div class="mp-screen"><iframe id="mp-iframe" title="Mobile-Vorschau"></iframe></div>
