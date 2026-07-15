@@ -221,6 +221,16 @@
 }
 
 @media (max-width: 768px) {
+    /* Der Karten-Zoom darf auf sehr kurzen Displays keine Popup-Aktion
+       überdecken. Nach dem Schließen erscheint er automatisch wieder. */
+    #map .leaflet-control-zoom {
+        transition: opacity 0.14s ease;
+    }
+    #map.popup-visible .leaflet-control-zoom {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
     .customer-marker-wrapper {
         width: 36px !important;
         height: 36px !important;

@@ -15,6 +15,7 @@ import { getRoadRoute, peekRoadRoute } from '../services/routing.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
 import { revenueWeightedCentroids } from './labelPlacement.js';
 import { suggestNearby, suggestAlongRoute } from './tour.js';
+import { popupSafeRect, popupPanOffset, popupContentHeightLimit } from './popupViewport.js';
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
 import { openRegionEditor } from '../ui/regionEditor.js';
 import { openCustomerBriefing } from '../ui/customerBriefing.js';
@@ -33,6 +34,8 @@ let currentView = { paint: 'vb', markers: true, labels: false, markerBy: 'vb' };
 let roadRouteSeq = 0;
 let simulationPreview = null;
 let activeRegionTooltipLayer = null;
+let activePopup = null;
+let popupFitFrame = 0;
 const ROUTE_HUE_START = 0;      // rot
 const ROUTE_HUE_END = 276;      // lila
 
@@ -42,6 +45,82 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
 
 function isMobileMap() {
     return window.innerWidth <= 768;
+}
+
+function visibleElementRect(element) {
+    if (!element) return null;
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden') return null;
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 ? rect : null;
+}
+
+function mobilePopupSafeArea() {
+    const mapRect = map?.getContainer()?.getBoundingClientRect();
+    if (!mapRect) return null;
+    return popupSafeRect(mapRect, {
+        topObstruction: visibleElementRect(document.getElementById('mobile-topnav')),
+        bottomObstruction: visibleElementRect(document.getElementById('sidebar')),
+        margin: 12
+    });
+}
+
+function currentPopupPadding() {
+    if (!isMobileMap()) {
+        return { topLeft: L.point(18, 82), bottomRight: L.point(18, 44) };
+    }
+    const mapRect = map?.getContainer()?.getBoundingClientRect();
+    const safe = mobilePopupSafeArea();
+    if (!mapRect || !safe || safe.bottom <= safe.top) {
+        return { topLeft: L.point(18, 96), bottomRight: L.point(18, 58) };
+    }
+    return {
+        topLeft: L.point(
+            Math.max(12, Math.round(safe.left - mapRect.left)),
+            Math.max(12, Math.round(safe.top - mapRect.top))
+        ),
+        bottomRight: L.point(
+            Math.max(12, Math.round(mapRect.right - safe.right)),
+            Math.max(12, Math.round(mapRect.bottom - safe.bottom))
+        )
+    };
+}
+
+function fitMobilePopup(popup, animate = true) {
+    if (!map || !popup || popup !== activePopup || !isMobileMap()) return;
+    const popupEl = popup.getElement();
+    const content = popupEl?.querySelector('.leaflet-popup-content');
+    const safe = mobilePopupSafeArea();
+    if (!popupEl || !content || !safe || safe.bottom <= safe.top) return;
+
+    // Erst die Inhaltshöhe an den aktuell freien Kartenbereich anpassen. Dadurch
+    // bleibt der komplette Popup-Rahmen sichtbar; lange Inhalte scrollen innen.
+    content.style.maxHeight = '';
+    const cssMaximum = Number.parseFloat(window.getComputedStyle(content).maxHeight);
+    const maximum = Number.isFinite(cssMaximum) ? cssMaximum : Infinity;
+    const limit = popupContentHeightLimit(
+        popupEl.getBoundingClientRect(),
+        content.getBoundingClientRect(),
+        safe,
+        maximum
+    );
+    content.style.maxHeight = `${limit}px`;
+    content.style.overflowY = 'auto';
+
+    requestAnimationFrame(() => {
+        if (popup !== activePopup || !popup.getElement()) return;
+        const nextSafe = mobilePopupSafeArea();
+        if (!nextSafe || nextSafe.bottom <= nextSafe.top) return;
+        const [x, y] = popupPanOffset(popup.getElement().getBoundingClientRect(), nextSafe);
+        if (x || y) map.panBy([x, y], { animate, duration: animate ? 0.22 : 0 });
+    });
+}
+
+function scheduleMobilePopupFit(popup, animate = true) {
+    cancelAnimationFrame(popupFitFrame);
+    popupFitFrame = requestAnimationFrame(() => {
+        popupFitFrame = requestAnimationFrame(() => fitMobilePopup(popup, animate));
+    });
 }
 
 function closeActiveRegionTooltip() {
@@ -75,6 +154,7 @@ function applyBasemap() {
 
 function popupOptions(extra = {}) {
     const mobile = isMobileMap();
+    const padding = currentPopupPadding();
     return {
         closeButton: false,
         maxWidth: mobile ? Math.min(330, window.innerWidth - 28) : 320,
@@ -83,8 +163,8 @@ function popupOptions(extra = {}) {
         // false: das Popup darf beim Karten-Schwenk aus dem Bild wandern, damit man
         // die Umgebung sehen kann (Ziehen im Modal schwenkt die Karte).
         keepInView: false,
-        autoPanPaddingTopLeft: L.point(18, mobile ? 76 : 82),
-        autoPanPaddingBottomRight: L.point(18, mobile ? 190 : 44),
+        autoPanPaddingTopLeft: padding.topLeft,
+        autoPanPaddingBottomRight: padding.bottomRight,
         ...extra
     };
 }
@@ -217,6 +297,8 @@ export function initMap(containerId) {
     map.on('popupopen', (e) => {
         const el = e.popup.getElement();
         if (!el) return;
+        activePopup = e.popup;
+        map.getContainer().classList.add('popup-visible');
         decoratePopup(el);
         makePopupPanMap(el);
         el.querySelector('[data-popup-close]')?.addEventListener('click', () => map.closePopup());
@@ -248,8 +330,21 @@ export function initMap(containerId) {
             map.closePopup();
             openRegionEditor({ level: btn.dataset.level, key: btn.dataset.key, name: btn.dataset.name, feature });
         });
+        if (isMobileMap()) {
+            const padding = currentPopupPadding();
+            e.popup.options.autoPanPaddingTopLeft = padding.topLeft;
+            e.popup.options.autoPanPaddingBottomRight = padding.bottomRight;
+            // Leaflet hat vor popupopen bereits geschwenkt. Die Toolbar wird aber
+            // erst oben eingefügt; deshalb danach mit realer Höhe nachkorrigieren.
+            scheduleMobilePopupFit(e.popup);
+        }
     });
     map.on('popupclose', (e) => {
+        if (activePopup === e.popup) {
+            activePopup = null;
+            map.getContainer().classList.remove('popup-visible');
+        }
+        cancelAnimationFrame(popupFitFrame);
         const el = e.popup.getElement();
         if (!el) return;
         el.dataset.draggablePopup = '';
@@ -271,6 +366,24 @@ export function initMap(containerId) {
         simulationPreview = preview?.active ? preview : null;
         map.closePopup();
         applyView();
+    });
+
+    const refitOpenPopup = () => {
+        if (!activePopup) return;
+        if (!isMobileMap()) {
+            const content = activePopup.getElement()?.querySelector('.leaflet-popup-content');
+            if (content) {
+                content.style.maxHeight = '';
+                content.style.overflowY = '';
+            }
+            return;
+        }
+        scheduleMobilePopupFit(activePopup, false);
+    };
+    window.addEventListener('resize', refitOpenPopup, { passive: true });
+    window.visualViewport?.addEventListener('resize', refitOpenPopup, { passive: true });
+    document.getElementById('sidebar')?.addEventListener('transitionend', (event) => {
+        if (event.propertyName === 'transform' || event.propertyName === 'height') refitOpenPopup();
     });
 
     setLevel(state.level);
