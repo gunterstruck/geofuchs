@@ -397,7 +397,7 @@ Die Vorführung:
 | **"Deine Tour in 30 Sekunden"** | Ja | Ja | ins Ruhrgebiet zoomen, Start und Kunden wählen, optimieren, Luftlinie und Straßenroute |
 | **"Aufs Handy - ohne Kabel, ohne Cloud"** | Ja | Nein | Desktop-Tour per QR ans Smartphone übergeben |
 | **"Was wäre wenn? Gebiete umbauen - ohne Risiko"** | Ja | Nein | Simulation ohne dauerhafte Änderung |
-| **"Spontaner Termin? Sofort gebrieft"** | Ja | Ja | passenden Kunden finden und Copilot-Briefing vorbereiten |
+| **"Spontaner Termin? Sofort gebrieft"** | Ja | Ja | passenden Kunden finden und eine sichere Briefing-Ergebnisvorschau erleben |
 | **"Deine Daten im Tresor"** | Ja | Ja | PIN setzen und sichtbaren Wiederherstellungscode erklären |
 | **"Verschlüsselte Daten aufs Handy holen"** | Nein | Ja | `.tfsafe`-Datei wählen und getrennten Schlüssel scannen |
 
@@ -413,8 +413,11 @@ Die Vorführung:
 ### 6.4 Besondere Regeln der Briefing-Demo
 
 Die Geschichte **"Spontaner Termin? Sofort gebrieft"** führt von den Chancen zum
-Kunden und öffnet das Kundenbriefing. Sie zeigt den direkt nutzbaren manuellen Weg.
-Das eigentliche Absenden an Corporate Copilot bleibt eine bewusste Nutzeraktion.
+Kunden und öffnet eine realistische Ergebnisvorschau. Weil die Geschichte mit
+erfundenen Kunden läuft, erzeugt TourFuchs dabei bewusst keinen externen Prompt,
+öffnet keinen Copilot und startet keine Suche. Die Demo erklärt, dass bei echten
+Kundendaten weiterhin der direkt nutzbare manuelle Weg beziehungsweise optional
+die Entra-Automatisierung bereitsteht.
 
 ### 6.5 Besondere Regeln der Tresor-Demo
 
@@ -449,6 +452,27 @@ Die Demo erzeugt 2.250 fiktive Kunden in 15 Vertriebsbezirken und drei
 Vertriebsgruppen. Ortsnamen sind lokal aus der PLZ-Tabelle ergänzt. Demo-Daten
 sind unverbindlich, lokal und jederzeit löschbar. Sie werden nicht automatisch
 in einen aktiven Tresor übernommen.
+
+Demo-Kunden sind technisch mit der Herkunft `tourfuchs-demo` markiert. Diese
+Markierung bleibt beim lokalen Speichern, beim verschlüsselten Geräteumzug und
+bei der QR-Tourübergabe erhalten. Ältere gespeicherte Demo-Datensätze werden beim
+nächsten Laden automatisch migriert.
+
+Sicherheitsregeln für Beispielkunden:
+
+- Firmen heißen eindeutig `TourFuchs Demo · ...`; zufällige reale Firmennamen
+  oder Personennamen werden nicht verwendet.
+- E-Mail-Adressen verwenden ausschließlich die reservierte Domain `example.com`.
+- Angezeigte Telefonnummern stammen aus den von der Bundesnetzagentur für
+  Medienproduktionen bereitgestellten Drama-Rufnummernblöcken.
+- Es gibt keine erfundene Straßenadresse. Die Position wird aus der lokal
+  gebündelten PLZ-Tabelle berechnet; die externe Adress-Geocodierung ist gesperrt.
+- **"Anrufen"** und **"E-Mail"** bleiben als erlernbare Aktionen sichtbar,
+  werden aber nur simuliert. Dialer und Mailprogramm öffnen sich nicht.
+- **"Briefing"** zeigt eine lokale Ergebnisvorschau. Copilot wird für
+  Beispielkunden weder geöffnet noch automatisch angesprochen.
+- Excel-, Text-, Druck- und Kalenderexporte werden mit
+  `DEMO - NICHT PRODUKTIV` gekennzeichnet.
 
 ### 7.3 Unterstützte Dateiformate
 
@@ -673,6 +697,10 @@ Das Popup zeigt je nach vorhandenen Daten:
 - **"Zur Tour"** beziehungsweise **"In Tour"**
 - **"Briefing"**
 
+Bei echten importierten Kunden öffnen **"Anrufen"** und **"E-Mail"** weiterhin
+die jeweilige Geräte-App. Bei Demo-Kunden zeigen dieselben Schaltflächen nur
+einen Hinweis; es wird keine externe Kontaktaktion gestartet.
+
 ### 8.6 Kunden-Popup in Profi
 
 Zusätzlich:
@@ -690,6 +718,10 @@ Zusätzlich:
 - **"Zur Tour"** fügt ihn den Stopps hinzu.
 - **"Heute besucht"** dokumentiert lokal einen Besuch am heutigen Datum.
 - **"Briefing"** öffnet die Vorbereitung mit Microsoft 365 Copilot.
+
+Ausnahme: Bei technisch markierten Demo-Kunden öffnet **"Briefing"** eine lokale,
+klar gekennzeichnete Ergebnisvorschau. Es wird kein Prompt erzeugt und nichts an
+Microsoft übertragen.
 
 ---
 
@@ -716,6 +748,9 @@ Kartenanwendung kennt diesen Kunden- und Tourkontext nicht.
 
 **Klickpfad:** Kundenmarker -> **"Briefing"** ->
 **"Prompt kopieren & Copilot öffnen"**.
+
+Dieser Klickpfad gilt für echte importierte Kundendaten. Bei Demo-Kunden endet
+der Klickpfad sicher in der lokalen Briefing-Vorschau mit **"Verstanden"**.
 
 Ablauf:
 
@@ -1335,11 +1370,12 @@ Dienste übergeben.
 |---|---|---|---|
 | PLZ-Verortung | automatisch beim Import | keine externe Übertragung | lokale PLZ-Tabelle |
 | Kartenanzeige | Karte betrachten | technische Zugriffsdaten, Kachelkoordinaten | OSM/CARTO/Esri-Kacheldienste |
-| Adressen exakt verorten | bewusster Klick | Straße, PLZ, Ort | Nominatim/OpenStreetMap |
+| Adressen exakt verorten | bewusster Klick bei Echtdaten | Straße, PLZ, Ort | Nominatim/OpenStreetMap |
 | Straßenroute/Korridor | nach Zustimmung | Koordinaten der Routenpunkte | OSRM |
 | Google Maps Navigation | bewusster Klick | Start, Ziel, Zwischenziele als Adresse/Koordinate | Google Maps |
 | Basis-Briefing | Nutzer fügt Prompt ein und sendet | im Prompt sichtbare Identität und Tourkontext | Microsoft 365 Copilot |
 | Profi-Briefing | Zustimmung + Anmeldung | Name, Nummer, PLZ/Ort, Hauptkontakt, Tourkontext | Microsoft Graph/Copilot |
+| Demo-Kontakt und Demo-Briefing | Klick auf sichtbare Demo-Aktion | keine externe Übertragung; lokale Simulation/Vorschau | nur TourFuchs im Browser |
 | Tour-QR | QR anzeigen/scannen | keine TourFuchs-Serverübertragung; Tour im QR/URL-Fragment | Bildschirm/Kamera |
 | Sicherer Umzug | Export/Import | TourFuchs lädt nichts hoch; Dateiweg vom Nutzer gewählt | lokales Dateisystem/gewählter Kanal |
 
@@ -1395,6 +1431,7 @@ Vor diesen Aktionen immer Wirkung nennen und bei Bedarf Export empfehlen:
 | Kunde suchen | `Topbar -> "Kunde, Ort, PLZ suchen..." -> Kundentreffer` |
 | Kundenbriefing Basis | `Kundenmarker -> "Briefing" -> "Prompt kopieren & Copilot öffnen"` |
 | Kundenbriefing Profi direkt | `Profi -> Kundenmarker -> "Briefing" -> Expertenfall -> Verbindung/Zustimmung -> "Briefing direkt erstellen"` |
+| Demo-Briefing | `Demo-Kundenmarker -> "Briefing" -> lokale Ergebnisvorschau -> "Verstanden"` |
 | Kunden anrufen | `Kundenmarker -> "Anrufen"` |
 | Besuch abhaken | `Kundenmarker -> "Heute besucht"` oder `Tourstopp -> "Heute"` |
 | Tour starten | `Außendienst -> Tour -> Vertriebsbezirk -> Startpunkt` |
@@ -1656,6 +1693,13 @@ altem Namen alte PWA entfernen und neu installieren.
 > Im Basisweg nein. Der Nutzer fügt ihn in Copilot ein und sendet selbst. Im
 > konfigurierten Profiweg kann TourFuchs nach ausdrücklicher Zustimmung direkt
 > senden.
+
+### Kann ich Demo-Kunden wirklich anrufen oder per E-Mail kontaktieren?
+
+> Nein. Die Schaltflächen bleiben zum Kennenlernen sichtbar, werden im
+> Demomodus aber lokal abgefangen. Telefon-App und E-Mail-Programm öffnen sich
+> nicht. Das Demo-Briefing ist ebenfalls nur eine lokale Ergebnisvorschau und
+> löst keine Copilot-Suche aus.
 
 ### Warum fehlt der QR-Senden-Button mobil?
 

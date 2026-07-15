@@ -107,7 +107,9 @@ describe('Showcase-Stories: Guardrail', () => {
 
         expect(briefing.title).toContain('Sofort gebrieft');
         expect(briefing.steps.some((step) => step.key === 'openCustomerBriefing')).toBe(true);
-        expect(briefing.steps.some((step) => step.sel === '[data-briefing-fallback]')).toBe(true);
+        expect(briefing.steps.some((step) => step.sel === '.briefing-demo-preview')).toBe(true);
+        expect(briefing.steps.some((step) => step.sel === '.briefing-demo-note')).toBe(true);
+        expect(briefing.steps.some((step) => step.sel === '[data-briefing-fallback]')).toBe(false);
         expect(briefing.steps.some((step) => step.key === 'closeCustomerBriefing')).toBe(true);
         expect(briefing.steps.some((step) => step.key === 'checkVisit')).toBe(false);
     });

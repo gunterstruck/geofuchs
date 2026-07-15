@@ -11,6 +11,7 @@
  */
 
 import { CONFIG } from './config.js';
+import { isDemoCustomer, normalizeDemoCustomers } from './demoSafety.js';
 
 /**
  * Planungsrelevante Gebietsebenen. Der Vertriebsbezirk ist die führende Ebene,
@@ -204,7 +205,7 @@ export function datasetSnapshot() {
  * Bestehende Farb-/Sichtbarkeits-Einstellungen bleiben erhalten.
  */
 export function setCustomers(customers, meta = {}) {
-    state.customers = customers;
+    state.customers = normalizeDemoCustomers(customers);
     reindexCustomers();
     state.fileName = meta.fileName ?? state.fileName;
     state.importedAt = meta.importedAt ?? new Date().toISOString();
@@ -263,6 +264,9 @@ export function mergeCustomersDelta(importedCustomers) {
         seenKeys.add(key);
         const old = oldByKey.get(key);
         if (!old) return fresh;
+        // Ein echter Import darf nie die Herkunft eines gleich nummerierten
+        // Demo-Kunden erben (und umgekehrt).
+        if (isDemoCustomer(old) !== isDemoCustomer(fresh)) return fresh;
         const contacts = mergeContacts(old, fresh);
         const primary = primaryFromContacts(contacts);
         return {

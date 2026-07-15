@@ -20,6 +20,10 @@ describe('Kunden- und Ortssuche', () => {
         expect(customers).toHaveLength(2_250);
         expect(customers.every((customer) => customer.ort)).toBe(true);
         expect(customers.filter((customer) => customer.ort === 'Essen')).toHaveLength(4);
+        expect(customers.every((customer) => customer.name.startsWith('TourFuchs Demo ·'))).toBe(true);
+        expect(customers.every((customer) => customer.strasse === '')).toBe(true);
+        expect(customers.every((customer) => customer.email.endsWith('@example.com'))).toBe(true);
+        expect(customers.every((customer) => customer.demo === true)).toBe(true);
     });
 
     it('ergänzt ältere Demodaten, ohne vorhandene Ortsnamen zu überschreiben', async () => {

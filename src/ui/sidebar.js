@@ -5,7 +5,8 @@
 
 import { CONFIG } from '../core/config.js';
 import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, filterDimensionDefs, datasetSnapshot } from '../core/state.js';
-import { geocodeExact } from '../services/geocode.js';
+import { exactGeocodeCandidates, geocodeExact } from '../services/geocode.js';
+import { isDemoDataset } from '../core/demoSafety.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { STATUS_COLORS, STATUS_LABELS, isOpportunity } from '../features/visits.js';
@@ -966,6 +967,7 @@ function renderDataStatus() {
     const visible = visibleCustomers().length;
     const bezirkeCount = state.dims.bezirk?.active ? state.dims.bezirk.values.size : 0;
     const gruppenCount = state.dims.gruppe?.active ? state.dims.gruppe.values.size : 0;
+    const demo = isDemoDataset(state.customers);
     el.innerHTML = `
         <div class="stat-grid">
             <div class="stat"><b>${total}</b><span>Kunden</span></div>
@@ -976,6 +978,14 @@ function renderDataStatus() {
         <p class="muted small">${escapeHtml(state.fileName ?? '')}</p>
         <p class="muted small">📍 ${located} verortet (davon ${exact} adressgenau)</p>
     `;
+    const geocodeButton = document.getElementById('btn-geocode');
+    if (geocodeButton && !geocodeHandle) {
+        geocodeButton.disabled = demo;
+        geocodeButton.textContent = demo ? '📍 Demo sicher per PLZ verortet' : '🎯 Adressen exakt verorten';
+        geocodeButton.title = demo
+            ? 'Für Demo-Daten werden keine erfundenen Straßenadressen an externe Dienste übertragen.'
+            : '';
+    }
 }
 
 async function toggleExactGeocoding() {
@@ -986,9 +996,14 @@ async function toggleExactGeocoding() {
         geocodeHandle.cancel();
         return;
     }
-    const candidates = state.customers.filter((c) => c.geo !== 'exakt' && c.strasse);
+    const candidates = exactGeocodeCandidates(state.customers);
     if (candidates.length === 0) {
-        showToast('Keine Kunden mit Straßenadresse zum Nachschärfen gefunden.', 'info');
+        showToast(
+            isDemoDataset(state.customers)
+                ? 'Demo-Daten bleiben bewusst auf sicheren PLZ-Positionen. Es werden keine erfundenen Adressen übertragen.'
+                : 'Keine Kunden mit Straßenadresse zum Nachschärfen gefunden.',
+            'info'
+        );
         return;
     }
     if (!confirm(

@@ -22,6 +22,7 @@ TourFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 | Bereich | Funktion |
 |---|---|
 | 📄 **Daten** | Excel-/CSV-Import per Klick oder Drag & Drop, automatische Spaltenerkennung mit Prüf-Dialog, Excel-Vorlage, Demo-Daten, Excel-Export |
+| 🛡️ **Sichere Demo** | Eindeutig markierte Beispielkunden, reservierte Drama-Rufnummern und `example.com`-Adressen; Telefon, E-Mail und Copilot-Briefing werden lokal simuliert, Exporte als Demo gekennzeichnet |
 | 📍 **Verortung** | Sofort über PLZ-Koordinaten (offline, ohne API-Schlüssel); optional adressgenau über OpenStreetMap/Nominatim |
 | 🗺️ **Gebiete** | Landkreise (400 Kreise & Städte) **und** PLZ-Ebenen (1-, 2-, 3- und 5-stellig); Flächen primär nach **Betriebsbezirk** einfärbbar, optional nach Vertriebsgruppe (mit Label und Umsatzsumme); Klick zeigt Kunden & Bezirksverteilung je Gebiet |
 | ✏️ **Gebiets-Editor** | Im Gebiets-Popup „Kunden dieses Gebiets umordnen": Kundenliste des Gebiets mit Checkboxen & Filter, ausgewählte Kunden (oder das ganze Gebiet) einem anderen Betriebsbezirk oder einer Gruppe zuweisen – auch gemischte Gebiete gezielt aufteilen; wirkt sofort auf der Karte, mit **Rückgängig** |
@@ -43,14 +44,14 @@ und können beim Import manuell zugeordnet werden. Empfohlene Spalten:
 
 | Spalte | Pflicht | Beispiel |
 |---|---|---|
-| Kundenname | ✅ | Autohaus Schmidt GmbH |
+| Kundenname | ✅ | TourFuchs Demo · Autohaus 0001 |
 | PLZ | ✅ (für die Karte) | 50667 |
 | Straße & Hausnummer | – | Hauptstraße 12 |
 | Ort | – | Köln |
 | Betriebsbezirk | ✅ | Bezirk Rheinland |
 | Vertriebschannel | – | Fachhandel |
 | Vertriebsgruppe | – | Handel |
-| Ansprechpartner, Telefon, E-Mail | – | Herr Schmidt · 0221 123456 |
+| Ansprechpartner, Telefon, E-Mail | – | Demo-Team · 0221 4710 000 · kunde-0001@example.com |
 | Besuchsrhythmus (Wochen), Letzter Besuch | – | 6 · 12.05.2026 |
 | Kundennummer, Umsatz, Lat/Lng | – | optional |
 
@@ -69,6 +70,7 @@ Beim Import werden die Zeilen geprüft. **Gültige Zeilen werden importiert**, p
 ### Datenschutz
 
 - Kundendaten werden **lokal im Browser** gespeichert (IndexedDB); der Betreiber erhält sie nicht und es gibt kein Tracking.
+- Bei Demo-Kunden werden Telefon, E-Mail, Copilot-Briefing und exakte Adress-Geocodierung nicht extern gestartet. Die sichtbaren Aktionen sind sichere Simulationen; echte importierte Kunden bleiben unverändert nutzbar.
 - Im **Basis-Briefing** wird der vorbereitete Prompt zunächst nur lokal angezeigt und in die Zwischenablage kopiert. Eine Übertragung an Microsoft erfolgt erst, wenn der Nutzer ihn selbst in Copilot einfügt und absendet.
 - Nur das optionale **Profi-Briefing** kann nach ausdrücklicher Zustimmung Kundenidentität und Tourkontext automatisch an Microsoft 365 Copilot übergeben. Microsoft-Entra-Rechte, Richtlinien und Vertraulichkeitsbezeichnungen der Organisation bleiben wirksam.
 - Nur die optionale adressgenaue Verortung sendet die jeweilige Adresse an OpenStreetMap (Nominatim), gedrosselt gemäß deren Nutzungsrichtlinie.

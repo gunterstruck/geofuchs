@@ -6,6 +6,12 @@
 
 import * as XLSX from 'xlsx';
 import { loadPlzCentroids, loadPlzPlaces } from './geocode.js';
+import {
+    DEMO_DATA_LABEL,
+    demoCustomerIdentity,
+    hasDemoCustomers,
+    isDemoCustomer
+} from '../core/demoSafety.js';
 
 /** Interne Felder mit deutschen Labels und Erkennungs-Synonymen */
 export const FIELDS = [
@@ -456,36 +462,43 @@ export function exportErrors(errors, fileBase = 'tourfuchs') {
 
 /** Excel-Vorlage mit Beispielzeilen erzeugen und herunterladen */
 export function downloadTemplate() {
+    const first = demoCustomerIdentity(0, 'Autohaus');
+    const second = demoCustomerIdentity(1, 'Bäckerei');
+    const third = demoCustomerIdentity(2, 'Elektro');
     const rows = [
         {
-            'Kundennummer': '10001', 'Kundenname': 'Autohaus Schmidt GmbH',
-            'Straße': 'Hauptstraße 12', 'PLZ': '50667', 'Ort': 'Köln',
-            'Vertriebsbeauftragter': 'Max Mustermann',
+            'Datenstatus': DEMO_DATA_LABEL,
+            'Kundennummer': '10001', 'Kundenname': first.name,
+            'Straße': '', 'PLZ': '50667', 'Ort': 'Köln',
+            'Vertriebsbeauftragter': 'Demo Vertrieb West',
             'Vertriebschannel': 'Fachhandel', 'Vertriebsgruppe': 'Handel', 'Vertriebsbezirk': 'Bezirk West',
             'Gebiet (LK/PLZ)': '',
-            'Hauptansprechpartner': 'Herr Schmidt', 'Telefon': '0221 1234567', 'E-Mail': 'info@autohaus-schmidt.de',
+            'Hauptansprechpartner': first.ansprechpartner, 'Telefon': first.telefon, 'E-Mail': first.email,
             'Umsatz': 125000, 'Besuchsrhythmus (Wochen)': 6, 'Letzter Besuch': '12.05.2026'
         },
         {
-            'Kundennummer': '10002', 'Kundenname': 'Bäckerei Müller KG',
-            'Straße': 'Marktplatz 3', 'PLZ': '80331', 'Ort': 'München',
-            'Vertriebsbeauftragter': 'Anna Beispiel',
+            'Datenstatus': DEMO_DATA_LABEL,
+            'Kundennummer': '10002', 'Kundenname': second.name,
+            'Straße': '', 'PLZ': '80331', 'Ort': 'München',
+            'Vertriebsbeauftragter': 'Demo Vertrieb Süd',
             'Vertriebschannel': 'Direktvertrieb', 'Vertriebsgruppe': 'Lebensmittel', 'Vertriebsbezirk': 'Bezirk Süd',
-            'Hauptansprechpartner': 'Frau Müller', 'Telefon': '089 7654321', 'E-Mail': 'kontakt@baeckerei-mueller.de',
+            'Hauptansprechpartner': second.ansprechpartner, 'Telefon': second.telefon, 'E-Mail': second.email,
             'Umsatz': 48000, 'Besuchsrhythmus (Wochen)': 4, 'Letzter Besuch': '28.06.2026'
         },
         {
-            'Kundennummer': '10003', 'Kundenname': 'Elektro Weber e.K.',
-            'Straße': 'Industrieweg 8', 'PLZ': '04109', 'Ort': 'Leipzig',
-            'Vertriebsbeauftragter': 'Max Mustermann',
+            'Datenstatus': DEMO_DATA_LABEL,
+            'Kundennummer': '10003', 'Kundenname': third.name,
+            'Straße': '', 'PLZ': '04109', 'Ort': 'Leipzig',
+            'Vertriebsbeauftragter': 'Demo Vertrieb Ost',
             'Vertriebschannel': 'Direktvertrieb', 'Vertriebsgruppe': 'Handwerk', 'Vertriebsbezirk': 'Bezirk Ost',
             'Gebiet (LK/PLZ)': '',
-            'Hauptansprechpartner': '', 'Telefon': '0341 9998877', 'E-Mail': '',
+            'Hauptansprechpartner': third.ansprechpartner, 'Telefon': third.telefon, 'E-Mail': third.email,
             'Umsatz': 87500, 'Besuchsrhythmus (Wochen)': 8, 'Letzter Besuch': ''
         },
         {
             // Flächenzeile: nur ein Gebiet einem Bezirk/VB zuordnen (ohne Kunde).
             // „Gebiet" = Landkreis-Name oder PLZ/PLZ-Präfix (z. B. 46 oder 46045).
+            'Datenstatus': DEMO_DATA_LABEL,
             'Kundennummer': '', 'Kundenname': '',
             'Straße': '', 'PLZ': '', 'Ort': '',
             'Vertriebsbeauftragter': '',
@@ -502,9 +515,9 @@ export function downloadTemplate() {
     XLSX.writeFile(wb, 'tourfuchs-kundenliste-vorlage.xlsx');
 }
 
-/** Aktuelle Kundenliste als Excel exportieren (inkl. Besuchsdaten) */
-export function exportCustomers(customers) {
-    const rows = customers.map((c) => ({
+export function customerExportRows(customers) {
+    return customers.map((c) => ({
+        'Datenstatus': isDemoCustomer(c) ? DEMO_DATA_LABEL : '',
         'Kundennummer': c.nummer,
         'Kundenname': c.name,
         'Straße': c.strasse,
@@ -523,10 +536,17 @@ export function exportCustomers(customers) {
         'Lat': c.lat ?? '',
         'Lng': c.lng ?? ''
     }));
+}
+
+/** Aktuelle Kundenliste als Excel exportieren (inkl. Besuchsdaten) */
+export function exportCustomers(customers) {
+    const demo = hasDemoCustomers(customers);
+    const rows = customerExportRows(customers);
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Kunden');
-    XLSX.writeFile(wb, `tourfuchs-kunden-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, demo ? 'DEMO-Kunden' : 'Kunden');
+    const prefix = demo ? 'tourfuchs-DEMO-nicht-produktiv' : 'tourfuchs-kunden';
+    XLSX.writeFile(wb, `${prefix}-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 /**
@@ -585,9 +605,6 @@ export function createDemoCustomers(centroids, places) {
     const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
 
     const branchen = ['Autohaus', 'Bäckerei', 'Metallbau', 'Getränke', 'MedTech', 'Baustoffe', 'Elektro', 'Logistik', 'Hotel', 'Feinkost', 'Werkzeuge', 'Maschinenbau', 'Sanitär', 'Druckerei', 'Gartenbau', 'Fliesen', 'Dachdecker', 'Kfz-Service', 'Textil', 'Optik'];
-    const namen = ['Müller', 'Schmidt', 'Schneider', 'Fischer', 'Weber', 'Meyer', 'Wagner', 'Becker', 'Schulz', 'Hoffmann', 'Koch', 'Bauer', 'Richter', 'Klein', 'Wolf', 'Neumann', 'Zimmermann', 'Braun', 'Krüger', 'Hartmann', 'Lange', 'Werner', 'Krause', 'Lehmann', 'Köhler', 'Herrmann', 'König', 'Walter', 'Peters', 'Jung'];
-    const rechtsform = [' GmbH', ' KG', ' e.K.', ' GmbH & Co. KG', ' AG', '', ' OHG'];
-    const strassen = ['Industriestr.', 'Hauptstr.', 'Bahnhofstr.', 'Marktplatz', 'Gewerbepark', 'Ringstr.', 'Am Hafen'];
     const umsatzChoices = [24000, 33000, 48000, 61000, 79000, 104000, 138000, 176000, 224000, 295000, 360000];
     const rhythmChoices = [4, 6, 6, 8, 12];
     const daysAgoChoices = [7, 20, 45, 70, 110, null];
@@ -600,7 +617,10 @@ export function createDemoCustomers(centroids, places) {
         if (pool.length === 0) return;
         for (let n = 0; n < PER_BEZIRK; n++) {
             const plz = pool[Math.floor(rnd() * pool.length)];
-            const name = `${pick(branchen)} ${pick(namen)}${pick(rechtsform)}`;
+            const identity = demoCustomerIdentity(i, pick(branchen));
+            // Die frühere Namens- und Straßenwahl verbrauchte vier Zufallswerte.
+            // Weiterziehen erhält die bewährte geografische Demo-Verteilung.
+            rnd(); rnd(); rnd(); rnd();
             const daysAgo = daysAgoChoices[i % daysAgoChoices.length];
             let besuche = [];
             if (daysAgo !== null) {
@@ -611,17 +631,14 @@ export function createDemoCustomers(centroids, places) {
             out.push({
                 id: `demo-${i}`,
                 nummer: String(20000 + i),
-                name,
-                strasse: `${pick(strassen)} ${1 + Math.floor(rnd() * 120)}`,
+                ...identity,
+                strasse: '',
                 plz,
                 ort: places[plz] || '',
                 vb: anchor.vb,
                 channel: 'Digital',
                 gruppe: anchor.gruppe,
                 bezirk: anchor.name,
-                ansprechpartner: '',
-                telefon: `0${1500 + (i % 8000)} ${100000 + i * 137}`,
-                email: `info@${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24)}-${i}.de`,
                 umsatz: pick(umsatzChoices),
                 rhythmusWochen: rhythmChoices[i % rhythmChoices.length],
                 besuche,

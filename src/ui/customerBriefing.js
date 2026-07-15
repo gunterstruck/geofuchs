@@ -1,4 +1,5 @@
 import { state, emit } from '../core/state.js';
+import { isDemoCustomer } from '../core/demoSafety.js';
 import {
     buildCustomerBriefingPrompt,
     customerBriefingContext,
@@ -98,6 +99,27 @@ function renderManual() {
     fillVisiblePrompt();
     setFooter('<button type="button" class="primary" data-briefing-fallback>Prompt kopieren &amp; Copilot öffnen</button>');
     footer.querySelector('[data-briefing-fallback]')?.addEventListener('click', openFallback);
+}
+
+function renderDemo() {
+    body.innerHTML = `${identityHtml(currentCustomer)}
+        <div class="briefing-state briefing-demo">
+            <span class="briefing-kicker">Geschützte Demo</span>
+            <h3>So unterstützt Sie das Briefing unterwegs</h3>
+            <div class="briefing-answer briefing-demo-preview"><b>Jetzt wichtig</b>
+• Letzten Gesprächsstand und offene Zusagen auf einen Blick prüfen.
+• Ansprechpartner und anstehende Termine priorisieren.
+
+<b>Gespräch</b>
+• Ziel und passender Einstieg für den nächsten Kontakt.
+• Drei konkrete Fragen aus dem berechtigten Microsoft-365-Wissen.
+
+<b>Handlung</b>
+• Nächsten Schritt, Chance und mögliches Risiko kompakt einordnen.</div>
+            <p class="briefing-demo-note"><b>Keine Datenübertragung:</b> Für Beispielkunden öffnet TourFuchs keinen Copilot und startet keine Suche. Mit Ihren echten Kundendaten entscheiden Sie selbst, wann der geprüfte Prompt an Corporate Copilot übergeben wird.</p>
+        </div>`;
+    setFooter('<button type="button" class="primary" data-briefing-close>Verstanden</button>');
+    wireClose();
 }
 
 function expertManualPath() {
@@ -309,6 +331,10 @@ function renderError(error) {
 }
 
 async function startBriefing() {
+    if (isDemoCustomer(currentCustomer)) {
+        renderDemo();
+        return;
+    }
     const sequence = ++requestSequence;
     renderLoading();
     try {
@@ -336,6 +362,10 @@ function launchCorporateCopilot() {
 }
 
 async function openFallback() {
+    if (isDemoCustomer(currentCustomer)) {
+        renderDemo();
+        return;
+    }
     const copyPromise = copyText(currentPrompt);
     launchCorporateCopilot();
     const copied = await copyPromise;
@@ -364,11 +394,16 @@ export function openCustomerBriefing(customer) {
     if (!dialog) initCustomerBriefing();
     if (!dialog || !customer) return;
     currentCustomer = customer;
+    dialog.showModal();
+    if (isDemoCustomer(customer)) {
+        currentPrompt = '';
+        renderDemo();
+        return;
+    }
     currentPrompt = buildCustomerBriefingPrompt(
         customer,
         customerBriefingContext(customer, state.tour, plannedDate())
     );
-    dialog.showModal();
     const config = loadCopilotConfig();
     const flow = customerBriefingFlow(state.ui.depth, isCopilotConfigured(config));
     if (flow === 'manual') {

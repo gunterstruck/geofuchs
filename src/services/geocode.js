@@ -9,6 +9,7 @@
  */
 
 import { CONFIG } from '../core/config.js';
+import { isDemoCustomer } from '../core/demoSafety.js';
 import { loadGeocodeCache, saveGeocodeCache } from './storage.js';
 
 let plzCentroids = null;
@@ -67,7 +68,9 @@ export async function geocodeByPlz(customers) {
     const missing = new Set();
 
     for (const c of customers) {
-        if (c.geo === 'exakt') continue;
+        // Auch ältere Demo-Datensätze mit vermeintlich exakter Position werden
+        // auf die lokal gebündelte PLZ-Position zurückgeführt.
+        if (c.geo === 'exakt' && !isDemoCustomer(c)) continue;
         const hit = c.plz ? centroids[c.plz] : null;
         if (hit) {
             const [dLat, dLng] = jitterFor(c.id + c.name);
@@ -107,8 +110,12 @@ function nominatimAddressParams(c) {
  * Läuft sequenziell mit Drosselung; onProgress(done, total) für die UI.
  * Über das zurückgegebene Handle abbrechbar: handle.cancel()
  */
+export function exactGeocodeCandidates(customers) {
+    return (customers || []).filter((c) => !isDemoCustomer(c) && c.geo !== 'exakt' && c.strasse && (c.plz || c.ort));
+}
+
 export function geocodeExact(customers, onProgress) {
-    const queue = customers.filter((c) => c.geo !== 'exakt' && c.strasse && (c.plz || c.ort));
+    const queue = exactGeocodeCandidates(customers);
     let cancelled = false;
     const handle = { cancel: () => { cancelled = true; }, total: queue.length };
 

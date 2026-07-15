@@ -169,6 +169,23 @@
     text-decoration: none;
     color: var(--color-primary-dark, #0f766e);
 }
+button.contact-link {
+    border: 0;
+    font-family: inherit;
+    cursor: pointer;
+}
+.popup-demo-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border: 1px solid #f59e0b;
+    border-radius: 99px;
+    color: #92400e;
+    background: #fffbeb;
+    font-size: 0.66rem;
+    font-weight: 700;
+    vertical-align: middle;
+}
 
 .visit-block {
     margin: 8px 0 4px;

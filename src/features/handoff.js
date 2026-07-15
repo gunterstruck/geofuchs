@@ -5,6 +5,7 @@
  */
 
 import { visitStatus, lastVisit, agoText, formatDateDe, STATUS_LABELS } from './visits.js';
+import { DEMO_DATA_LABEL, isDemoCustomer } from '../core/demoSafety.js';
 
 /** Text in die Zwischenablage kopieren (mit Fallback für ältere Browser) */
 export async function copyText(text) {
@@ -35,7 +36,7 @@ function addressOf(p) {
 
 /** Ein-/Mehrzeiler zu einem Kunden (für Kunden-Kopie und Tour-Zeilen) */
 export function customerText(c) {
-    const lines = [c.name];
+    const lines = isDemoCustomer(c) ? [DEMO_DATA_LABEL, c.name] : [c.name];
     const addr = addressOf(c);
     if (addr) lines.push(addr);
     if (c.nummer) lines.push(`Kd.-Nr. ${c.nummer}`);
@@ -58,7 +59,7 @@ export function customerText(c) {
 
 /** Kompakte Kunden-Zeile für die Tour (Name, Adresse, Telefon) */
 function tourLine(c) {
-    const parts = [c.name];
+    const parts = [`${isDemoCustomer(c) ? '[DEMO] ' : ''}${c.name}`];
     const addr = addressOf(c);
     if (addr) parts.push(addr);
     if (c.telefon) parts.push(`Tel: ${c.telefon}`);
@@ -72,7 +73,8 @@ function tourLine(c) {
  * @param {object|null} destination  Zielkunde/-punkt
  */
 export function tourText(start, stops, destination, { tourName = 'Tagestour', roadKm = null, roundTrip = false } = {}) {
-    const lines = [`Tour: ${tourName}`];
+    const demo = [start, ...(stops || []), destination].filter(Boolean).some(isDemoCustomer);
+    const lines = demo ? [DEMO_DATA_LABEL, `Tour: ${tourName}`] : [`Tour: ${tourName}`];
     if (start) lines.push(`Start: ${start.label || addressOf(start)}`);
     stops.forEach((c, i) => lines.push(`${i + 1}. ${tourLine(c)}`));
     if (destination) lines.push(`Ziel: ${tourLine(destination)}`);

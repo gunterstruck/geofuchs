@@ -131,9 +131,8 @@ export const STORIES = [
             { t: 'run', key: 'addTwoSuggestions' },
             { t: 'say', text: 'TourFuchs hat einen passenden Kunden in der Nähe gefunden. Jetzt kurz vorbereiten.', sel: '#tour-stops', ms: 2600 },
             { t: 'run', key: 'openCustomerBriefing' },
-            { t: 'say', text: 'Kein Setup nötig: Der kompakte Kunden-Prompt ist sofort vorbereitet.', sel: '.briefing-path-simple', ms: 2800 },
-            { t: 'say', text: 'Du prüfst ihn und entscheidest selbst, wann Copilot geöffnet und der Prompt abgesendet wird.', sel: '[data-briefing-fallback]', ms: 3200 },
-            { t: 'say', text: 'Copilot kann dabei nur interne Inhalte einbeziehen, auf die dein Arbeitskonto zugreifen darf.', sel: '.briefing-manual-note', ms: 3200 },
+            { t: 'say', text: 'Die Demo zeigt dir das Ergebnis kompakt und ohne erfundene Kunden an Copilot zu senden.', sel: '.briefing-demo-preview', ms: 3000 },
+            { t: 'say', text: 'Mit echten Kundendaten entscheidest du selbst, wann Corporate Copilot dein berechtigtes Microsoft-365-Wissen durchsucht.', sel: '.briefing-demo-note', ms: 3400 },
             { t: 'run', key: 'closeCustomerBriefing' },
             { t: 'say', text: 'Der nächste Kunde steht fest. Das aktuelle Gesprächsbriefing auch.', ms: 2500 }
         ]

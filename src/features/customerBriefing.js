@@ -4,6 +4,8 @@
  * TourFuchs-Felder aufgenommen, nicht der vollständige Kundendatensatz.
  */
 
+import { isDemoCustomer } from '../core/demoSafety.js';
+
 function value(value) {
     return String(value ?? '').trim();
 }
@@ -49,6 +51,9 @@ function tourLines(context) {
 }
 
 export function buildCustomerBriefingPrompt(customer, context = {}) {
+    if (isDemoCustomer(customer)) {
+        throw new Error('Für Demo-Kunden wird kein externer Copilot-Prompt erzeugt.');
+    }
     const identifiers = identityLines(customer);
     const plan = tourLines(context);
     const localContext = plan.length

@@ -8,6 +8,7 @@ import L from 'leaflet';
 import 'leaflet.markercluster';
 
 import { CONFIG } from '../core/config.js';
+import { isDemoCustomer } from '../core/demoSafety.js';
 import { formatRevenueShort, formatRevenueFull } from '../core/format.js';
 import { state, on, emit, repColor, attrColor, visibleCustomers, tourScopedCustomers, getCustomer, markDirty, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
@@ -394,6 +395,15 @@ export function initMap(containerId) {
 function handlePopupAction(action, customerId) {
     const customer = getCustomer(customerId);
     if (!customer) return false;
+    if (action === 'demo-call' || action === 'demo-email') {
+        emit('toast', {
+            type: 'info',
+            text: action === 'demo-call'
+                ? 'Demo-Modus: Bei echten Kundendaten würde sich jetzt die Telefon-App öffnen. Es wird kein Anruf gestartet.'
+                : 'Demo-Modus: Bei echten Kundendaten würde sich jetzt das E-Mail-Programm öffnen. Es wird keine Nachricht erstellt.'
+        });
+        return true;
+    }
     if (action === 'tour-add') {
         if (!state.tour.stops.includes(customer.id)) {
             state.tour.stops.push(customer.id);
@@ -403,7 +413,8 @@ function handlePopupAction(action, customerId) {
         state.tour.start = {
             lat: customer.lat, lng: customer.lng,
             label: customer.name, customerId: customer.id,
-            strasse: customer.strasse, plz: customer.plz, ort: customer.ort
+            strasse: customer.strasse, plz: customer.plz, ort: customer.ort,
+            dataOrigin: customer.dataOrigin, demo: customer.demo
         };
         emit('tour:changed');
     } else if (action === 'tour-dest') {
@@ -411,7 +422,8 @@ function handlePopupAction(action, customerId) {
         state.tour.destination = {
             lat: customer.lat, lng: customer.lng,
             label: customer.name, customerId: customer.id,
-            strasse: customer.strasse, plz: customer.plz, ort: customer.ort
+            strasse: customer.strasse, plz: customer.plz, ort: customer.ort,
+            dataOrigin: customer.dataOrigin, demo: customer.demo
         };
         // Ziel gesetzt -> „Entlang der Tour"-Vorschläge werden sinnvoll
         if (first && state.tour.suggestMode !== 'route') state.tour.suggestMode = 'route';
@@ -1008,11 +1020,16 @@ function contactBlockHtml(customer) {
         parts.push(`<p class="muted small">👤 Hauptansprechpartner: <b>${escapeHtml(contactName)}</b></p>`);
     }
     const links = [];
-    if (customer.telefon) {
+    const demo = isDemoCustomer(customer);
+    if (customer.telefon && demo) {
+        links.push(`<button type="button" class="contact-link" data-action="demo-call" data-id="${escapeHtml(customer.id)}">📞 Anrufen</button>`);
+    } else if (customer.telefon) {
         const tel = String(customer.telefon).replace(/[^\d+]/g, '');
         links.push(`<a class="contact-link" href="tel:${escapeHtml(tel)}">📞 Anrufen</a>`);
     }
-    if (customer.email) {
+    if (customer.email && demo) {
+        links.push(`<button type="button" class="contact-link" data-action="demo-email" data-id="${escapeHtml(customer.id)}">✉️ E-Mail</button>`);
+    } else if (customer.email) {
         links.push(`<a class="contact-link" href="mailto:${escapeHtml(customer.email)}">✉️ E-Mail</a>`);
     }
     if (links.length) parts.push(`<div class="contact-links">${links.join('')}</div>`);
@@ -1036,8 +1053,9 @@ export function customerPopupHtml(customer) {
     // Basis: nur Umsatz (Priorisierung), Hierarchie/Kd.-Nr. sind Profi-Detail.
     const metaLine = (profi ? [hierarchy, umsatz] : [umsatz]).filter(Boolean).join(' · ');
     const nr = profi && customer.nummer ? `<span class="popup-nr">Nr. ${escapeHtml(customer.nummer)}</span>` : '';
+    const demoBadge = isDemoCustomer(customer) ? '<span class="popup-demo-badge">Demo</span>' : '';
     return `<div class="popup popup-customer">
-        <h3>${escapeHtml(customer.name)}${nr}</h3>
+        <h3>${escapeHtml(customer.name)}${demoBadge}${nr}</h3>
         ${addr ? `<p class="popup-addr">${addr}${customer.geo === 'plz' ? ' <span class="muted small">· 📍 ca. (PLZ-Mitte)</span>' : ''}</p>` : ''}
         ${metaLine ? `<p class="muted small popup-meta">${metaLine}</p>` : ''}
         ${contactBlockHtml(customer)}

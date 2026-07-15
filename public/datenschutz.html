@@ -122,6 +122,8 @@ Nur wenn Sie die Funktion „Adressen exakt verorten" aktiv auslösen, wird die 
 Umwandlung in Koordinaten an den Dienst <a href="https://nominatim.org/" target="_blank" rel="noopener">Nominatim</a>
 der OpenStreetMap Foundation gesendet. Ohne diese ausdrückliche Aktion findet keine solche Übertragung
 statt; die Standardverortung erfolgt offline über mitgelieferte Postleitzahl-Koordinaten.
+Technisch markierte Demo-Kunden sind von der externen Adress-Geocodierung
+ausgeschlossen und bleiben auf den lokalen Postleitzahl-Koordinaten.
 </p>
 
 <h2>6. Optionale Straßenrouten (OSRM)</h2>
@@ -154,6 +156,11 @@ Profi-Modus werden bei konfigurierter Copilot Chat API und nach Ihrer Bestätigu
 Microsoft Graph übergeben. Die vollständige Kundenliste, Telefonnummer, E-Mail-Adresse, Umsatz und
 Kartenkoordinaten werden nicht mitgesendet. Vor der ersten Übertragung zeigt TourFuchs diese
 Datenübergabe an und verlangt Ihre Bestätigung.
+</p>
+<p>
+Für technisch markierte Demo-Kunden wird kein Copilot-Prompt erzeugt, kein Copilot geöffnet und keine
+Suche gestartet. Die Anwendung zeigt stattdessen ausschließlich eine lokale Ergebnisvorschau. Auch die
+sichtbaren Demo-Aktionen „Anrufen" und „E-Mail" öffnen weder Telefon-App noch E-Mail-Programm.
 </p>
 <p>
 Die Anmeldung erfolgt über Microsoft Entra ID mit Ihrem Arbeitskonto. Es gelten die Zugriffsrechte,

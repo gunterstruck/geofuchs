@@ -66,6 +66,11 @@ describe('Kundenbriefing', () => {
         expect(prompt).not.toContain(String(customer.umsatz));
     });
 
+    it('erzeugt für Demo-Kunden niemals einen externen Copilot-Prompt', () => {
+        expect(() => buildCustomerBriefingPrompt({ ...customer, id: 'demo-1', demo: true }))
+            .toThrow(/Demo-Kunden/);
+    });
+
     it('leitet nur den aktuellen Tourkontext des Kunden ab', () => {
         const context = customerBriefingContext(customer, {
             start: { customerId: 'anderer-kunde' },

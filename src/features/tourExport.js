@@ -5,6 +5,7 @@
  */
 
 import { CONFIG } from '../core/config.js';
+import { DEMO_DATA_LABEL, hasDemoCustomers, isDemoCustomer } from '../core/demoSafety.js';
 import { distanceKm } from '../services/geocode.js';
 import { formatDateDe, lastVisit, agoText } from './visits.js';
 
@@ -41,6 +42,7 @@ function hhmm(date) {
 /** Druckbaren Tagesplan in neuem Fenster öffnen */
 export function printDayPlan(start, stops, { startTime = defaultStart(), tourName = 'Tagestour', visitMinutes = DEFAULT_VISIT_MINUTES } = {}) {
     const rows = schedule(start, stops, startTime, visitMinutes);
+    const demo = isDemoCustomer(start) || hasDemoCustomers(stops);
     const totalKm = rows.reduce((sum, r) => sum + r.km, 0);
     const dateStr = new Date(startTime).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
 
@@ -75,10 +77,12 @@ export function printDayPlan(start, stops, { startTime = defaultStart(), tourNam
             .time { white-space: nowrap; font-variant-numeric: tabular-nums; }
             .check { font-size: 1.3rem; width: 30px; text-align: center; }
             .muted { color: #64748b; font-size: 0.85rem; }
+            .demo { padding: 8px 10px; background: #fffbeb; border: 1px solid #f59e0b; color: #92400e; font-weight: 700; }
             .foot { margin-top: 16px; color: #64748b; font-size: 0.85rem; }
             @media print { body { margin: 0; } .noprint { display: none; } }
         </style></head><body>
         <h1>🦊 ${escapeHtml(tourName)}</h1>
+        ${demo ? `<p class="demo">${DEMO_DATA_LABEL}</p>` : ''}
         <p class="sub">${dateStr} · Start ${hhmm(new Date(startTime))} bei „${escapeHtml(start.label)}" · ${rows.length} Besuche · ca. ${Math.round(totalKm)} km</p>
         <table>
             <thead><tr><th>#</th><th>Ankunft</th><th>Kunde</th><th>✓</th></tr></thead>
@@ -106,6 +110,7 @@ function icsDate(date) {
 /** Tour als .ics-Datei (ein VEVENT je Stopp) herunterladen */
 export function downloadIcs(start, stops, { startTime = defaultStart(), tourName = 'Tagestour', visitMinutes = DEFAULT_VISIT_MINUTES } = {}) {
     const rows = schedule(start, stops, startTime, visitMinutes);
+    const demo = isDemoCustomer(start) || hasDemoCustomers(stops);
     const now = icsDate(new Date());
     const lines = [
         'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//TourFuchs Vertrieb//DE', 'CALSCALE:GREGORIAN'
@@ -115,6 +120,7 @@ export function downloadIcs(start, stops, { startTime = defaultStart(), tourName
         const end = new Date(r.arrival.getTime() + visitMinutes * 60000);
         const addr = [c.strasse, `${c.plz} ${c.ort}`.trim()].filter(Boolean).join(', ');
         const desc = [
+            demo && DEMO_DATA_LABEL,
             c.ansprechpartner && `Hauptansprechpartner: ${c.ansprechpartner}`,
             c.telefon && `Telefon: ${c.telefon}`,
             c.email && `E-Mail: ${c.email}`,
@@ -126,7 +132,7 @@ export function downloadIcs(start, stops, { startTime = defaultStart(), tourName
             `DTSTAMP:${now}`,
             `DTSTART:${icsDate(r.arrival)}`,
             `DTEND:${icsDate(end)}`,
-            `SUMMARY:${icsEscape(`${i + 1}. ${c.name} (${tourName})`)}`,
+            `SUMMARY:${icsEscape(`${demo ? '[DEMO] ' : ''}${i + 1}. ${c.name} (${tourName})`)}`,
             addr ? `LOCATION:${icsEscape(addr)}` : '',
             desc ? `DESCRIPTION:${icsEscape(desc)}` : '',
             'END:VEVENT'
@@ -138,7 +144,8 @@ export function downloadIcs(start, stops, { startTime = defaultStart(), tourName
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${tourName.replace(/[^\w-]+/g, '-')}-${new Date(startTime).toISOString().slice(0, 10)}.ics`;
+    const fileName = `${demo ? 'DEMO-' : ''}${tourName}`.replace(/[^\w-]+/g, '-');
+    a.download = `${fileName}-${new Date(startTime).toISOString().slice(0, 10)}.ics`;
     a.click();
     URL.revokeObjectURL(url);
 }

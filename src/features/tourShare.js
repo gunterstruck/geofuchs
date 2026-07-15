@@ -6,6 +6,8 @@
  * ohne Netzwerk, Datei oder Server.
  */
 
+import { DEMO_DATA_ORIGIN, isDemoCustomer } from '../core/demoSafety.js';
+
 export const TOUR_QR_PREFIX = 'TF1:';
 export const TOUR_HASH_KEY = 't';   // Fragment-Schlüssel: host/…#t=<base64url>
 export const MAX_QR_STOPS = 12;
@@ -31,7 +33,9 @@ const hasCoords = (p) => Boolean(p) && isCoord(p.lat) && isCoord(p.lng);
 
 function packPoint(point) {
     if (!hasCoords(point)) return null;
-    return { lat: round5(point.lat), lng: round5(point.lng), l: point.label || point.name || '' };
+    const packed = { lat: round5(point.lat), lng: round5(point.lng), l: point.label || point.name || '' };
+    if (isDemoCustomer(point)) packed.d = 1;
+    return packed;
 }
 
 function packStop(customer) {
@@ -46,6 +50,7 @@ function packStop(customer) {
     if (customer.telefon) stop.t = customer.telefon;
     if (customer.nummer) stop.k = customer.nummer;
     if (customer.plz) stop.p = customer.plz;
+    if (isDemoCustomer(customer)) stop.d = 1;
     return stop;
 }
 
@@ -116,7 +121,10 @@ export function decodeTourPayload(text) {
     }
     if (payload?.v !== 1 || !payload.s || !Array.isArray(payload.x) || payload.x.length === 0) return null;
 
-    const point = (p) => ({ lat: Number(p.lat), lng: Number(p.lng), label: p.l || '' });
+    const point = (p) => ({
+        lat: Number(p.lat), lng: Number(p.lng), label: p.l || '',
+        ...(p.d === 1 ? { demo: true, dataOrigin: DEMO_DATA_ORIGIN } : {})
+    });
     if (!hasCoords(payload.s)) return null;
     const stops = payload.x
         .filter(hasCoords)
@@ -127,7 +135,8 @@ export function decodeTourPayload(text) {
             adresse: p.a || '',
             telefon: p.t || '',
             nummer: p.k || '',
-            plz: p.p || ''
+            plz: p.p || '',
+            ...(p.d === 1 ? { demo: true, dataOrigin: DEMO_DATA_ORIGIN } : {})
         }));
     if (stops.length === 0) return null;
 
@@ -150,17 +159,19 @@ export function decodeTourPayload(text) {
 export function matchStopsToCustomers(stops, customers) {
     const byNummer = new Map();
     const byNamePlz = new Map();
+    const kind = (item) => isDemoCustomer(item) ? 'demo' : 'real';
     for (const c of customers || []) {
         const nummer = String(c.nummer ?? '').trim();
-        if (nummer) byNummer.set(nummer, c);
-        const key = `${String(c.name ?? '').trim().toLowerCase()}|${String(c.plz ?? '').trim()}`;
-        if (key !== '|') byNamePlz.set(key, c);
+        if (nummer) byNummer.set(`${kind(c)}|${nummer}`, c);
+        const key = `${kind(c)}|${String(c.name ?? '').trim().toLowerCase()}|${String(c.plz ?? '').trim()}`;
+        if (!key.endsWith('||')) byNamePlz.set(key, c);
     }
     const matched = [];
     const unmatched = [];
     for (const stop of stops || []) {
-        const customer = (stop.nummer && byNummer.get(String(stop.nummer).trim()))
-            || byNamePlz.get(`${String(stop.name ?? '').trim().toLowerCase()}|${String(stop.plz ?? '').trim()}`);
+        const prefix = kind(stop);
+        const customer = (stop.nummer && byNummer.get(`${prefix}|${String(stop.nummer).trim()}`))
+            || byNamePlz.get(`${prefix}|${String(stop.name ?? '').trim().toLowerCase()}|${String(stop.plz ?? '').trim()}`);
         if (customer && Number.isFinite(Number(customer.lat))) matched.push({ stop, customer });
         else unmatched.push(stop);
     }

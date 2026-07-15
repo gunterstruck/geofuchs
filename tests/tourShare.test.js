@@ -44,6 +44,16 @@ describe('QR-Payload encode/decode', () => {
         expect(decodeTourPayload(null)).toBeNull();
     });
 
+    it('bewahrt die Demo-Herkunft beim QR-Transfer', () => {
+        const demoStart = { ...START, demo: true, dataOrigin: 'tourfuchs-demo' };
+        const demoStop = { ...STOPS[0], id: 'demo-1', demo: true, dataOrigin: 'tourfuchs-demo' };
+        const decoded = decodeTourPayload(encodeTourPayload({ start: demoStart, stops: [demoStop] }));
+
+        expect(decoded.start.demo).toBe(true);
+        expect(decoded.stops[0].demo).toBe(true);
+        expect(decoded.stops[0].dataOrigin).toBe('tourfuchs-demo');
+    });
+
     it('Deep-Link-URL: Roundtrip über das Hash-Fragment (mit Umlauten)', () => {
         const encoded = encodeTourPayload({
             start: START, stops: STOPS, tourName: 'Tour Köln Süd/Ost',
@@ -96,5 +106,13 @@ describe('matchStopsToCustomers', () => {
         const { matched, unmatched } = matchStopsToCustomers(stops, customers);
         expect(matched.map((m) => m.customer.id)).toEqual(['c1', 'c2']);
         expect(unmatched).toHaveLength(1);
+    });
+
+    it('verwechselt Demo-Stopps nicht mit gleich nummerierten echten Kunden', () => {
+        const demoStop = { name: 'TourFuchs Demo · Autohaus 0001', nummer: 'K100', plz: '45136', demo: true };
+        const demoCustomer = { ...customers[0], id: 'demo-1', demo: true };
+        const { matched } = matchStopsToCustomers([demoStop], [customers[0], demoCustomer]);
+        expect(matched).toHaveLength(1);
+        expect(matched[0].customer.id).toBe('demo-1');
     });
 });

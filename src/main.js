@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 
 import { CONFIG } from './core/config.js';
+import { demoCustomersNeedNormalization, normalizeDemoCustomers } from './core/demoSafety.js';
 import { state, on, emit, setCustomers, datasetSnapshot } from './core/state.js';
 import { loadDataset, saveDataset, loadSettings, hasStoredDataset } from './services/storage.js';
 import { isEnabled as vaultEnabled, isLocked as vaultLocked, removeVaultMeta } from './services/vault.js';
@@ -58,6 +59,8 @@ async function restorePersistedState() {
     if (dataset?.territories) state.territories = dataset.territories;
     if (dataset?.customers?.length) {
         let enrichedDemoPlaces = 0;
+        const migratedDemoCustomers = demoCustomersNeedNormalization(dataset.customers);
+        if (migratedDemoCustomers) normalizeDemoCustomers(dataset.customers);
         if (dataset.fileName === 'Demo-Daten') {
             try {
                 enrichedDemoPlaces = await enrichPlacesByPlz(dataset.customers);
@@ -71,7 +74,7 @@ async function restorePersistedState() {
             fileName: dataset.fileName,
             importedAt: dataset.importedAt
         });
-        if (enrichedDemoPlaces > 0) await saveDataset(datasetSnapshot());
+        if (enrichedDemoPlaces > 0 || migratedDemoCustomers) await saveDataset(datasetSnapshot());
 
         // Persistierte Sichtbarkeiten anwenden
         if (settings?.repVisibility) {
