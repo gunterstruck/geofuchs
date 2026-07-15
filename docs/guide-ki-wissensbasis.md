@@ -1,6 +1,6 @@
 # TourFuchs Vertrieb - Wissensbasis für den KI-Guide
 
-**Version 2.0 · Stand: 14.07.2026 · App-Version: 3.0.0**
+**Version 2.1 · Stand: 15.07.2026 · App-Version: 3.0.0**
 
 **Zweck:** Verbindliche Produkt-, Bedien-, Schulungs- und Supportgrundlage für
 einen angepassten TourFuchs-Guide. Die Markdown-Datei ist die primäre
@@ -2106,7 +2106,20 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 - Minor: neuer Klickpfad oder neue Funktion.
 - Major: neue Produktstruktur oder geänderte Datenschutzarchitektur.
 
-### 26.3 Änderungen in Version 2.0
+### 26.3 Änderungen in Version 2.1
+
+- Desktop-Einstieg **"Mobile Außendienst & Tour"** als Produktnutzen benannt.
+- einmaligen, ruhigen Vorschau-Teaser nach vorhandenem Kundenbestand dokumentiert.
+- Tour-Fokus beim Öffnen der Vorschau ergänzt, ohne Kundenkarte, Suche, Briefing
+  oder Navigation als mobile Funktionen einzuschränken.
+- Rückführung zum Smartphone-Symbol und Verhalten bei reduzierter Bewegung
+  dokumentiert.
+- automatische Live-Demo im eingebetteten Smartphone unterdrückt, damit kein
+  Modal im Modal entsteht.
+- gemeinsamen lokalen Datenbestand von Desktop und eingebetteter Vorschau
+  klargestellt.
+
+### 26.4 Änderungen in Version 2.0
 
 - vollständige Zusammenführung der früheren PDF- und Markdown-Wissensbasis.
 - neues Product-Owner-Kapitel mit priorisierten Wow-Effekten.
@@ -2133,6 +2146,7 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 | Vergleichsrahmen | Vertriebsgruppe |
 | Desktop | Daten, Karte, Tour, Gebiete, Cockpit, Simulation, QR-Senden |
 | Smartphone | Karte, Kunden, Briefing, Tour, Navigation, QR-Empfang |
+| Desktop-Handyvorschau | "Mobile Außendienst & Tour"; startet tourfokussiert, zeigt aber den vollständigen mobilen Außendienstweg |
 | Basis | ruhiger Kernweg, Briefing inklusive |
 | Profi | Ziel, Chancen, Exporte, Simulation und optionale Copilot-Automatisierung |
 | Suche | Kunde nach Name, Ort, PLZ, exakter Nummer; keine allgemeine Ortssuche |
