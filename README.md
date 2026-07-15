@@ -21,7 +21,7 @@ TourFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 
 | Bereich | Funktion |
 |---|---|
-| 📄 **Daten** | Excel-/CSV-Import per Klick oder Drag & Drop, automatische Spaltenerkennung mit Prüf-Dialog, Excel-Vorlage, Demo-Daten, Excel-Export |
+| 📄 **Daten** | Excel-/CSV-Import per Klick oder Drag & Drop, automatische Spaltenerkennung mit Prüf-Dialog; eine neue Kundenliste ersetzt nach Warnung den bisherigen Bestand, reine Kontakt-/Gebietsdateien ergänzen ihn gezielt |
 | 🛡️ **Sichere Demo** | Eindeutig markierte Beispielkunden, reservierte Drama-Rufnummern und `example.com`-Adressen; Telefon, E-Mail und Copilot-Briefing werden lokal simuliert, Exporte als Demo gekennzeichnet |
 | 📍 **Verortung** | Sofort über PLZ-Koordinaten (offline, ohne API-Schlüssel); optional adressgenau über OpenStreetMap/Nominatim |
 | 🗺️ **Gebiete** | Landkreise (400 Kreise & Städte) **und** PLZ-Ebenen (1-, 2-, 3- und 5-stellig); Flächen primär nach **Betriebsbezirk** einfärbbar, optional nach Vertriebsgruppe (mit Label und Umsatzsumme); Klick zeigt Kunden & Bezirksverteilung je Gebiet |
@@ -33,7 +33,7 @@ TourFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 | 📲 **QR-Übergabe** | Am Desktop geplante Tour als QR-Code anzeigen, am Handy mit der Kamera scannen und übernehmen – nur die Tour (keine Datenbank), Bildschirm zu Kamera, ohne Netzwerk und ohne Server. Navigation und Kalender-Termine funktionieren direkt aus dem gescannten Code |
 | 📋 **Kundenbriefing** | In **Basis** sofort ohne Einrichtung nutzbar: kundenspezifischen Prompt kopieren, Corporate Copilot öffnen und dort bewusst absenden. **Profi** ergänzt optional die automatische Entra-/Copilot-Verbindung und zeigt das Ergebnis direkt in TourFuchs |
 | 🔍 **Suche** | Kunden nach Name, Ort, PLZ oder Kundennummer finden und anfliegen |
-| 📱 **PWA** | Auf Smartphone/Desktop installierbar, App-Shell und Gebietsdaten offline verfügbar, zuletzt gesehene Kartenausschnitte werden gecacht |
+| 📱 **PWA** | Auf Smartphone/Desktop installierbar, App-Shell und Gebietsdaten offline verfügbar, zuletzt gesehene Kartenausschnitte werden gecacht; mobil wird die Karte ruhig per Zwei-Finger-Geste statt zusätzlicher Zoomtasten bedient |
 | 🔐 **Datentresor** | Optional aktivierbar: Kundendaten werden **AES-256-verschlüsselt** lokal gespeichert (Schlüssel aus PIN via PBKDF2, nie gespeichert). Sperrbildschirm bei App-Start/Inaktivität, **optional Face/Touch ID** (WebAuthn-PRF als zusätzliche Tür), **einstellbare Auto-Lock-Zeit**, Wiederherstellungscode, Auto-Löschung nach zu vielen Fehlversuchen – alles ausschließlich mit der Web-Crypto-API, ohne Server |
 | 🧳 **Sicherer Umzug** | Kundendaten verschlüsselt auf ein anderes Gerät übertragen: **verschlüsselte Datei** (`.tfsafe`, AES-256-GCM mit Zufallsschlüssel) + **Schlüssel als QR-Code**. Datei und Schlüssel reisen **getrennt** (Kanaltrennung) – ohne Schlüssel ist die Datei wertlos; der Schlüssel geht nur per Bildschirm→Kamera, nie übers Netz. Am Zielgerät folgt direkt das erzwungene Tresor-Setup |
 
@@ -66,6 +66,8 @@ Neben Kundenzeilen kann die Liste **Flächenzeilen** enthalten: eine Zeile **ohn
 #### Plausibilitätsprüfung beim Import
 
 Beim Import werden die Zeilen geprüft. **Gültige Zeilen werden importiert**, problematische landen in einer **herunterladbaren Fehlerliste (Excel)** statt in einer unübersichtlichen Fehleranzeige. Erkannt werden u. a.: Dubletten (gleiche Kundennummer bzw. Name + PLZ), fehlender Betriebsbezirk, widersprüchliche Gebietszuordnungen (ein Gebiet zwei verschiedenen Bezirken zugewiesen), unbekannte Landkreise/PLZ-Gebiete sowie nicht auffindbare Kunden-PLZ (Hinweis).
+
+Eine Datei mit Kundenzeilen gilt als **neuer vollständiger Kundenbestand**. Sind bereits Daten geladen, nennt TourFuchs vor dem Import die Wirkung und verlangt eine Bestätigung. Erst danach werden alte Kunden, Tour und Gebietszuordnungen ersetzt. Reine Kontakt- oder Gebietsdateien bleiben ergänzend, weil sie sich ausdrücklich auf den vorhandenen Kundenbestand beziehen.
 
 ### Datenschutz
 

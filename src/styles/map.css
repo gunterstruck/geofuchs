@@ -238,15 +238,10 @@ button.contact-link {
 }
 
 @media (max-width: 768px) {
-    /* Der Karten-Zoom darf auf sehr kurzen Displays keine Popup-Aktion
-       überdecken. Nach dem Schließen erscheint er automatisch wieder. */
+    /* Mobil wird per Zwei-Finger-Geste gezoomt. Die redundanten Tasten nehmen
+       dort nur Kartenfläche ein; auf Desktop bleiben sie erhalten. */
     #map .leaflet-control-zoom {
-        transition: opacity 0.14s ease;
-    }
-    #map.popup-visible .leaflet-control-zoom {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
+        display: none;
     }
     .customer-marker-wrapper {
         width: 36px !important;

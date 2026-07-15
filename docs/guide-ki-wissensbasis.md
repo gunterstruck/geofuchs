@@ -206,7 +206,7 @@ TourFuchs:
 |---|---|---|
 | Außendienst | Smartphone, Tablet, Laptop | Kunden finden, Tour planen, Besuch abhaken, Briefing, Navigation |
 | Vertriebsleitung | Desktop/Laptop | Bezirke vergleichen, Cockpit, Simulation, Export |
-| Datenverantwortliche | Desktop/Laptop | Import, Spaltenzuordnung, Delta, Kontakte, Fehlerliste, Tresor |
+| Datenverantwortliche | Desktop/Laptop | Import, Spaltenzuordnung, Vollersatz, Kontakte, Fehlerliste, Tresor |
 | Trainer/Guide | Desktop plus Mobile-Vorschau | Live-Demos, Klickpfade, Mini-Schulungen |
 
 ### 3.2 Desktop gegen Smartphone
@@ -289,8 +289,9 @@ wird ausschließlich mit **Plus/Minus** unten rechts eingestellt.
 
 ### 4.4 Panelgröße und Position
 
-- **Plus/Minus unten rechts:** gesamter Panelinhalt von 80 % bis 150 % in
-  10-Prozent-Schritten.
+- **Plus/Minus unten rechts am Desktop:** gesamter Panelinhalt von 80 % bis
+  150 % in 10-Prozent-Schritten. Mobil ist diese zusätzliche Steuerung
+  ausgeblendet.
 - **Doppelklick auf die Prozentanzeige:** zurück auf 100 %.
 - **rechter Panelrand:** Panelbreite am Desktop zwischen etwa 340 und 400 Pixeln
   ziehen.
@@ -304,7 +305,9 @@ wird ausschließlich mit **Plus/Minus** unten rechts eingestellt.
 ### 4.5 Karte bedienen
 
 - Mausrad über der Karte zoomt die Karte weich in Viertelstufen.
-- Plus/Minus unten rechts auf der Karte zoomt ebenfalls.
+- Am Desktop zoomt Plus/Minus unten rechts auf der Karte ebenfalls.
+- Mobil sind diese redundanten Kartentasten ausgeblendet; dort mit zwei Fingern
+  stufenlos zoomen.
 - Ziehen auf der freien Karte verschiebt den Kartenausschnitt.
 - Viele Kunden werden als Clusterzahl zusammengefasst; Klick auf einen Cluster
   zoomt hinein.
@@ -491,7 +494,7 @@ Semikolon, Komma, Tab, UTF-8 und Windows-1252.
 | Kundenname | Ja für Kundenzeilen | sichtbarer Kundenname |
 | PLZ oder Lat/Lng | Ja für Kartenposition | lokale PLZ-Verortung oder vorhandene Koordinaten |
 | Vertriebsbezirk | Ja für Kundenzeilen | führende operative Ebene |
-| Kundennummer | dringend empfohlen | stabiler Delta- und Kontakt-Schlüssel |
+| Kundennummer | dringend empfohlen | eindeutiger Kontakt- und QR-Schlüssel |
 | Straße & Hausnummer | optional | Adresse, Navigation, exakte Verortung |
 | Ort | optional, sehr empfohlen | Anzeige im Popup und Stadtsuche |
 | Vertriebsbeauftragter | optional | zusätzliche Personenzuordnung |
@@ -516,34 +519,39 @@ Spaltensynonyme werden automatisch erkannt. Beispiele: `Firma`, `Stadt`,
    ziehen.
 4. Im Dialog **"Spalten zuordnen"** automatische Zuordnung und Beispielwerte
    prüfen.
-5. **"Importieren"**.
+5. **"Importieren"**. Ist bereits ein Kundenbestand geladen, Wirkung und Anzahl
+   in der Ersetzungswarnung prüfen und erst dann bestätigen.
 6. Erfolgsmeldung beziehungsweise Dialog **"Import abgeschlossen"** prüfen.
 7. Bei Problemen **"Fehlerliste (.xlsx)"** herunterladen.
 8. Nach eigenen Kundendaten dem geführten Tresor-Angebot folgen.
 
 **Merksatz:** Automatisch erkannt bedeutet nicht automatisch geprüft.
 
-### 7.6 Delta- und Upsert-Logik
+### 7.6 Erneuter Import und vollständige Ersetzung
 
-Bei einem erneuten Import werden bestehende Kunden nicht pauschal überschrieben
-oder gelöscht.
+Eine Excel-/CSV-Datei mit Kundenzeilen ist eine **neue vollständige Kundenbasis**,
+kein Delta und kein Upsert. TourFuchs liest und prüft die Datei zuerst. Sind
+bereits Daten vorhanden, erscheint vor jeder Änderung eine Warnung mit bisheriger
+und neuer Kundenanzahl.
 
-Matching:
+Nach Bestätigung werden gemeinsam ersetzt:
 
-1. bevorzugt exakt über **Kundennummer**.
-2. ohne Kundennummer über normalisierten **Kundenname + PLZ**.
+- bisherige Kunden und ihre lokal ergänzten Besuchs-/Kontaktdaten
+- aktuelle Tour, Start, Ziel und Stopps
+- bisherige Gebietszuordnungen; Flächenzeilen der neuen Datei werden anschließend
+  neu aufgebaut
 
-Bei einem Treffer:
+Abbrechen lässt den gesamten Altbestand unverändert. Vor einem Vollimport bei
+Bedarf **"Als Excel exportieren"**, weil nicht in der neuen Datei enthaltene
+Informationen danach nur aus einer Sicherung wiederherstellbar sind.
 
-- frische Stammdaten aktualisieren den Datensatz.
-- die interne Kunden-ID bleibt erhalten.
-- vorhandene und neue Besuchsdaten werden zusammengeführt.
-- Kontakte werden zusammengeführt und der Hauptkontakt synchronisiert.
-- alte Kunden, die in der neuen Datei nicht vorkommen, bleiben erhalten.
-- Gebiets- und Tourarbeit bleibt soweit möglich bestehen.
+Zwei Spezialfälle bleiben bewusst ergänzend:
 
-Der Vorgang ist damit ein **Delta/Upsert**, kein Vollersatz. Vor einem großen
-Delta-Import trotzdem einen Excel-Export empfehlen.
+- eine reine Kontaktdatei verknüpft Kontakte über die Kundennummer
+- eine reine Gebietsdatei ergänzt Gebietszuordnungen
+
+Auch Beispieldaten und eine empfangene `.tfsafe`-Datei sind vollständige
+Datensätze. Sie ersetzen vorhandene Daten ebenfalls erst nach Bestätigung.
 
 ### 7.7 Getrennte Kontaktdatei
 
@@ -672,7 +680,9 @@ Im Panel unter **"Kartenstil"** stehen:
 
 Die Kartenwahl wird gespeichert. Das Mausrad zoomt in kleinen Viertelstufen, um
 ruckartige Sprünge zu vermeiden. Das Mausrad über der Sidebar scrollt dagegen
-den Panelinhalt.
+den Panelinhalt. Auf Desktop bleiben die Plus-/Minus-Tasten der Karte sichtbar.
+Auf dem Smartphone sind sie zugunsten von mehr Kartenfläche ausgeblendet; dort
+wird intuitiv mit zwei Fingern gezoomt.
 
 ### 8.4 Kundenmarker und Cluster
 
@@ -1082,6 +1092,9 @@ Das Bedienpanel ist unten an den Bildschirm angedockt.
 - die gewählte Höhe wird gespeichert.
 
 Im Sheet funktionieren Scrollbar, Finger-Scrollen und Ziehen auf Freiflächen.
+Die Karte wird mobil mit zwei Fingern gezoomt. Sowohl die zusätzlichen
+Karten-Zoomtasten als auch die Desktop-Panel-Skalierung sind dort bewusst
+ausgeblendet.
 
 ### 12.3 In der Nähe
 
@@ -1411,7 +1424,7 @@ Vor diesen Aktionen immer Wirkung nennen und bei Bedarf Export empfehlen:
 - **"Datenbank zurücksetzen"**
 - zehnter falscher PIN-Versuch
 - **"Zuweisung übernehmen"**
-- großer Delta-Import
+- vollständiger Kundenimport
 
 ---
 
@@ -1425,7 +1438,7 @@ Vor diesen Aktionen immer Wirkung nennen und bei Bedarf Export empfehlen:
 | Spalten prüfen | `"Spalten zuordnen" -> Zuordnungen und Beispiele prüfen -> "Importieren"` |
 | Fehlerliste | `"Import abgeschlossen" -> "Fehlerliste (.xlsx)"` |
 | Excel-Vorlage | `Daten -> "Excel-Vorlage herunterladen"` |
-| Delta-Import | `Daten -> "Andere Excel- oder CSV-Liste laden"` |
+| Kundenbestand ersetzen | `Daten -> "Andere Excel- oder CSV-Liste laden" -> Datei prüfen -> "Importieren" -> Ersetzungswarnung bestätigen` |
 | Exakte Adressen | `Daten -> "Adressen exakt verorten"` |
 | Export | `Daten -> "Als Excel exportieren"` |
 | Kunde suchen | `Topbar -> "Kunde, Ort, PLZ suchen..." -> Kundentreffer` |
@@ -1491,7 +1504,7 @@ eigenständiges Kartenziel.
 ### 18.3 Popup zeigt PLZ, aber keinen Ort
 
 Ursache: Das Feld `Ort` fehlt im eigenen Kundendatensatz. Lösung: Ortsspalte beim
-nächsten Delta-Import zuordnen. Demo-Daten werden automatisch lokal angereichert;
+nächsten vollständigen Kundenimport zuordnen. Demo-Daten werden automatisch lokal angereichert;
 eigene Daten werden nicht stillschweigend verändert.
 
 ### 18.4 Gebiet bleibt grau oder leer
@@ -1594,7 +1607,7 @@ Werte steuern Druck, ICS und QR. Fahrzeit bleibt eine Schätzung.
 - Ansprechpartner statt Vertriebsbeauftragter zugeordnet?
 - separate Kontaktdatei mit Kundennummer?
 - Primärkontakt korrekt markiert?
-- Delta-Import hat denselben Kundenschlüssel?
+- getrennte Kontaktdatei hat dieselbe Kundennummer wie der vorhandene Kunde?
 
 ### 18.17 Simulation lässt sich nicht übernehmen
 
@@ -1897,7 +1910,7 @@ Vor folgenden Aktionen Wirkung und gegebenenfalls Datenschutz nennen:
 - Adressen exakt verorten
 - Straßenroute aktivieren
 - Copilot-Prompt absenden
-- großer Delta-Import
+- vollständiger Kundenimport
 - Tresor deaktivieren
 
 ### 22.3 Sensible Diagnose
@@ -1964,13 +1977,13 @@ Microsoft 365 Copilot übergeben. Nenne bei Datenschutzfragen den konkreten
 Datenfluss statt einer pauschalen Aussage.
 
 Weise klar darauf hin, dass Simulationsschritte erst durch "Zuweisung
-übernehmen" dauerhaft werden. Vor Datenlöschung, großem Delta-Import,
+übernehmen" dauerhaft werden. Vor Datenlöschung, vollständigem Kundenimport,
 Geocodierung, Straßenroute, Google-Maps-Übergabe, Copilot-Absenden oder
 dauerhafter Gebietszuweisung nennst du Wirkung und Datenschutzbezug.
 
 Die globale Suche findet Kunden nach Name, gespeichertem Ort, PLZ oder exakter
 Kundennummer. Sie ist keine allgemeine Ortssuche. Wenn ein Ort fehlt, empfehle die
-Ortsspalte per Delta-Import.
+Ortsspalte im nächsten vollständigen Kundenimport.
 
 Erfinde keine Kundendaten, Funktionen, Menüpunkte, API-Verfügbarkeit oder
 verbindlichen Fahrzeiten. Wenn ein Screenshot vorliegt, identifiziere zuerst den
@@ -2002,7 +2015,7 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 8. **Was passiert bei OSRM-Ausfall?**
    Luftlinie bleibt als Fallback.
 9. **Wozu dient die Kundennummer?**
-   Stabiler Delta-Schlüssel und eindeutige Kontakt-/QR-Zuordnung.
+   Eindeutige Zuordnung für getrennte Kontaktdateien und QR-Touren.
 10. **Was vor Datenlöschung tun?**
     Bei Bedarf Excel-Export.
 11. **Was bedeutet Alt/Neu/Änderungen?**

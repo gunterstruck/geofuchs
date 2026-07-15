@@ -204,10 +204,10 @@
         display: none;
     }
 
-    /* Zoom-Control bleibt auf dem Handy sichtbar (schwebend, untere Ecke). */
+    /* Die Panel-Skalierung ist eine Desktop-Hilfe. Mobil gewinnt die Karte
+       durch weniger schwebende Bedienelemente Platz und Ruhe. */
     .panel-zoom {
-        right: 10px;
-        bottom: 16px;
+        display: none;
     }
 
     .mobile-data-reset {

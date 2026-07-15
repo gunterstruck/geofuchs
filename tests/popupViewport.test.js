@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { popupSafeRect, popupPanOffset, popupContentHeightLimit } from '../src/features/popupViewport.js';
+
+const mapCss = readFileSync(resolve(process.cwd(), 'src/styles/map.css'), 'utf8');
 
 const rect = (left, top, right, bottom) => ({
     left, top, right, bottom,
@@ -44,5 +48,10 @@ describe('mobiler Popup-Sichtbereich', () => {
             rect(12, 154, 378, 530),
             380
         )).toBe(316);
+    });
+
+    it('blendet die redundanten Karten-Zoomtasten nur mobil aus', () => {
+        expect(mapCss).toMatch(/@media \(max-width: 768px\)[\s\S]*?#map \.leaflet-control-zoom\s*{\s*display: none;/);
+        expect(mapCss).not.toMatch(/^#map \.leaflet-control-zoom\s*{\s*display: none;/m);
     });
 });

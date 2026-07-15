@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { state, setCustomers, mergeCustomersDelta, getCustomer } from '../src/core/state.js';
+import { describe, it, expect } from 'vitest';
+import { state, setCustomers, replaceCustomers, getCustomer } from '../src/core/state.js';
 
 function reset(customers) {
     setCustomers(customers, { fileName: 'test.xlsx' });
@@ -13,39 +13,38 @@ describe('getCustomer (Index)', () => {
     });
 });
 
-describe('mergeCustomersDelta', () => {
-    beforeEach(() => {
-        reset([{
-            id: 'alt-1', nummer: 'K100', name: 'Autohaus Schmidt', plz: '45136',
-            vb: 'Meier', umsatz: 1000, besuche: ['2026-05-01']
-        }]);
-    });
+describe('replaceCustomers', () => {
+    it('entfernt Altbestand, Tour und alte Gebietszuordnungen gemeinsam', () => {
+        reset([{ id: 'alt-1', nummer: 'A1', name: 'Alt', vb: 'West' }]);
+        state.territories = { 'plz2:45': { bezirk: 'Altbezirk' } };
+        Object.assign(state.tour, {
+            bezirk: 'Altbezirk',
+            start: { customerId: 'alt-1', lat: 51, lng: 7 },
+            destination: { customerId: 'alt-1', lat: 51, lng: 7 },
+            stops: ['alt-1'],
+            roundTrip: true,
+            suggestMode: 'route',
+            mapFocus: true,
+            routeLineMode: 'road'
+        });
 
-    it('erhält die bestehende ID und vereinigt Besuche', () => {
-        const merged = mergeCustomersDelta([{
-            id: 'neu-99', nummer: 'K100', name: 'Autohaus Schmidt GmbH', plz: '45136',
-            vb: 'Meier', umsatz: 2000, besuche: ['2026-07-01']
-        }]);
-        expect(merged).toHaveLength(1);
-        expect(merged[0].id).toBe('alt-1');
-        expect(merged[0].umsatz).toBe(2000);
-        expect(merged[0].besuche).toEqual(['2026-05-01', '2026-07-01']);
-    });
+        replaceCustomers(
+            [{ id: 'neu-1', nummer: 'N1', name: 'Neu', vb: 'Nord' }],
+            { fileName: 'neu.xlsx', territories: { 'plz2:20': { bezirk: 'Nord' } } }
+        );
 
-    it('behält Bestandskunden, die im Delta fehlen', () => {
-        const merged = mergeCustomersDelta([{
-            id: 'neu-2', nummer: 'K200', name: 'Neukunde', plz: '46045', vb: 'Kunz', besuche: []
-        }]);
-        expect(merged.map((c) => c.nummer).sort()).toEqual(['K100', 'K200']);
-    });
-
-    it('matcht ohne Kundennummer über Name + PLZ', () => {
-        reset([{ id: 'alt-2', nummer: '', name: 'Bäckerei Ruhr', plz: '45127', vb: 'Meier', besuche: [] }]);
-        const merged = mergeCustomersDelta([{
-            id: 'neu-3', nummer: '', name: 'bäckerei ruhr', plz: '45127', vb: 'Kunz', besuche: []
-        }]);
-        expect(merged).toHaveLength(1);
-        expect(merged[0].id).toBe('alt-2');
-        expect(merged[0].vb).toBe('Kunz');
+        expect(state.customers.map((customer) => customer.id)).toEqual(['neu-1']);
+        expect(state.fileName).toBe('neu.xlsx');
+        expect(state.territories).toEqual({ 'plz2:20': { bezirk: 'Nord' } });
+        expect(state.tour).toMatchObject({
+            bezirk: null,
+            start: null,
+            destination: null,
+            stops: [],
+            roundTrip: false,
+            suggestMode: 'radius',
+            mapFocus: false,
+            routeLineMode: 'air'
+        });
     });
 });

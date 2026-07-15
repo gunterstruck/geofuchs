@@ -9,7 +9,7 @@
 
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
-import { state, setCustomers, emit, datasetSnapshot } from '../core/state.js';
+import { state, replaceCustomers, emit, datasetSnapshot } from '../core/state.js';
 import { saveDataset } from '../services/storage.js';
 import { isEnabled } from '../services/vault.js';
 import { geocodeByPlz } from '../services/geocode.js';
@@ -20,6 +20,7 @@ import {
 } from '../features/safeTransfer.js';
 import { openSetupDialog } from './lockVault.js';
 import { showToast } from './toast.js';
+import { confirmDatasetReplacement } from './datasetReplacement.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
@@ -252,10 +253,19 @@ async function handleKeyText(text) {
 
 async function applyImported(dataset) {
     const customers = Array.isArray(dataset?.customers) ? dataset.customers : [];
+    if (!confirmDatasetReplacement({
+        incomingCount: customers.length,
+        sourceLabel: 'Die empfangene TourFuchs-Datei'
+    })) {
+        showToast('Import abgebrochen. Die bisherigen Daten bleiben vollständig erhalten.', 'info', 5000);
+        return;
+    }
     await geocodeByPlz(customers); // Sicherheitsnetz für evtl. fehlende Koordinaten
-    state.territories = dataset?.territories || {};
-    setCustomers(customers, { fileName: dataset?.fileName, importedAt: dataset?.importedAt });
-    emit('customers:changed');
+    replaceCustomers(customers, {
+        fileName: dataset?.fileName,
+        importedAt: dataset?.importedAt,
+        territories: dataset?.territories || {}
+    });
     fitToCustomers();
     receiveDialog.close();
 

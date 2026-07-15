@@ -6,13 +6,14 @@
  */
 
 import { geocodeByPlz } from '../services/geocode.js';
-import { state, setCustomers, mergeCustomersDelta, emit, datasetSnapshot, setTerritory } from '../core/state.js';
+import { state, setCustomers, replaceCustomers, emit, datasetSnapshot, setTerritory } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { saveDataset } from '../services/storage.js';
 import { markShowcaseImportCompleted } from '../services/showcaseOnboarding.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { showToast } from './toast.js';
 import { fitToCustomers } from '../features/map.js';
+import { confirmDatasetReplacement, hasExistingDataset } from './datasetReplacement.js';
 
 let dialog = null;
 let resultDialog = null;
@@ -185,12 +186,9 @@ async function confirmImport() {
     const { parseRows, attachContacts } = await excel();
     const { customers, areaRows, contactRows, errors, skipped } = parseRows(parsed.rows, mapping);
 
-    // Flächenzeilen (Gebietszuordnungen) auflösen – lädt Gebietsdaten bei Bedarf
-    const areaCount = await resolveAreas(areaRows, errors);
-
     lastFileBase = (parsed.fileName || 'TourFuchs').replace(/\.[^.]+$/, '');
 
-    if (customers.length === 0 && areaCount === 0 && contactRows.length === 0) {
+    if (customers.length === 0 && areaRows.length === 0 && contactRows.length === 0) {
         dialog.close();
         lastErrors = errors;
         if (errors.length) {
@@ -201,7 +199,17 @@ async function confirmImport() {
         return;
     }
 
+    const replacedExisting = customers.length > 0 && hasExistingDataset();
+    if (customers.length > 0 && !confirmDatasetReplacement({
+        incomingCount: customers.length,
+        sourceLabel: 'Die ausgewählte Kundenliste'
+    })) {
+        showToast('Import abgebrochen. Die bisherigen Daten bleiben vollständig erhalten.', 'info', 5000);
+        return;
+    }
+
     dialog.close();
+    let areaCount = 0;
 
     if (customers.length > 0) {
         await geocodeByPlz(customers);
@@ -213,22 +221,27 @@ async function confirmImport() {
             delete c._sheetRow; delete c._raw;
         }
         if (contactRows.length) attachContacts(customers, contactRows, errors);
-        const merged = state.customers.length ? mergeCustomersDelta(customers) : customers;
-        setCustomers(merged, { fileName: parsed.fileName });
+        replaceCustomers(customers, { fileName: parsed.fileName });
+        areaCount = await resolveAreas(areaRows, errors);
+        if (areaCount > 0) emit('customers:changed');
         fitToCustomers();
-    } else if (contactRows.length > 0) {
-        const { matched } = attachContacts(state.customers, contactRows, errors);
-        setCustomers(state.customers, { fileName: state.fileName, importedAt: state.importedAt });
-        showToast(`${matched} Kontakt(e) mit bestehenden Kunden verknuepft.`, matched ? 'success' : 'info', 6000);
     } else {
-        // Reiner Flächen-Import: Kunden unverändert lassen, nur neu einfärben
-        emit('customers:changed');
+        // Reine Kontakt- und Gebietsdateien ergänzen bewusst den aktuellen
+        // Kundenbestand; sie sind ohne diesen Bestand nicht eigenständig nutzbar.
+        areaCount = await resolveAreas(areaRows, errors);
+        if (contactRows.length > 0) {
+            const { matched } = attachContacts(state.customers, contactRows, errors);
+            setCustomers(state.customers, { fileName: state.fileName, importedAt: state.importedAt });
+            showToast(`${matched} Kontakt(e) mit bestehenden Kunden verknüpft.`, matched ? 'success' : 'info', 6000);
+        } else if (areaCount > 0) {
+            emit('customers:changed');
+        }
     }
     await saveDataset(datasetSnapshot());
     markShowcaseImportCompleted();
 
     lastErrors = errors;
-    showImportResult({ customerCount: customers.length, contactCount: contactRows.length, areaCount, skipped, errors });
+    showImportResult({ customerCount: customers.length, contactCount: contactRows.length, areaCount, skipped, errors, replacedExisting });
 
     // Eigene Kundendaten importiert -> zum Verschlüsseln führen (nach dem
     // Ergebnis-Dialog, falls dieser wegen Fehlern offen ist).
@@ -291,7 +304,7 @@ async function resolveAreas(areaRows, errors) {
     return count;
 }
 
-function showImportResult({ customerCount, contactCount = 0, areaCount, skipped, errors }) {
+function showImportResult({ customerCount, contactCount = 0, areaCount, skipped, errors, replacedExisting = false }) {
     const fehler = errors.filter((e) => e.Typ === 'Fehler').length;
     const hinweise = errors.filter((e) => e.Typ === 'Hinweis').length;
 
@@ -300,7 +313,8 @@ function showImportResult({ customerCount, contactCount = 0, areaCount, skipped,
         if (customerCount) parts.push(`${customerCount} Kunden`);
         if (contactCount) parts.push(`${contactCount} Kontakte`);
         if (areaCount) parts.push(`${areaCount} Gebiete`);
-        showToast(`${parts.join(', ') || 'Daten'} importiert.`, 'success', 6000);
+        const replacement = replacedExisting ? ' Die bisherige Kundenliste wurde vollständig ersetzt.' : '';
+        showToast(`${parts.join(', ') || 'Daten'} importiert.${replacement}`, 'success', 6000);
         return;
     }
     document.getElementById('import-result-body').innerHTML = `
@@ -311,7 +325,7 @@ function showImportResult({ customerCount, contactCount = 0, areaCount, skipped,
             <div class="stat"><b>${fehler}</b><span>Fehler</span></div>
             <div class="stat"><b>${hinweise}</b><span>Hinweise</span></div>
         </div>
-        <p class="muted small">Gültige Zeilen wurden importiert. ${fehler ? `${fehler} Zeile(n) mit Fehlern wurden nicht übernommen. ` : ''}${hinweise ? `${hinweise} Hinweis(e) (z. B. unbekannte PLZ). ` : ''}Laden Sie die Liste herunter, um die Zeilen zu prüfen und zu korrigieren.</p>
+        <p class="muted small">Gültige Zeilen wurden importiert. ${replacedExisting ? 'Die bisherige Kundenliste wurde vollständig ersetzt. ' : ''}${fehler ? `${fehler} Zeile(n) mit Fehlern wurden nicht übernommen. ` : ''}${hinweise ? `${hinweise} Hinweis(e) (z. B. unbekannte PLZ). ` : ''}Laden Sie die Liste herunter, um die Zeilen zu prüfen und zu korrigieren.</p>
     `;
     resultDialog.showModal();
 }
@@ -319,19 +333,23 @@ function showImportResult({ customerCount, contactCount = 0, areaCount, skipped,
 async function loadDemo() {
     // Beispieldaten sind nicht schützenswert: ein evtl. aktiver Tresor wird
     // deaktiviert, damit die Demo unverschlüsselt und ohne PIN-Sperre läuft.
-    if (vaultEnabled()) {
-        if (!confirm('Die Beispieldaten ersetzen deine aktuellen Daten und deaktivieren den Datentresor (die PIN wird entfernt). Fortfahren?')) return;
-        removeVaultMeta();
-    }
     const { demoCustomers } = await excel();
-    await applyCustomers(await demoCustomers(), 'Demo-Daten');
+    const customers = await demoCustomers();
+    const disablesVault = vaultEnabled();
+    if (!confirmDatasetReplacement({
+        incomingCount: customers.length,
+        sourceLabel: 'Die Beispieldaten',
+        disablesVault
+    })) return;
+    if (disablesVault) removeVaultMeta();
+    await applyCustomers(customers, 'Demo-Daten');
     emit('demo:loaded');
     showToast('Demo geladen – tippe auf einen Pin oder plane eine Tour. Eigene Daten? Lade jederzeit deine Excel-Liste.', 'success', 6000);
 }
 
 async function applyCustomers(customers, fileName) {
     const { located, missing } = await geocodeByPlz(customers);
-    setCustomers(customers, { fileName });
+    replaceCustomers(customers, { fileName });
     await saveDataset(datasetSnapshot());
     fitToCustomers();
     emit('toast', {
