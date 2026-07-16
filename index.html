@@ -145,18 +145,23 @@
 
             <!-- Tab: Gebiete -->
             <section id="tab-gebiete" class="tab-panel">
-                <h2>Gebietsebene</h2>
-                <p class="muted small">Wählen Sie die Gebietsebene (Landkreise oder PLZ) und unten unter „Ansicht &amp; Farbe", wonach die Gebiete eingefärbt werden.</p>
-                <label class="field-label" for="level-select">Ebene</label>
-                <div class="level-row">
-                    <select id="level-select"></select>
+                <h2>Gebietskarte</h2>
+                <p class="muted small">TourFuchs wählt den passenden Detailgrad automatisch zum Kartenzoom.</p>
+                <div class="level-status" aria-live="polite">
+                    <span id="level-mode-label">Automatisch nach Zoom</span>
+                    <strong id="level-active-label">Landkreise</strong>
                     <span id="level-loading" class="spinner" style="display:none"></span>
                 </div>
-                <ul class="hint-list">
-                    <li><b>Landkreise:</b> klassische Gebietssicht (400 Kreise & Städte)</li>
-                    <li><b>PLZ 1-/2-stellig:</b> grobe Vertriebszonen</li>
-                    <li><b>PLZ 3-/5-stellig:</b> feine Gebietsaufteilung</li>
-                </ul>
+                <div class="expert-only level-expert-control">
+                    <label class="field-label" for="level-select">Detailgrad steuern</label>
+                    <div class="level-row"><select id="level-select"></select></div>
+                    <p class="muted small">„Automatisch" folgt dem Zoom. Eine konkrete Ebene bleibt im Profi-Modus fixiert.</p>
+                    <ul class="hint-list">
+                        <li><b>Landkreise:</b> klassische Gebietssicht (400 Kreise &amp; Städte)</li>
+                        <li><b>PLZ 1-/2-stellig:</b> grobe Vertriebszonen</li>
+                        <li><b>PLZ 3-/5-stellig:</b> feine Gebietsaufteilung; PLZ 5 nur bewusst fixiert</li>
+                    </ul>
+                </div>
 
                 <h3>Ansicht &amp; Farbe</h3>
                 <label class="field-label" for="colormode-select">Anzeige</label>
@@ -170,8 +175,8 @@
                 <p class="muted small" id="colormode-hint"></p>
                 <div id="colormode-legend" class="legend"></div>
                 <h3>Auswertung</h3>
-                <button id="btn-cockpit" class="primary" style="width:100%">📊 Gebiets-Cockpit öffnen</button>
-                <p class="muted small">Kunden & Umsatz je Vertriebsbezirk, plus Was-wäre-wenn-Zuweisung von Gebieten.</p>
+                <button id="btn-cockpit" class="primary expert-only" style="width:100%">📊 Gebiets-Cockpit öffnen</button>
+                <p class="muted small expert-only">Kunden &amp; Umsatz je Vertriebsbezirk, plus Was-wäre-wenn-Zuweisung von Gebieten.</p>
 
                 <p class="muted small">Tipp: Gebiet anklicken zeigt Kunden und Team-Verteilung im Gebiet.</p>
             </section>

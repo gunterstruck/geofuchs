@@ -18,6 +18,7 @@ import { revenueWeightedCentroids } from './labelPlacement.js';
 import { suggestNearby, suggestAlongRoute } from './tour.js';
 import { popupSafeRect, popupPanOffset, popupContentHeightLimit } from './popupViewport.js';
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
+import { automaticLevelActive, automaticLevelForZoom } from './mapLevel.js';
 import { openRegionEditor } from '../ui/regionEditor.js';
 import { openCustomerBriefing } from '../ui/customerBriefing.js';
 
@@ -37,6 +38,8 @@ let simulationPreview = null;
 let activeRegionTooltipLayer = null;
 let activePopup = null;
 let popupFitFrame = 0;
+let levelLoadSequence = 0;
+let loadingLevel = null;
 const ROUTE_HUE_START = 0;      // rot
 const ROUTE_HUE_END = 276;      // lila
 
@@ -287,7 +290,8 @@ export function initMap(containerId) {
 
     // Zoom-Automatik: bei „auto" den Detailgrad neu bestimmen
     map.on('zoomend', () => {
-        if (state.colorMode === 'auto') applyView();
+        const levelChanged = syncEffectiveLevel();
+        if (!levelChanged && state.colorMode === 'auto') applyView();
     });
     map.on('movestart zoomstart', closeActiveRegionTooltip);
     map.getContainer().addEventListener('pointerleave', closeActiveRegionTooltip);
@@ -320,6 +324,11 @@ export function initMap(containerId) {
         // Gebietszuordnung direkt im Gebiets-Popup (Vertriebsbezirk)
         el.querySelectorAll('select[data-terr]').forEach((sel) => {
             sel.addEventListener('change', () => {
+                if (isMobileMap() || state.ui.depth !== 'profi') {
+                    map.closePopup();
+                    emit('toast', { type: 'info', text: 'Gebiete lassen sich am Desktop im Profi-Modus bearbeiten.' });
+                    return;
+                }
                 setTerritory(sel.dataset.level, sel.dataset.key, sel.dataset.terr, sel.value, sel.dataset.name);
                 markDirty();
             });
@@ -361,16 +370,34 @@ export function initMap(containerId) {
     on('colormode:changed', applyView);
     on('basemap:changed', applyBasemap);
     on('level:changed', () => { setLevel(state.level); });
+    on('level:control-changed', syncEffectiveLevel);
+    on('depth:changed', () => {
+        if (state.ui.depth !== 'profi') map.closePopup();
+        syncEffectiveLevel();
+    });
     on('tour:scope-changed', refreshAll);
     on('tour:changed', renderTour);
     on('simulation:preview', (preview) => {
         simulationPreview = preview?.active ? preview : null;
         map.closePopup();
+        if (!simulationPreview && syncEffectiveLevel()) return;
+        if (simulationPreview && (
+            state.level !== simulationPreview.level
+            || (!currentLevelData && loadingLevel !== simulationPreview.level)
+        )) {
+            void setLevel(simulationPreview.level);
+            return;
+        }
+        if (simulationPreview && !currentLevelData) return;
         applyView();
     });
 
     const refitOpenPopup = () => {
         if (!activePopup) return;
+        if (isMobileMap() && activePopup.getElement()?.querySelector('select[data-terr]')) {
+            map.closePopup();
+            return;
+        }
         if (!isMobileMap()) {
             const content = activePopup.getElement()?.querySelector('.leaflet-popup-content');
             if (content) {
@@ -387,7 +414,7 @@ export function initMap(containerId) {
         if (event.propertyName === 'transform' || event.propertyName === 'height') refitOpenPopup();
     });
 
-    setLevel(state.level);
+    syncEffectiveLevel();
     return map;
 }
 
@@ -507,27 +534,58 @@ function applyView() {
 
 // ---- Gebietsebene ----
 
+function usesAutomaticLevel() {
+    return automaticLevelActive(state.ui.depth, state.levelMode, isMobileMap());
+}
+
+/** Wirksame Ebene aus Basis/Profi-Modus, Viewport und Zoom ableiten. */
+function syncEffectiveLevel() {
+    if (!map || simulationPreview) return false;
+    const target = usesAutomaticLevel()
+        ? automaticLevelForZoom(map.getZoom(), state.level)
+        : state.fixedLevel;
+    if (target === state.level && (target === 'none' || currentLevelData || loadingLevel === target)) {
+        emit('level:resolved', { level: state.level, automatic: usesAutomaticLevel() });
+        return false;
+    }
+    void setLevel(target);
+    return true;
+}
+
 export async function setLevel(level) {
+    const sequence = ++levelLoadSequence;
     state.level = level;
+    emit('level:resolved', { level, automatic: usesAutomaticLevel() });
     closeActiveRegionTooltip();
     if (regionLayer) { map.removeLayer(regionLayer); regionLayer = null; }
     if (labelLayer) labelLayer.clearLayers();
     currentLevelData = null;
     featureByKey = new Map();
-    if (level === 'none' || !CONFIG.levels[level]?.file) { applyView(); return; }
+    if (level === 'none' || !CONFIG.levels[level]?.file) {
+        loadingLevel = null;
+        emit('map:loading', false);
+        applyView();
+        return;
+    }
 
     emit('map:loading', true);
+    loadingLevel = level;
+    let loadedLevel;
     try {
-        currentLevelData = await loadLevel(level);
+        loadedLevel = await loadLevel(level);
     } catch (error) {
+        if (sequence !== levelLoadSequence) return;
+        loadingLevel = null;
         emit('map:loading', false);
         emit('toast', { type: 'error', text: error.message });
         return;
     }
-    emit('map:loading', false);
 
-    // Ebene könnte inzwischen erneut gewechselt worden sein
-    if (state.level !== level) return;
+    // Ebene könnte während des Ladens erneut gewechselt worden sein.
+    if (sequence !== levelLoadSequence || state.level !== level) return;
+    currentLevelData = loadedLevel;
+    loadingLevel = null;
+    emit('map:loading', false);
 
     for (const feature of currentLevelData.features) {
         featureByKey.set(regionKey(level, feature), feature);
@@ -877,7 +935,7 @@ function renderLabels() {
 /** Zuweisung für die ganze Fläche eines Gebiets */
 function territoryAssignHtml(feature) {
     if (simulationPreview) return '';
-    if (isMobileMap()) return '';
+    if (isMobileMap() || state.ui.depth !== 'profi') return '';
     const name = regionName(state.level, feature);
     const key = regionKey(state.level, feature);
     const terr = getTerritory(state.level, key) || {};
@@ -916,7 +974,11 @@ function regionPopupHtml(feature) {
     }
     const assign = territoryAssignHtml(feature);
     const revenue = entry?.customers?.reduce((sum, c) => sum + (c.umsatz || 0), 0) || 0;
-    const readonly = isMobileMap() ? '<p class="muted small region-readonly">Nur lesbar – Änderungen am Desktop.</p>' : '';
+    const readonly = isMobileMap()
+        ? '<p class="muted small region-readonly">Nur lesbar – Änderungen am Desktop.</p>'
+        : state.ui.depth !== 'profi'
+            ? '<p class="muted small region-readonly">Nur lesbar – Bearbeitung im Profi-Modus.</p>'
+            : '';
 
     if (!entry || entry.total === 0) {
         return `<div class="popup popup-region">

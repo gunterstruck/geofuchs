@@ -34,12 +34,12 @@ import { fitToCustomers } from './features/map.js';
 
 async function restorePersistedState() {
     const settings = await loadSettings();
-    if (settings?.level && settings.level in CONFIG.levels && settings.level !== state.level) {
-        state.level = settings.level;
-        const select = document.getElementById('level-select');
-        if (select) select.value = settings.level;
-        emit('level:changed');
-    }
+    const savedFixedLevel = settings?.fixedLevel ?? settings?.level;
+    if (savedFixedLevel && savedFixedLevel in CONFIG.levels) state.fixedLevel = savedFixedLevel;
+    // Alte Einstellungen besaßen noch keinen bewussten Auto-/Fixiert-Schalter.
+    // Sie starten deshalb im neuen, einfachen Standard: automatisch nach Zoom.
+    state.levelMode = settings?.levelMode === 'fixed' ? 'fixed' : 'auto';
+    emit('level:control-changed');
     if (settings?.radiusKm) state.tour.radiusKm = settings.radiusKm;
     if (settings?.basemap && CONFIG.tileLayers?.[settings.basemap]) {
         state.basemap = settings.basemap;

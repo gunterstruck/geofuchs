@@ -12,10 +12,11 @@
  * direkt auf der Karte sieht.
  */
 
-import { state, emit, getCustomer, setCustomers, setTerritory, getTerritory, attrColor, datasetSnapshot, UNASSIGNED } from '../core/state.js';
+import { state, emit, on, getCustomer, setCustomers, setTerritory, getTerritory, attrColor, datasetSnapshot, UNASSIGNED } from '../core/state.js';
 import { pointInFeature } from '../services/geodata.js';
 import { saveDataset } from '../services/storage.js';
 import { showToast } from './toast.js';
+import { desktopPlanningAvailable, mobilePlanningMediaQuery } from './planningViewport.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
@@ -25,9 +26,16 @@ let dialog = null;
 let ctx = null;              // { level, key, name, feature }
 let selected = new Set();    // ausgewählte Kunden-IDs
 let search = '';
-let assignAttr = 'bezirk';   // 'bezirk' | 'gruppe' | 'channel'
+let assignAttr = 'bezirk';   // 'bezirk' | 'gruppe'; Channel bleibt reine optionale Filterdimension
 let territorySelected = false; // „Ganze Fläche" (Gebietszuordnung) mit zuweisen
 const undoStack = [];        // [{ label, changes:[{id,attr,old}], territory }]
+const mobilePlanningQuery = mobilePlanningMediaQuery();
+
+function closeUnavailableEditor() {
+    if (!dialog?.open) return;
+    dialog.close();
+    showToast('Der Gebiets-Editor wurde geschlossen. Bearbeitung ist am Desktop im Profi-Modus verfügbar.', 'info');
+}
 
 export function initRegionEditor() {
     dialog = document.getElementById('region-edit-dialog');
@@ -38,6 +46,12 @@ export function initRegionEditor() {
     document.getElementById('re-select-all').addEventListener('change', toggleSelectAll);
     document.getElementById('re-apply').addEventListener('click', applyAssign);
     document.getElementById('re-undo').addEventListener('click', undo);
+    mobilePlanningQuery.addEventListener('change', (event) => {
+        if (event.matches) closeUnavailableEditor();
+    });
+    on('depth:changed', () => {
+        if (state.ui.depth !== 'profi') closeUnavailableEditor();
+    });
 }
 
 /** Kunden in einem Gebiet ermitteln (unabhängig von Team-Filtern) */
@@ -52,6 +66,17 @@ function customersInRegion() {
 }
 
 export function openRegionEditor(context) {
+    if (!desktopPlanningAvailable() || state.ui.depth !== 'profi') {
+        const text = desktopPlanningAvailable()
+            ? 'Der Gebiets-Editor ist im Profi-Modus verfügbar.'
+            : 'Der Gebiets-Editor ist am Desktop im Profi-Modus verfügbar.';
+        showToast(text, 'info');
+        return;
+    }
+    if (assignableDims().length === 0) {
+        showToast('Für die Bearbeitung braucht der Datensatz mindestens Vertriebsbezirk oder Vertriebsgruppe.', 'info');
+        return;
+    }
     ctx = context;
     const customers = customersInRegion();
     selected = new Set(customers.map((c) => c.id));
@@ -77,9 +102,15 @@ function targetValues() {
 }
 
 function assignableDims() {
-    return ['bezirk', 'gruppe', 'channel']
+    const primary = ['bezirk', 'gruppe']
         .map((id) => state.dims[id]?.active ? { id, label: state.dims[id].label } : null)
         .filter(Boolean);
+    const hasLegacyAssignments = Object.values(state.territories)
+        .some((territory) => Object.prototype.hasOwnProperty.call(territory, 'channel'));
+    if (state.dims.channel?.active && (primary.length === 0 || hasLegacyAssignments)) {
+        primary.push({ id: 'channel', label: state.dims.channel.label });
+    }
+    return primary;
 }
 
 function renderAttrSelect() {

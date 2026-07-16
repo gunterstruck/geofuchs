@@ -112,6 +112,14 @@
 }
 
 @media (max-width: 768px) {
+    /* Gebietsplanung ist bewusst ein Desktop-Werkzeug. JS beendet zusätzlich
+       eine laufende Vorschau beim Wechsel auf diese Breite. */
+    #simulation-map-bar,
+    #cockpit-dialog[open],
+    #region-edit-dialog[open] {
+        display: none !important;
+    }
+
     :root {
         /* Nur der Griff schaut im Ruhezustand heraus – Basis/Profi und Tabs
            „hängen" jetzt oben, das Blatt ist reine Inhaltsfläche auf Abruf. */

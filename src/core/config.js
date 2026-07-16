@@ -40,7 +40,17 @@ export const CONFIG = {
         // Zoom-Automatik (Level of Detail): >= custom -> Kunden sichtbar,
         // >= bezirk -> Vertriebsbezirke als Flächen, darunter -> Vertriebsgruppen
         lodCustomerZoom: 9,
-        lodBezirkZoom: 7
+        lodBezirkZoom: 7,
+        // Automatische Gebietsebene in der Basisansicht. Die Reihenfolge folgt
+        // der visuellen Detailtiefe; eine kleine Hysterese verhindert Flattern
+        // direkt an einer Zoomgrenze.
+        autoLevelHysteresis: 0.25,
+        autoLevels: [
+            { minZoom: 5, level: 'plz1' },
+            { minZoom: 6, level: 'plz2' },
+            { minZoom: 7, level: 'kreise' },
+            { minZoom: 9, level: 'plz3' }
+        ]
     },
 
     tileLayers: {
