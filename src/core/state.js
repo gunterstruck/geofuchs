@@ -37,7 +37,11 @@ export const state = {
     dims: {},
     extraDimensions: [],
 
+    // `level` ist die aktuell wirksame Ebene. In Basis wird sie aus dem Zoom
+    // abgeleitet; Profis können mit `levelMode = fixed` eine Ebene festsetzen.
     level: 'kreise',
+    levelMode: 'auto',
+    fixedLevel: 'kreise',
     // 'auto' = nach Zoom | 'rep' = Außendienst/Kundenpunkte | 'bezirk' | 'gruppe' | 'status'
     colorMode: 'auto',
     basemap: 'standard',

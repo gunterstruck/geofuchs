@@ -605,6 +605,27 @@
 
 .field-label { display: block; font-size: 0.85rem; color: var(--color-text-muted); margin: 10px 0 4px; }
 .level-row { display: flex; align-items: center; gap: 10px; }
+.level-status {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    margin: 8px 0 10px;
+    padding: 9px 11px;
+    border: 1px solid rgba(13, 148, 136, 0.24);
+    border-radius: var(--radius-l);
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    font-size: 0.82rem;
+}
+.level-status strong {
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--color-text);
+}
+.level-status.is-fixed { border-color: rgba(124, 58, 237, 0.28); background: rgba(124, 58, 237, 0.08); }
+.level-expert-control { margin-bottom: 12px; }
 
 .hint-list { padding-left: 1.1em; margin: 10px 0; font-size: 0.85rem; color: var(--color-text-muted); }
 .hint-list li { margin-bottom: 4px; }

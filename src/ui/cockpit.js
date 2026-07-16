@@ -19,6 +19,7 @@ import { state, emit, on, attrColor, setCustomers, setTerritory, getTerritory, g
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { regionMembership } from '../features/territory.js';
 import { showToast } from './toast.js';
+import { desktopPlanningAvailable, mobilePlanningMediaQuery } from './planningViewport.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
@@ -34,7 +35,7 @@ let opsLog = [];               // [{ desc, count, revenue, toRep, territoryIds }
 let membership = [];           // [{ key, name, customerIds }] mit Kunden
 let allRegions = [];           // ALLE Gebiete der Ebene (auch ohne Kunden)
 let selected = new Set();      // ausgewählte regionKeys
-let assignAttr = 'bezirk';     // Zuweisungs-Ziel: Gebietsebene (bezirk | gruppe | channel)
+let assignAttr = 'bezirk';     // Zuweisungs-Ziel: führende Gebietsebene (Bezirk | Gruppe)
 let includeEmpty = false;      // Gebiete ohne Kunden einbeziehen
 let kpiSearch = '';            // Kennzahlen-Filter
 let kpiSort = 'umsatz';        // Kennzahlen-Sortierung
@@ -43,14 +44,40 @@ let groupScope = '';           // Vertriebsgruppe-Fokus im Cockpit
 let simulationMapActive = false;
 let simulationMapMode = 'changes';
 let undoStack = [];
+let simulationLevel = 'kreise';
+let membershipLoadSequence = 0;
+let membershipLoading = false;
+let membershipError = '';
+let openSequence = 0;
+const mobilePlanningQuery = mobilePlanningMediaQuery();
+
+function expertPlanningAvailable() {
+    return desktopPlanningAvailable() && state.ui.depth === 'profi';
+}
+
+function showPlanningHint() {
+    const text = desktopPlanningAvailable()
+        ? 'Gebietsplanung und Simulation sind im Profi-Modus verfügbar.'
+        : 'Gebietsplanung und Simulation sind am Desktop im Profi-Modus verfügbar.';
+    showToast(text, 'info');
+}
 
 const filters = { search: '', dim: {} };
 
 // ---- Zuweisungs-Attribut (Vertriebsbezirk / Gruppe / …) ----
 function assignableDims() {
-    return ['bezirk', 'gruppe', 'channel']
+    const primary = ['bezirk', 'gruppe']
         .map((id) => state.dims[id]?.active ? { id, label: state.dims[id].label } : null)
         .filter(Boolean);
+    // Legacy-Fallback: Channel ist kein Standard-Ziel mehr, bleibt aber für
+    // Bestandsdateien nutzbar, wenn sonst nichts da ist oder bereits Channel-
+    // Zuordnungen gepflegt wurden und weiterhin bearbeitbar bleiben müssen.
+    const hasLegacyAssignments = Object.values(state.territories)
+        .some((territory) => Object.prototype.hasOwnProperty.call(territory, 'channel'));
+    if (state.dims.channel?.active && (primary.length === 0 || hasLegacyAssignments)) {
+        primary.push({ id: 'channel', label: state.dims.channel.label });
+    }
+    return primary;
 }
 
 function attrLabel(attr) {
@@ -139,7 +166,7 @@ function simulationPayload(active = true) {
     return {
         active,
         mode: simulationMapMode,
-        level: state.level,
+        level: simulationLevel,
         attr: assignAttr,
         territories: new Map(pendingTerr),
         overrides: new Map(overrides)
@@ -159,6 +186,7 @@ function updateSimulationMapBar() {
 }
 
 function showSimulationMap() {
+    if (!expertPlanningAvailable()) { showPlanningHint(); return; }
     if (pendingTerr.size === 0 && overrides.size === 0) {
         dialog.close();
         return;
@@ -177,6 +205,7 @@ function hideSimulationMap() {
 }
 
 function editSimulation() {
+    if (!expertPlanningAvailable()) { showPlanningHint(); return; }
     hideSimulationMap();
     renderAll();
     dialog.showModal();
@@ -185,6 +214,22 @@ function editSimulation() {
 
 export function initCockpit() {
     dialog = document.getElementById('cockpit-dialog');
+    mobilePlanningQuery.addEventListener('change', (event) => {
+        if (!event.matches) return;
+        openSequence += 1;
+        const wasVisible = dialog.open || simulationMapActive;
+        if (dialog.open) dialog.close();
+        if (simulationMapActive) hideSimulationMap();
+        if (wasVisible) showPlanningHint();
+    });
+    on('depth:changed', () => {
+        if (state.ui.depth === 'profi') return;
+        openSequence += 1;
+        const wasVisible = dialog.open || simulationMapActive;
+        if (dialog.open) dialog.close();
+        if (simulationMapActive) hideSimulationMap();
+        if (wasVisible) showPlanningHint();
+    });
     document.getElementById('cockpit-to-map').addEventListener('click', showSimulationMap);
 
     document.getElementById('sim-level').addEventListener('change', onLevelChange);
@@ -245,6 +290,12 @@ document.getElementById('cockpit-group-scope').addEventListener('change', (e) =>
 }
 
 async function open() {
+    const sequence = ++openSequence;
+    if (!expertPlanningAvailable()) { showPlanningHint(); return; }
+    if (assignableDims().length === 0) {
+        showToast('Für die Gebietsplanung braucht der Datensatz mindestens Vertriebsbezirk oder Vertriebsgruppe.', 'info');
+        return;
+    }
     if (pendingTerr.size > 0 || overrides.size > 0) {
         hideSimulationMap();
         renderAll();
@@ -260,6 +311,7 @@ async function open() {
     groupScope = '';
     filters.search = '';
     filters.dim = {};
+    simulationLevel = state.level !== 'none' && CONFIG.levels[state.level]?.file ? state.level : 'kreise';
     document.getElementById('sim-search').value = '';
     document.getElementById('cockpit-kpi-search').value = '';
     document.getElementById('cockpit-kpi-sort').value = 'umsatz';
@@ -269,6 +321,7 @@ async function open() {
     renderAssignAttrSelect();
     renderFilterControls();
     await loadMembership();
+    if (sequence !== openSequence || !expertPlanningAvailable()) return;
     renderAll();
     dialog.showModal();
     dialog.scrollTop = 0;
@@ -300,43 +353,54 @@ function renderLevelSelect() {
     const sel = document.getElementById('sim-level');
     sel.innerHTML = Object.entries(CONFIG.levels)
         .filter(([key]) => key !== 'none')
-        .map(([key, def]) => `<option value="${key}"${key === state.level ? ' selected' : ''}>${def.label}</option>`)
+        .map(([key, def]) => `<option value="${key}"${key === simulationLevel ? ' selected' : ''}>${def.label}</option>`)
         .join('');
 }
 
 async function onLevelChange(e) {
-    state.level = e.target.value;
-    // Karte und Sidebar-Auswahl mitziehen
-    const mainSel = document.getElementById('level-select');
-    if (mainSel) mainSel.value = state.level;
-    emit('level:changed');
+    simulationLevel = e.target.value;
+    membership = [];
+    allRegions = [];
     selected = new Set();
     document.getElementById('sim-select-all').checked = false;
-    await loadMembership();
+    const loading = loadMembership();
     renderRegionList();
+    if (await loading) renderRegionList();
 }
 
 async function loadMembership() {
+    const sequence = ++membershipLoadSequence;
+    const level = simulationLevel;
+    membershipLoading = true;
+    membershipError = '';
     const info = document.getElementById('sim-region-info');
-    if (state.level === 'none' || !CONFIG.levels[state.level]?.file) {
+    if (level === 'none' || !CONFIG.levels[level]?.file) {
         membership = [];
         allRegions = [];
+        membershipLoading = false;
         info.textContent = 'Bitte eine Gebietsebene wählen.';
-        return;
+        return true;
     }
     try {
-        const geojson = await loadLevel(state.level);
-        membership = geojson ? regionMembership(state.level, geojson, state.customers) : [];
+        const geojson = await loadLevel(level);
+        if (sequence !== membershipLoadSequence || level !== simulationLevel) return false;
+        membership = geojson ? regionMembership(level, geojson, state.customers) : [];
         // Alle Gebiete der Ebene (auch ohne Kunden) für „Gebiete ohne Kunden einbeziehen"
         const byKey = new Map(membership.map((r) => [r.key, r]));
         allRegions = geojson ? geojson.features.map((f) => {
-            const key = regionKey(state.level, f);
-            return byKey.get(key) ?? { key, name: regionName(state.level, f), customerIds: [] };
+            const key = regionKey(level, f);
+            return byKey.get(key) ?? { key, name: regionName(level, f), customerIds: [] };
         }) : [];
+        membershipLoading = false;
+        return true;
     } catch (error) {
+        if (sequence !== membershipLoadSequence || level !== simulationLevel) return false;
         membership = [];
         allRegions = [];
-        info.textContent = `Gebietsdaten konnten nicht geladen werden: ${error.message}`;
+        membershipLoading = false;
+        membershipError = `Gebietsdaten konnten nicht geladen werden: ${error.message}`;
+        info.textContent = membershipError;
+        return true;
     }
 }
 
@@ -383,7 +447,7 @@ function visibleRegions() {
         if (empty) {
             if (!includeEmpty) continue;
             if (digits && !regionPlz(region).startsWith(digits)) continue;
-            const terr = getTerritory(state.level, region.key);
+            const terr = getTerritory(simulationLevel, region.key);
             if (groupScope && ((terr && terr.gruppe) || UNASSIGNED) !== groupScope) continue;
             result.push({ region, ids: [], dom: (terr && terr[assignAttr]) || '—', empty: true });
         } else {
@@ -590,6 +654,21 @@ function renderTargetSelect() {
 function renderRegionList() {
     const listEl = document.getElementById('sim-region-list');
     const infoEl = document.getElementById('sim-region-info');
+    if (membershipLoading) {
+        infoEl.textContent = 'Gebietsdaten werden geladen …';
+        listEl.innerHTML = '<p class="muted">Gebietsdaten werden geladen …</p>';
+        document.getElementById('sim-apply').disabled = true;
+        document.getElementById('sim-select-all').disabled = true;
+        return;
+    }
+    if (membershipError) {
+        infoEl.textContent = membershipError;
+        listEl.innerHTML = `<p class="muted">${escapeHtml(membershipError)}</p>`;
+        document.getElementById('sim-apply').disabled = true;
+        document.getElementById('sim-select-all').disabled = true;
+        return;
+    }
+    document.getElementById('sim-select-all').disabled = false;
     const visible = visibleRegions();
 
     const totalCust = visible.reduce((sum, v) => sum + v.ids.length, 0);
@@ -640,6 +719,7 @@ function renderRegionList() {
 }
 
 function toggleSelectAll(e) {
+    if (membershipLoading) return;
     const visible = visibleRegions().slice(0, MAX_ROWS);
     if (e.target.checked) visible.forEach((v) => selected.add(v.region.key));
     else visible.forEach((v) => selected.delete(v.region.key));
@@ -647,6 +727,7 @@ function toggleSelectAll(e) {
 }
 
 function assignSelected() {
+    if (membershipLoading) return;
     const target = document.getElementById('sim-rep').value;
     if (!target) { showToast('Kein Ziel verfügbar – bitte Daten prüfen.', 'info'); return; }
     const visible = visibleRegions();
@@ -662,7 +743,7 @@ function assignSelected() {
     let moved = 0;
     let movedRevenue = 0;
     for (const { region, ids } of chosen) {
-        const territoryId = `${state.level}:${region.key}`;
+        const territoryId = `${simulationLevel}:${region.key}`;
         const previous = pendingTerr.get(territoryId);
         for (const id of previous?.customerIds || []) overrides.delete(id);
         const movedIds = [];
@@ -681,7 +762,7 @@ function assignSelected() {
             value: target,
             group: groupScope || null,
             name: region.name,
-            level: state.level,
+            level: simulationLevel,
             key: region.key,
             customerIds: movedIds
         });
@@ -693,7 +774,7 @@ function assignSelected() {
     for (const def of DIMENSIONS) if (filters.dim[def.id]) parts.push(filters.dim[def.id]);
     if (searchDigits()) parts.push(`PLZ ${searchDigits()}xxx`);
     const scope = parts.length ? ` (${parts.join(', ')})` : '';
-    const territoryIds = chosen.map(({ region }) => `${state.level}:${region.key}`);
+    const territoryIds = chosen.map(({ region }) => `${simulationLevel}:${region.key}`);
     const changedIds = new Set(territoryIds);
     opsLog = opsLog.filter((op) => !(op.territoryIds || []).some((id) => changedIds.has(id)));
     opsLog.push({

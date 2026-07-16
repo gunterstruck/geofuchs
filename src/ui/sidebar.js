@@ -10,6 +10,7 @@ import { isDemoDataset } from '../core/demoSafety.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { STATUS_COLORS, STATUS_LABELS, isOpportunity } from '../features/visits.js';
+import { automaticLevelActive } from '../features/mapLevel.js';
 import { showToast } from './toast.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
@@ -38,6 +39,7 @@ const SIDEBAR_WIDTH_KEY = 'gf_sidebar_width';
 const SIDEBAR_POS_KEY = 'gf_sidebar_position';
 const SHEET_HEIGHT_KEY = 'gf_sheet_height';
 const PANEL_ZOOM_KEY = 'tf_panel_zoom';
+const OPTIONAL_FILTERS_KEY = 'gf_optional_filter_dimensions';
 const SIDEBAR_MIN = 340;
 const SIDEBAR_MAX = 400;
 const SHEET_MIN_HEIGHT = 140; // reicht für Griff + Tabs
@@ -576,6 +578,17 @@ function tabInMode(tabBtn, mode) {
  */
 const DEPTH_KEY = 'gf_app_depth';
 
+function syncLevelControl() {
+    const automatic = automaticLevelActive(state.ui.depth, state.levelMode, isMobileUi());
+    const select = document.getElementById('level-select');
+    const mode = document.getElementById('level-mode-label');
+    const active = document.getElementById('level-active-label');
+    if (select) select.value = state.levelMode === 'fixed' ? state.fixedLevel : 'auto';
+    if (mode) mode.textContent = automatic ? 'Automatisch nach Zoom' : 'Im Profi-Modus fixiert';
+    if (active) active.textContent = CONFIG.levels[state.level]?.label ?? state.level;
+    document.querySelector('.level-status')?.classList.toggle('is-fixed', !automatic);
+}
+
 /**
  * Ansichtstiefe global setzen: 'basis' (nur Kernnutzen) oder 'profi' (alle
  * Werkzeuge). Steuert per Body-Klasse alle .expert-only/.profi-only Elemente.
@@ -586,6 +599,7 @@ export function applyDepth(depth, persist = true) {
     document.body.classList.toggle('depth-profi', profi);
     document.querySelectorAll('#depth-switch .seg').forEach((b) =>
         b.classList.toggle('active', b.dataset.depth === state.ui.depth));
+    syncLevelControl();
     if (persist) { try { localStorage.setItem(DEPTH_KEY, state.ui.depth); } catch (e) { /* egal */ } }
     emit('depth:changed');
 }
@@ -688,6 +702,8 @@ export function initSidebar() {
         syncSidebarPositionForViewport();
         syncTopnavPlacement();
         applySidebar();
+        syncLevelControl();
+        emit('level:control-changed');
     });
 
     // Fokus-Umschalter
@@ -732,14 +748,23 @@ export function initSidebar() {
 
     // Gebietsebene
     const levelSelect = document.getElementById('level-select');
-    levelSelect.innerHTML = Object.entries(CONFIG.levels)
+    levelSelect.innerHTML = '<option value="auto">Automatisch nach Zoom</option>' + Object.entries(CONFIG.levels)
         .map(([key, def]) => `<option value="${key}"${key === state.level ? ' selected' : ''}>${def.label}</option>`)
         .join('');
     levelSelect.addEventListener('change', () => {
-        state.level = levelSelect.value;
-        emit('level:changed');
+        if (levelSelect.value === 'auto') {
+            state.levelMode = 'auto';
+        } else {
+            state.levelMode = 'fixed';
+            state.fixedLevel = levelSelect.value;
+        }
+        syncLevelControl();
+        emit('level:control-changed');
         persistSettings();
     });
+    on('level:resolved', syncLevelControl);
+    on('depth:changed', syncLevelControl);
+    syncLevelControl();
 
     on('map:loading', (loading) => {
         document.getElementById('level-loading').style.display = loading ? 'inline-block' : 'none';
@@ -797,6 +822,7 @@ export function initSidebar() {
     // Exakte Geocodierung (Nominatim)
     document.getElementById('btn-geocode').addEventListener('click', toggleExactGeocoding);
 
+    restoreOptionalFilterSections();
     initTeamFilters();
 
     // Nach dem Demo-Laden: direkt in den Außendienst-Modus (Karte + Tour).
@@ -936,7 +962,9 @@ function persistSettings() {
     saveSettings({
         mode: state.ui.mode,
         activeTab: state.ui.activeTab,
-        level: state.level,
+        level: state.fixedLevel,
+        levelMode: state.levelMode,
+        fixedLevel: state.fixedLevel,
         colorMode: state.colorMode,
         basemap: state.basemap,
         repVisibility: Object.fromEntries([...state.reps].map(([k, v]) => [k, v.visible])),
@@ -1059,6 +1087,42 @@ const filterUI = { expanded: {}, search: {}, enabled: {}, wired: false };
 
 const DEFAULT_FILTER_SECTIONS = ['bezirk', 'gruppe'];
 
+function restoreOptionalFilterSections() {
+    try {
+        const ids = JSON.parse(localStorage.getItem(OPTIONAL_FILTERS_KEY) || '[]');
+        if (Array.isArray(ids)) {
+            for (const id of ids) if (!DEFAULT_FILTER_SECTIONS.includes(id)) filterUI.enabled[id] = true;
+        }
+    } catch { /* ungültige Alt-Einstellung ignorieren */ }
+}
+
+function persistOptionalFilterSections() {
+    try {
+        const ids = Object.entries(filterUI.enabled)
+            .filter(([, enabled]) => enabled)
+            .map(([id]) => id);
+        localStorage.setItem(OPTIONAL_FILTERS_KEY, JSON.stringify(ids));
+    } catch { /* lokale Einstellung ist optional */ }
+}
+
+function optionalFilterEnabled(id) {
+    if (DEFAULT_FILTER_SECTIONS.includes(id)) return true;
+    return !!filterUI.enabled[id];
+}
+
+function migrateActiveOptionalFilters() {
+    let changed = false;
+    for (const def of filterDimensionDefs()) {
+        if (DEFAULT_FILTER_SECTIONS.includes(def.id) || filterUI.enabled[def.id]) continue;
+        const values = state.dims[def.id]?.values;
+        const hasActiveFilter = values ? [...values.values()].some((value) => !value.visible) : false;
+        if (!hasActiveFilter) continue;
+        filterUI.enabled[def.id] = true;
+        changed = true;
+    }
+    if (changed) persistOptionalFilterSections();
+}
+
 function dimFilterSection(id, optional = false) {
     const dim = state.dims[id];
     const def = filterDimensionDefs().find((d) => d.id === id);
@@ -1069,7 +1133,7 @@ function dimFilterSection(id, optional = false) {
 /** Filter-Ebenen: standardmäßig Bezirk + Gruppe, weitere Gebietsebenen optional */
 function filterSections() {
     return filterDimensionDefs().map((def) => def.id)
-        .filter((id) => DEFAULT_FILTER_SECTIONS.includes(id) || filterUI.enabled[id])
+        .filter(optionalFilterEnabled)
         .map((id) => dimFilterSection(id, !DEFAULT_FILTER_SECTIONS.includes(id)))
         .filter(Boolean);
 }
@@ -1156,6 +1220,8 @@ function renderTeamFilters() {
         host.innerHTML = '<p class="muted">Keine Daten geladen.</p>';
         return;
     }
+    // Migration: Ein bereits aktiver Altfilter darf nie unsichtbar weiterwirken.
+    migrateActiveOptionalFilters();
     const sections = filterSections();
     for (const s of sections) {
         if (filterUI.expanded[s.id] === undefined) filterUI.expanded[s.id] = s.entries.length <= COLLAPSE_THRESHOLD;
@@ -1206,7 +1272,12 @@ function initTeamFilters() {
     host.addEventListener('click', (e) => {
         const remove = e.target.closest('[data-remove-filter]');
         if (remove) {
-            filterUI.enabled[remove.dataset.removeFilter] = false;
+            const id = remove.dataset.removeFilter;
+            filterUI.enabled[id] = false;
+            for (const value of state.dims[id]?.values?.values?.() || []) value.visible = true;
+            emit('filters:changed');
+            persistSettings();
+            persistOptionalFilterSections();
             renderTeamFilters();
             return;
         }
@@ -1225,6 +1296,7 @@ function initTeamFilters() {
         if (add && add.value) {
             filterUI.enabled[add.value] = true;
             filterUI.expanded[add.value] = true;
+            persistOptionalFilterSections();
             renderTeamFilters();
             return;
         }
