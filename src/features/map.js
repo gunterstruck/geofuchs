@@ -19,6 +19,7 @@ import { suggestNearby, suggestAlongRoute } from './tour.js';
 import { popupSafeRect, popupPanOffset, popupContentHeightLimit } from './popupViewport.js';
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
 import { automaticLevelActive, automaticLevelForZoom } from './mapLevel.js';
+import { normalizeCustomerNumber } from './serviceContracts.js';
 import { openRegionEditor } from '../ui/regionEditor.js';
 import { openCustomerBriefing } from '../ui/customerBriefing.js';
 
@@ -461,6 +462,8 @@ function handlePopupAction(action, customerId) {
         emit('toast', { type: 'success', text: `Besuch bei ${customer.name} für heute eingetragen.` });
     } else if (action === 'customer-briefing') {
         openCustomerBriefing(customer);
+    } else if (action === 'service-contracts') {
+        emit('service-contracts:open', { customerNumber: customer.nummer });
     }
     return false;
 }
@@ -1098,6 +1101,59 @@ function contactBlockHtml(customer) {
     return parts.join('');
 }
 
+function serviceContractsBlockHtml(customer) {
+    if (state.ui.depth !== 'profi' || isMobileMap() || !customer.nummer) return '';
+    const customerNumber = normalizeCustomerNumber(customer.nummer);
+    const matchingCustomers = (state.customers || []).filter((candidate) => (
+        normalizeCustomerNumber(candidate?.nummer) === customerNumber
+    ));
+    // Bei doppelten Kundennummern nie willkürlich denselben Vertrag an mehreren
+    // Markern zeigen. Das Radar weist solche Fälle als nicht eindeutig aus.
+    if (matchingCustomers.length !== 1) return '';
+    const inactiveStatuses = new Set(['GEKUENDIGT', 'ABGELAUFEN', 'CANCELLED', 'EXPIRED', 'TERMINATED']);
+    const linked = (state.serviceContracts || []).filter((contract) => (
+        normalizeCustomerNumber(contract.customerNumber) === customerNumber
+        && !inactiveStatuses.has(String(contract.status ?? '').trim().toUpperCase())
+    ));
+    if (!linked.length) return '';
+
+    const actionDates = linked.map((contract) => contract.actionBy).filter(Boolean).sort();
+    const earliestAction = actionDates[0] || '';
+    const valuesByCurrency = new Map();
+    linked.forEach((contract) => {
+        const value = Number(contract.annualValue);
+        if (!Number.isFinite(value) || value <= 0) return;
+        const currency = String(contract.currency || 'EUR').trim().toUpperCase();
+        valuesByCurrency.set(currency, (valuesByCurrency.get(currency) || 0) + value);
+    });
+    const currencies = [...valuesByCurrency.keys()];
+    let valueText = '';
+    if (currencies.length === 1) {
+        const currency = currencies[0];
+        const value = valuesByCurrency.get(currency);
+        if (currency === 'EUR') valueText = `${formatRevenueShort(value)} p. a.`;
+        else {
+            try {
+                valueText = `${new Intl.NumberFormat('de-DE', {
+                    style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1
+                }).format(value)} p. a.`;
+            } catch {
+                valueText = `${Math.round(value).toLocaleString('de-DE')} ${currency} p. a.`;
+            }
+        }
+    } else if (currencies.length > 1) {
+        valueText = 'Werte in mehreren Währungen';
+    }
+    const detail = [
+        earliestAction ? `Handeln bis ${formatDateDe(earliestAction)}` : 'Frist prüfen',
+        valueText
+    ].filter(Boolean).join(' · ');
+    return `<button type="button" class="popup-contract-summary" data-action="service-contracts" data-id="${escapeHtml(customer.id)}">
+        <span><b>🛡️ ${linked.length} Service${linked.length === 1 ? 'vertrag' : 'verträge'}</b><small>${escapeHtml(detail)}</small></span>
+        <span aria-hidden="true">›</span>
+    </button>`;
+}
+
 export function customerPopupHtml(customer) {
     const inTour = state.tour.stops.includes(customer.id);
     const isDest = state.tour.destination?.customerId === customer.id;
@@ -1121,6 +1177,7 @@ export function customerPopupHtml(customer) {
         ${addr ? `<p class="popup-addr">${addr}${customer.geo === 'plz' ? ' <span class="muted small">· 📍 ca. (PLZ-Mitte)</span>' : ''}</p>` : ''}
         ${metaLine ? `<p class="muted small popup-meta">${metaLine}</p>` : ''}
         ${contactBlockHtml(customer)}
+        ${serviceContractsBlockHtml(customer)}
         ${visitBlockHtml(customer)}
         <div class="popup-actions">
             <button data-action="tour-start" data-id="${escapeHtml(customer.id)}">🚩 Als Start</button>

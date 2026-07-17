@@ -31,6 +31,11 @@ export const state = {
     fileName: null,
     importedAt: null,
 
+    // Eigenständiger Bestand: mehrere Vertragsquellen werden über
+    // Quellsystem + Vertrags-ID gepflegt und nur per Kundennummer verknüpft.
+    serviceContracts: [],
+    serviceContractSources: {},
+
     // Vertriebsbeauftragte: name -> { color, visible }
     reps: new Map(),
     // Vertriebshierarchie: id -> { label, field, active, values: Map<name,{visible}> }
@@ -63,7 +68,8 @@ export const state = {
 
     ui: {
         // Fokus-Modus: 'aussendienst' (Alltag: Karte, Tour, Kunden) |
-        //              'gebietsplanung' (Experten: Gebiete schneiden, Cockpit, Simulation)
+        //              'gebietsplanung' (Experten: Gebiete schneiden, Cockpit, Simulation) |
+        //              'service' (Experten: Vertragsradar und Service-Vorplanung)
         mode: 'aussendienst',
         activeTab: 'tour',
         // Ansichtstiefe: 'basis' (nur Kernnutzen, wenig Ablenkung) |
@@ -157,11 +163,77 @@ export function setTerritory(level, regionKey, attr, value, name) {
 /** Kompletter Datensatz-Schnappschuss für die Persistenz */
 export function datasetSnapshot() {
     return {
+        schemaVersion: 2,
         customers: state.customers,
         fileName: state.fileName,
         importedAt: state.importedAt,
-        territories: state.territories
+        territories: state.territories,
+        serviceContracts: state.serviceContracts,
+        serviceContractSources: state.serviceContractSources
     };
+}
+
+/** Vertragsbestand aus Persistenz oder sicherem Umzug wiederherstellen. */
+export function setServiceContracts(contracts = [], sources = {}) {
+    state.serviceContracts = (Array.isArray(contracts) ? contracts : []).filter(Boolean).map((contract) => {
+        const sourceSystem = normalizeServiceContractSource(contract?.sourceSystem);
+        return sourceSystem ? { ...contract, sourceSystem, sourceKey: sourceSystem } : contract;
+    });
+    state.serviceContractSources = Object.entries(sources && typeof sources === 'object' ? sources : {})
+        .reduce((result, [source, meta]) => {
+            const key = normalizeServiceContractSource(source);
+            if (key) result[key] = { ...(result[key] || {}), ...(meta || {}) };
+            return result;
+        }, {});
+    emit('service-contracts:changed');
+}
+
+function normalizeServiceContractSource(value) {
+    return String(value ?? '').normalize('NFKC').trim().toLocaleUpperCase('de-DE');
+}
+
+/**
+ * Importierte Quellsysteme atomar ersetzen, alle anderen Vertragsquellen erhalten.
+ * So kann z. B. ein SAP-Abzug aktualisiert werden, ohne SieSales zu verwerfen.
+ */
+export function replaceServiceContractSources(contracts, metaBySource = {}) {
+    const incoming = (Array.isArray(contracts) ? contracts : []).filter(Boolean).map((contract) => {
+        const sourceSystem = normalizeServiceContractSource(contract?.sourceSystem);
+        return sourceSystem ? { ...contract, sourceSystem, sourceKey: sourceSystem } : contract;
+    });
+    const sourceKeys = new Set(incoming.map((contract) => normalizeServiceContractSource(contract.sourceSystem)).filter(Boolean));
+    if (sourceKeys.size === 0) return false;
+
+    state.serviceContracts = [
+        ...state.serviceContracts.filter((contract) => !sourceKeys.has(normalizeServiceContractSource(contract.sourceSystem))),
+        ...incoming
+    ];
+    const nextSources = { ...(state.serviceContractSources || {}) };
+    for (const existingSource of Object.keys(nextSources)) {
+        if (sourceKeys.has(normalizeServiceContractSource(existingSource))) delete nextSources[existingSource];
+    }
+    const normalizedMeta = Object.entries(metaBySource || {}).reduce((result, [source, meta]) => {
+        const key = normalizeServiceContractSource(source);
+        if (key) result[key] = { ...(result[key] || {}), ...(meta || {}) };
+        return result;
+    }, {});
+    for (const source of sourceKeys) {
+        nextSources[source] = {
+            ...(normalizedMeta[source] || {}),
+            count: incoming.filter((contract) => normalizeServiceContractSource(contract.sourceSystem) === source).length
+        };
+    }
+    state.serviceContractSources = nextSources;
+    emit('service-contracts:changed');
+    emit('dataset:dirty');
+    return true;
+}
+
+export function clearServiceContracts({ dirty = true } = {}) {
+    state.serviceContracts = [];
+    state.serviceContractSources = {};
+    emit('service-contracts:changed');
+    if (dirty) emit('dataset:dirty');
 }
 
 /**
@@ -218,6 +290,8 @@ export function setCustomers(customers, meta = {}) {
     }
 
     emit('customers:changed');
+    // Zuordnungsstatus im Vertragsradar folgt der Kundennummer dynamisch.
+    if (state.serviceContracts.length) emit('service-contracts:changed');
 }
 
 /**

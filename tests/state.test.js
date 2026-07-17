@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { state, setCustomers, replaceCustomers, getCustomer } from '../src/core/state.js';
+import {
+    state,
+    setCustomers,
+    replaceCustomers,
+    getCustomer,
+    setServiceContracts,
+    replaceServiceContractSources,
+    datasetSnapshot
+} from '../src/core/state.js';
 
 function reset(customers) {
     setCustomers(customers, { fileName: 'test.xlsx' });
@@ -45,6 +53,36 @@ describe('replaceCustomers', () => {
             suggestMode: 'radius',
             mapFocus: false,
             routeLineMode: 'air'
+        });
+    });
+});
+
+describe('Servicevertrags-Datenhaltung', () => {
+    it('ersetzt nur importierte Quellen und persistiert Verträge im Datensatz', () => {
+        setServiceContracts(
+            [
+                { id: 'sap-alt', sourceSystem: 'Sap', contractId: 'S-1' },
+                { id: 'crm-alt', sourceSystem: 'SIESALES', contractId: 'C-1' }
+            ],
+            {
+                Sap: { fileName: 'sap-alt.xlsx' },
+                SIESALES: { fileName: 'crm.xlsx' }
+            }
+        );
+
+        expect(replaceServiceContractSources(
+            [{ id: 'sap-neu', sourceSystem: 'SAP', contractId: 'S-2' }],
+            { SAP: { fileName: 'sap-neu.xlsx', dataAsOf: '2026-07-17' } }
+        )).toBe(true);
+
+        expect(state.serviceContracts.map((contract) => contract.id).sort()).toEqual(['crm-alt', 'sap-neu']);
+        expect(state.serviceContractSources.SAP).toMatchObject({ fileName: 'sap-neu.xlsx', count: 1 });
+        expect(state.serviceContractSources.Sap).toBeUndefined();
+        expect(state.serviceContractSources.SIESALES.fileName).toBe('crm.xlsx');
+        expect(datasetSnapshot()).toMatchObject({
+            schemaVersion: 2,
+            serviceContracts: state.serviceContracts,
+            serviceContractSources: state.serviceContractSources
         });
     });
 });

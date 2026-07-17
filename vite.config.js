@@ -21,7 +21,7 @@ export default defineConfig({
                 id: '/',
                 name: 'TourFuchs Vertrieb',
                 short_name: 'TourFuchs',
-                description: 'Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete (Landkreise & PLZ), Team-Filter und Besuchsplanung mit Tourenoptimierung.',
+                description: 'Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete, Besuchsplanung und Servicevertrags-Radar.',
                 lang: 'de',
                 start_url: '/',
                 scope: '/',
@@ -39,7 +39,7 @@ export default defineConfig({
             workbox: {
                 // App-Shell + kleine Gebietsdaten vorab cachen (offline-fähig ab dem ersten Besuch)
                 globPatterns: [
-                    '**/*.{js,css,html,svg,png,woff2}',
+                    '**/*.{js,css,html,svg,png,woff2,xlsx,csv}',
                     'geodata/kreise.geojson',
                     'geodata/plz1.geojson',
                     'geodata/plz2.geojson',

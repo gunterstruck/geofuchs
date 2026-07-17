@@ -217,6 +217,8 @@
     overflow: hidden;
 }
 .sidebar > .mode-switch { margin-top: 8px; }
+body.depth-profi .sidebar > .mode-switch { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body.depth-profi .sidebar > .mode-switch .mode-btn { font-size: 0.76rem; }
 
 .sidebar > .depth-switch .seg,
 .sidebar > .mode-switch .mode-btn {

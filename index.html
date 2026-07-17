@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="TourFuchs Vertrieb – Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete (Landkreise & PLZ), Team-Filter und Besuchsplanung mit Tourenoptimierung. Alle Daten bleiben im Browser.">
+    <meta name="description" content="TourFuchs – Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete, Besuchsplanung und Servicevertrags-Radar. Alle Daten bleiben im Browser.">
     <meta name="theme-color" content="#0d9488">
     <title>TourFuchs Vertrieb – Gebiets- & Besuchsplanung</title>
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
@@ -54,6 +54,7 @@
             <div class="mode-switch" role="group" aria-label="Fokus wählen">
                 <button type="button" class="mode-btn active" data-mode="aussendienst">🚗 Außendienst</button>
                 <button type="button" class="mode-btn" data-mode="gebietsplanung">🗺️ Gebietsplanung</button>
+                <button type="button" class="mode-btn expert-only" data-mode="service">🛡️ Service</button>
             </div>
             <p id="mode-hint" class="mode-hint"></p>
             <label class="basemap-control" for="basemap-select">
@@ -67,6 +68,7 @@
                 <button class="tab-button active" data-tab="daten" data-modes="aussendienst gebietsplanung" role="tab">📄 Daten</button>
                 <button class="tab-button" data-tab="team" data-modes="aussendienst gebietsplanung" role="tab">Filter</button>
                 <button class="tab-button" data-tab="gebiete" data-modes="gebietsplanung" role="tab">🗺️ Gebiete</button>
+                <button class="tab-button expert-only" data-tab="vertraege" data-modes="service" role="tab">🛡️ Verträge</button>
                 <button class="tab-button" data-tab="tour" data-modes="aussendienst" role="tab">Tour</button>
             </nav>
 
@@ -95,7 +97,7 @@
                 <div id="data-loaded" style="display:none">
                     <h2>Kundendaten</h2>
                     <div id="data-status"></div>
-                    <p class="muted small">Stammdaten und Kontaktdaten können getrennt geladen werden, wenn beide Dateien die Kundennummer enthalten. Erneute Uploads werden als Delta übernommen; bestehende Besuchs- und Gebietsarbeit bleibt erhalten.</p>
+                    <p class="muted small">Stammdaten, Kontakte und Serviceverträge können getrennt geladen werden, wenn sie dieselbe Kundennummer verwenden. Eine neue Kundenstammliste ersetzt den bisherigen Kundenbestand; separate Vertragsquellen bleiben erhalten und werden neu zugeordnet.</p>
                     <div id="data-actions">
                         <div class="button-column">
                             <button id="btn-upload-more">📤 Andere Excel- oder CSV-Liste laden</button>
@@ -141,6 +143,49 @@
                 </div>
 
                 <p class="privacy-note">🔒 Ihre Kundendaten bleiben lokal. Nur ein von Ihnen gestartetes Kundenbriefing übergibt die zuvor angezeigten Identifikationsdaten an Ihren Microsoft 365 Copilot.</p>
+            </section>
+
+            <!-- Tab: Service-Verträge (bewusst nur im Profi-Fokus sichtbar) -->
+            <section id="tab-vertraege" class="tab-panel">
+                <input id="contract-file-input" type="file" accept=".xlsx,.xls,.csv,text/csv" hidden>
+                <div class="contract-tab-head">
+                    <div>
+                        <span class="contract-kicker">Profi · Service</span>
+                        <h2>Vertragsradar</h2>
+                    </div>
+                    <button id="btn-contract-open" type="button" title="Vertragsradar groß öffnen">↗</button>
+                </div>
+                <p class="muted small">Vertragsfristen und -werte aus SAP, SieSales oder gepflegten Listen. Kundendaten werden nur über die Kundennummer verknüpft.</p>
+
+                <div id="contract-source-summary" class="contract-source-summary"></div>
+                <div class="contract-source-actions">
+                    <button id="btn-contract-import" class="primary" type="button">📥 Vertragsdatei importieren</button>
+                    <button id="btn-contract-template" type="button">📋 Excel-Vorlage</button>
+                    <button id="btn-contract-csv" type="button">CSV-Beispiel</button>
+                    <button id="btn-contract-issues" type="button" hidden>⬇ Letzte Hinweise</button>
+                    <button id="btn-contract-clear" class="danger" type="button">Vertragsdaten löschen</button>
+                </div>
+
+                <div id="contract-kpis" class="contract-kpis" aria-live="polite"></div>
+                <div class="contract-filter-grid">
+                    <label>Fristfenster
+                        <select id="contract-window">
+                            <option value="30">bis 30 Tage</option>
+                            <option value="90" selected>bis 90 Tage</option>
+                            <option value="180">bis 180 Tage</option>
+                            <option value="overdue">überfällig</option>
+                            <option value="missing">Frist fehlt</option>
+                            <option value="all">alle Verträge</option>
+                        </select>
+                    </label>
+                    <label>Verantwortlich
+                        <select id="contract-manager"><option value="">Alle</option></select>
+                    </label>
+                    <label class="contract-search-label">Suche
+                        <input id="contract-search" type="search" placeholder="Kunde, Vertrag, Typ …" autocomplete="off">
+                    </label>
+                </div>
+                <div id="contract-radar-list" class="contract-radar-list"></div>
             </section>
 
             <!-- Tab: Gebiete -->
@@ -378,6 +423,38 @@
             <footer>
                 <button id="mapping-confirm" class="primary">Importieren</button>
             </footer>
+        </dialog>
+
+        <!-- Servicevertrag-Import: eigener Mapper, ersetzt niemals Kundendaten -->
+        <dialog id="contract-import-dialog" class="contract-import-dialog">
+            <header>
+                <h2>🛡️ Vertragsfelder zuordnen</h2>
+                <button class="dialog-close" type="button" aria-label="Schließen">Schließen</button>
+            </header>
+            <p id="contract-mapping-file-info" class="muted"></p>
+            <p class="muted small">Für jedes in der Datei enthaltene Quellsystem wird der bisherige Vertragsstand atomar aktualisiert. Kunden, Touren und andere Vertragsquellen bleiben erhalten.</p>
+            <div class="table-scroll">
+                <table class="mapping-table">
+                    <thead><tr><th>Vertragsfeld</th><th>Spalte in Ihrer Datei</th><th>Beispielwerte</th></tr></thead>
+                    <tbody id="contract-mapping-rows"></tbody>
+                </table>
+            </div>
+            <div id="contract-import-feedback" class="contract-import-feedback" aria-live="polite"></div>
+            <footer>
+                <button id="contract-import-errors" type="button" hidden>⬇ Fehlerliste (.xlsx)</button>
+                <button id="contract-mapping-confirm" class="primary" type="button">Verträge prüfen und importieren</button>
+            </footer>
+        </dialog>
+
+        <dialog id="contract-radar-dialog" class="contract-radar-dialog">
+            <header>
+                <div>
+                    <span class="contract-kicker">Service Contract Management</span>
+                    <h2>🛡️ Vertragsradar</h2>
+                </div>
+                <button id="contract-radar-close" class="dialog-close" type="button" aria-label="Schließen">Schließen</button>
+            </header>
+            <div id="contract-radar-body"></div>
         </dialog>
 
         <!-- Info-Dialog -->
