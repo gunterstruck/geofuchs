@@ -10,7 +10,7 @@ import 'leaflet.markercluster';
 import { CONFIG } from '../core/config.js';
 import { isDemoCustomer } from '../core/demoSafety.js';
 import { formatRevenueShort, formatRevenueFull } from '../core/format.js';
-import { state, on, emit, repColor, attrColor, getCustomer, markDirty, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
+import { state, on, emit, repColor, attrColor, getCustomer, markDirty, clearServiceTourPlan, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { getRoadRoute, peekRoadRoute } from '../services/routing.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
@@ -20,6 +20,7 @@ import { popupSafeRect, popupPanOffset, popupContentHeightLimit } from './popupV
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
 import { automaticLevelActive, automaticLevelForZoom } from './mapLevel.js';
 import { isPlanningRelevantServiceContract, normalizeCustomerNumber } from './serviceContracts.js';
+import { serviceVisitsForCustomer, isOpenServiceVisit, serviceVisitWindow } from './serviceVisits.js';
 import { modeTourCustomers, modeVisibleCustomers } from './customerScope.js';
 import { openRegionEditor } from '../ui/regionEditor.js';
 import { openCustomerBriefing } from '../ui/customerBriefing.js';
@@ -373,6 +374,7 @@ export function initMap(containerId) {
     on('tab:changed', refreshAll);
     on('service-customer-scope:changed', refreshAll);
     on('service-contracts:changed', refreshAll);
+    on('service-visits:changed', refreshAll);
     on('colormode:changed', applyView);
     on('basemap:changed', applyBasemap);
     on('level:changed', () => { setLevel(state.level); });
@@ -439,10 +441,12 @@ function handlePopupAction(action, customerId) {
     }
     if (action === 'tour-add') {
         if (!state.tour.stops.includes(customer.id)) {
+            clearServiceTourPlan();
             state.tour.stops.push(customer.id);
             emit('tour:changed');
         }
     } else if (action === 'tour-start') {
+        clearServiceTourPlan();
         state.tour.start = {
             lat: customer.lat, lng: customer.lng,
             label: customer.name, customerId: customer.id,
@@ -451,6 +455,7 @@ function handlePopupAction(action, customerId) {
         };
         emit('tour:changed');
     } else if (action === 'tour-dest') {
+        clearServiceTourPlan();
         const first = !state.tour.destination;
         state.tour.destination = {
             lat: customer.lat, lng: customer.lng,
@@ -469,6 +474,8 @@ function handlePopupAction(action, customerId) {
         openCustomerBriefing(customer);
     } else if (action === 'service-contracts') {
         emit('service-contracts:open', { customerNumber: customer.nummer });
+    } else if (action === 'service-visits') {
+        emit('service-visits:open', { customerNumber: customer.nummer });
     }
     return false;
 }
@@ -1160,6 +1167,32 @@ function serviceContractsBlockHtml(customer) {
     </button>`;
 }
 
+function serviceVisitsBlockHtml(customer) {
+    if (state.ui.mode !== 'service' || state.ui.depth !== 'profi' || isMobileMap() || !customer.nummer) return '';
+    const customerNumber = normalizeCustomerNumber(customer.nummer);
+    const matchingCustomers = (state.customers || []).filter((candidate) => (
+        normalizeCustomerNumber(candidate?.nummer) === customerNumber
+    ));
+    if (matchingCustomers.length !== 1) return '';
+    const linked = serviceVisitsForCustomer(state.serviceVisits, customer, { scope: 'open' })
+        .filter(isOpenServiceVisit)
+        .sort((a, b) => Number(serviceVisitWindow(b, 'now')) - Number(serviceVisitWindow(a, 'now'))
+            || String(a.dueDate || '').localeCompare(String(b.dueDate || ''))
+            || String(a.id || '').localeCompare(String(b.id || '')));
+    if (!linked.length) return '';
+    const first = linked[0];
+    const detail = [
+        first.reason || 'Serviceeinsatz',
+        first.dueDate ? `fällig ${formatDateDe(first.dueDate)}` : '',
+        first.durationMin ? `${first.durationMin} Min.` : ''
+    ].filter(Boolean).join(' · ');
+    const urgent = linked.filter((visit) => serviceVisitWindow(visit, 'now')).length;
+    return `<button type="button" class="popup-service-visits" data-action="service-visits" data-id="${escapeHtml(customer.id)}">
+        <span><b>🧰 ${linked.length} offene${linked.length === 1 ? 'r Einsatz' : ' Einsätze'}${urgent ? ` · ${urgent} dringend` : ''}</b><small>${escapeHtml(detail)}</small></span>
+        <span aria-hidden="true">›</span>
+    </button>`;
+}
+
 export function customerPopupHtml(customer) {
     const inTour = state.tour.stops.includes(customer.id);
     const isDest = state.tour.destination?.customerId === customer.id;
@@ -1183,6 +1216,7 @@ export function customerPopupHtml(customer) {
         ${addr ? `<p class="popup-addr">${addr}${customer.geo === 'plz' ? ' <span class="muted small">· 📍 ca. (PLZ-Mitte)</span>' : ''}</p>` : ''}
         ${metaLine ? `<p class="muted small popup-meta">${metaLine}</p>` : ''}
         ${contactBlockHtml(customer)}
+        ${serviceVisitsBlockHtml(customer)}
         ${serviceContractsBlockHtml(customer)}
         ${visitBlockHtml(customer)}
         <div class="popup-actions">

@@ -32,8 +32,8 @@ function randomId(bytes = 6) {
 /**
  * Datensatz in einen verschlüsselten Container packen und den zugehörigen
  * Schlüssel als QR-Text zurückgeben.
- * @param {{customers:Array, serviceContracts?:Array, fileName?:string, importedAt?:string, territories?:object}} dataset
- * @returns {Promise<{container:object, keyQr:string, id:string, count:number,contractCount:number,territoryCount:number}>}
+ * @param {{customers:Array, serviceContracts?:Array, serviceVisits?:Array, fileName?:string, importedAt?:string, territories?:object}} dataset
+ * @returns {Promise<{container:object, keyQr:string, id:string, count:number,contractCount:number,visitCount:number,territoryCount:number}>}
  */
 export async function createSafeTransfer(dataset) {
     const { raw, key } = await generateDek();
@@ -41,6 +41,7 @@ export async function createSafeTransfer(dataset) {
     const blob = await encryptJson(key, dataset ?? {}); // { iv, ct } (Base64)
     const count = Array.isArray(dataset?.customers) ? dataset.customers.length : 0;
     const contractCount = Array.isArray(dataset?.serviceContracts) ? dataset.serviceContracts.length : 0;
+    const visitCount = Array.isArray(dataset?.serviceVisits) ? dataset.serviceVisits.length : 0;
     const territoryCount = Object.keys(dataset?.territories || {}).length;
     const container = {
         [SAFE_MAGIC]: 1,
@@ -50,12 +51,13 @@ export async function createSafeTransfer(dataset) {
         createdAt: new Date().toISOString(),
         count,            // nur Metadaten (Anzahl) – kein Inhalt im Klartext
         contractCount,
+        visitCount,
         territoryCount,
         iv: blob.iv,
         ct: blob.ct
     };
     const keyQr = `${SAFE_KEY_PREFIX}${id}:${toB64(raw)}`;
-    return { container, keyQr, id, count, contractCount, territoryCount };
+    return { container, keyQr, id, count, contractCount, visitCount, territoryCount };
 }
 
 /** Prüft, ob ein Objekt ein gültiger TourFuchs-Container ist. */

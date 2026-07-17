@@ -6,7 +6,10 @@
  */
 
 import { geocodeByPlz } from '../services/geocode.js';
-import { state, setCustomers, replaceCustomers, setServiceContracts, clearServiceContracts, emit, datasetSnapshot, setTerritory } from '../core/state.js';
+import {
+    state, setCustomers, replaceCustomers, setServiceContracts, clearServiceContracts,
+    setServiceVisits, clearServiceVisits, emit, datasetSnapshot, setTerritory
+} from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { saveDataset } from '../services/storage.js';
 import { markShowcaseImportCompleted } from '../services/showcaseOnboarding.js';
@@ -17,6 +20,10 @@ import {
     createDemoServiceContracts,
     createDemoServiceContractSourceMeta
 } from '../features/demoServiceContracts.js';
+import {
+    createDemoServiceVisits,
+    createDemoServiceVisitSourceMeta
+} from '../features/demoServiceVisits.js';
 import { confirmDatasetReplacement, hasExistingDataset } from './datasetReplacement.js';
 
 let dialog = null;
@@ -226,6 +233,7 @@ async function confirmImport() {
         }
         if (contactRows.length) attachContacts(customers, contactRows, errors);
         removeDemoContracts();
+        removeDemoServiceVisits();
         replaceCustomers(customers, { fileName: parsed.fileName });
         areaCount = await resolveAreas(areaRows, errors);
         if (areaCount > 0) emit('customers:changed');
@@ -349,11 +357,16 @@ async function loadDemo() {
     })) return;
     if (disablesVault) removeVaultMeta();
     clearServiceContracts({ dirty: false });
+    clearServiceVisits({ dirty: false });
     await applyCustomers(customers, 'Demo-Daten');
     const demoNow = new Date();
     const serviceContracts = createDemoServiceContracts(customers, demoNow);
     setServiceContracts(serviceContracts, {
         DEMO: createDemoServiceContractSourceMeta(serviceContracts, demoNow)
+    });
+    const serviceVisits = createDemoServiceVisits(customers, serviceContracts, demoNow);
+    setServiceVisits(serviceVisits, {
+        DEMO: createDemoServiceVisitSourceMeta(serviceVisits, demoNow)
     });
     await saveDataset(datasetSnapshot());
     emit('demo:loaded');
@@ -366,6 +379,16 @@ function removeDemoContracts() {
     delete sources.DEMO;
     setServiceContracts(
         state.serviceContracts.filter((contract) => contract.sourceSystem !== 'DEMO'),
+        sources
+    );
+}
+
+function removeDemoServiceVisits() {
+    if (!state.serviceVisitSources?.DEMO) return;
+    const sources = { ...(state.serviceVisitSources || {}) };
+    delete sources.DEMO;
+    setServiceVisits(
+        state.serviceVisits.filter((visit) => visit.sourceSystem !== 'DEMO'),
         sources
     );
 }

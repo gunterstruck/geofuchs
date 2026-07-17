@@ -9,7 +9,9 @@
 
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
-import { state, replaceCustomers, setServiceContracts, emit, datasetSnapshot } from '../core/state.js';
+import {
+    state, replaceCustomers, setServiceContracts, setServiceVisits, emit, datasetSnapshot
+} from '../core/state.js';
 import { saveDataset } from '../services/storage.js';
 import { isEnabled } from '../services/vault.js';
 import { geocodeByPlz } from '../services/geocode.js';
@@ -57,7 +59,10 @@ export function initSafeTransfer() {
 // ---- Export (Desktop) ----
 async function openExportDialog() {
     const snap = datasetSnapshot();
-    if (!snap.customers?.length && !snap.serviceContracts?.length && !Object.keys(snap.territories || {}).length) {
+    if (!snap.customers?.length
+        && !snap.serviceContracts?.length
+        && !snap.serviceVisits?.length
+        && !Object.keys(snap.territories || {}).length) {
         showToast('Keine Daten zum Exportieren vorhanden.', 'info');
         return;
     }
@@ -101,10 +106,12 @@ function downloadContainer(container) {
 function transferCountText(meta) {
     const customers = Number(meta?.count) || 0;
     const contracts = Number(meta?.contractCount) || 0;
+    const visits = Number(meta?.visitCount) || 0;
     const territories = Number(meta?.territoryCount) || 0;
     return [
         customers ? `${customers} Kunde${customers === 1 ? '' : 'n'}` : '',
         contracts ? `${contracts} Servicevertrag${contracts === 1 ? '' : 'e'}` : '',
+        visits ? `${visits} Serviceeinsatz${visits === 1 ? '' : 'e'}` : '',
         territories ? `${territories} Gebietszuordnung${territories === 1 ? '' : 'en'}` : ''
     ].filter(Boolean).join(' · ') || '0 Einträgen';
 }
@@ -265,10 +272,12 @@ async function handleKeyText(text) {
 async function applyImported(dataset) {
     const customers = Array.isArray(dataset?.customers) ? dataset.customers : [];
     const serviceContracts = Array.isArray(dataset?.serviceContracts) ? dataset.serviceContracts : [];
+    const serviceVisits = Array.isArray(dataset?.serviceVisits) ? dataset.serviceVisits : [];
     if (!confirmDatasetReplacement({
         incomingCount: customers.length,
         sourceLabel: 'Die empfangene TourFuchs-Datei',
-        replacesContracts: true
+        replacesContracts: true,
+        replacesVisits: true
     })) {
         showToast('Import abgebrochen. Die bisherigen Daten bleiben vollständig erhalten.', 'info', 5000);
         return;
@@ -280,13 +289,18 @@ async function applyImported(dataset) {
         territories: dataset?.territories || {}
     });
     setServiceContracts(serviceContracts, dataset?.serviceContractSources || {});
+    setServiceVisits(serviceVisits, dataset?.serviceVisitSources || {});
     fitToCustomers();
     receiveDialog.close();
 
     if (isEnabled()) {
         // Auf diesem Gerät ist bereits ein Tresor aktiv -> direkt verschlüsselt sichern.
         await saveDataset(datasetSnapshot());
-        showToast(`Daten empfangen (${transferCountText({ count: customers.length, contractCount: serviceContracts.length })}) und im Tresor gesichert.`, 'success', 6000);
+        showToast(`Daten empfangen (${transferCountText({
+            count: customers.length,
+            contractCount: serviceContracts.length,
+            visitCount: serviceVisits.length
+        })}) und im Tresor gesichert.`, 'success', 6000);
         return;
     }
     // Kein Tresor aktiv -> Setup erzwingen, damit die Daten sofort geschützt sind.
@@ -294,7 +308,11 @@ async function applyImported(dataset) {
         forced: true,
         title: 'Importierte Daten schützen',
         intro: 'Die empfangenen Kundendaten liegen jetzt auf diesem Gerät. Lege eine PIN fest, damit sie <b>AES-256-verschlüsselt</b> gespeichert und beim Öffnen der App per PIN entsperrt werden.',
-        onDone: () => showToast(`Daten empfangen (${transferCountText({ count: customers.length, contractCount: serviceContracts.length })}) und mit dem Tresor gesichert.`, 'success', 6000),
+        onDone: () => showToast(`Daten empfangen (${transferCountText({
+            count: customers.length,
+            contractCount: serviceContracts.length,
+            visitCount: serviceVisits.length
+        })}) und mit dem Tresor gesichert.`, 'success', 6000),
         onDismiss: async () => {
             await saveDataset(datasetSnapshot());
             showToast('Daten empfangen. Achtung: ohne Tresor unverschlüsselt gespeichert – du kannst ihn jederzeit im Tab „Daten" aktivieren.', 'info', 8000);

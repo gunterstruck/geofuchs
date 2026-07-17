@@ -17,12 +17,16 @@ const DATASET = {
     serviceContracts: [
         { id: 'sc:SAP:SC-1', sourceSystem: 'SAP', contractId: 'SC-1', customerNumber: 'c1', annualValue: 42000 }
     ],
-    serviceContractSources: { SAP: { fileName: 'sap-service.xlsx', count: 1 } }
+    serviceContractSources: { SAP: { fileName: 'sap-service.xlsx', count: 1 } },
+    serviceVisits: [
+        { id: 'sv:SAP:WO-4711', sourceSystem: 'SAP', workOrderId: 'WO-4711', customerNumber: 'c1', subject: 'Antrieb prüfen' }
+    ],
+    serviceVisitSources: { SAP: { fileName: 'sap-einsaetze.xlsx', count: 1 } }
 };
 
 describe('createSafeTransfer', () => {
     it('erzeugt Container + Schlüssel-QR mit passenden Metadaten', async () => {
-        const { container, keyQr, id, count, contractCount, territoryCount } = await createSafeTransfer(DATASET);
+        const { container, keyQr, id, count, contractCount, visitCount, territoryCount } = await createSafeTransfer(DATASET);
         expect(container[SAFE_MAGIC]).toBe(1);
         expect(container.alg).toBe('AES-256-GCM');
         expect(container.id).toBe(id);
@@ -30,6 +34,8 @@ describe('createSafeTransfer', () => {
         expect(count).toBe(2);
         expect(container.contractCount).toBe(1);
         expect(contractCount).toBe(1);
+        expect(container.visitCount).toBe(1);
+        expect(visitCount).toBe(1);
         expect(container.territoryCount).toBe(1);
         expect(territoryCount).toBe(1);
         expect(typeof container.iv).toBe('string');
@@ -47,6 +53,9 @@ describe('createSafeTransfer', () => {
         expect(serialized).not.toContain('München');
         expect(serialized).not.toContain('SC-1');
         expect(serialized).not.toContain('sap-service.xlsx');
+        expect(serialized).not.toContain('WO-4711');
+        expect(serialized).not.toContain('Antrieb prüfen');
+        expect(serialized).not.toContain('sap-einsaetze.xlsx');
     });
 });
 

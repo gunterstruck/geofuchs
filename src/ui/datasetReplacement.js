@@ -3,14 +3,16 @@ import { state } from '../core/state.js';
 export function hasExistingDataset() {
     return state.customers.length > 0
         || Object.keys(state.territories || {}).length > 0
-        || state.serviceContracts.length > 0;
+        || state.serviceContracts.length > 0
+        || state.serviceVisits.length > 0;
 }
 
 export function datasetReplacementMessage({
     incomingCount = 0,
     sourceLabel = 'Die neue Kundenliste',
     disablesVault = false,
-    replacesContracts = false
+    replacesContracts = false,
+    replacesVisits = false
 } = {}) {
     const existing = [];
     if (state.customers.length) {
@@ -30,6 +32,12 @@ export function datasetReplacementMessage({
             ? '1 Servicevertrag'
             : `${contractCount} Serviceverträge`);
     }
+    const visitCount = state.serviceVisits.length;
+    if (replacesVisits && visitCount) {
+        existing.push(visitCount === 1
+            ? '1 Serviceeinsatz'
+            : `${visitCount} Serviceeinsätze`);
+    }
 
     const incoming = incomingCount > 0 ? ` mit ${incomingCount} Kunden` : '';
     const replacement = existing.length
@@ -41,8 +49,11 @@ export function datasetReplacementMessage({
     const contracts = !replacesContracts && contractCount
         ? '\n\nDie separat importierten Serviceverträge bleiben erhalten und werden anschließend über die Kundennummer neu zugeordnet.'
         : '';
+    const visits = !replacesVisits && visitCount
+        ? '\n\nDie separat importierten Serviceeinsätze bleiben erhalten und werden anschließend über die Kundennummer neu zugeordnet.'
+        : '';
 
-    return `${replacement}\n\nDie bisherige Tour sowie nicht in der neuen Datei enthaltene Besuchs- und Gebietsdaten werden entfernt. Alte Daten lassen sich danach nur aus einem vorherigen Export wiederherstellen.${contracts}${vault}\n\nFortfahren?`;
+    return `${replacement}\n\nDie bisherige Tour sowie nicht in der neuen Datei enthaltene Besuchs- und Gebietsdaten werden entfernt. Alte Daten lassen sich danach nur aus einem vorherigen Export wiederherstellen.${contracts}${visits}${vault}\n\nFortfahren?`;
 }
 
 export function confirmDatasetReplacement(options = {}) {

@@ -4,14 +4,14 @@
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, clearServiceContracts, filterDimensionDefs, datasetSnapshot } from '../core/state.js';
+import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, clearServiceContracts, clearServiceVisits, filterDimensionDefs, datasetSnapshot } from '../core/state.js';
 import { exactGeocodeCandidates, geocodeExact } from '../services/geocode.js';
 import { isDemoDataset } from '../core/demoSafety.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { STATUS_COLORS, STATUS_LABELS, isOpportunity } from '../features/visits.js';
 import { automaticLevelActive } from '../features/mapLevel.js';
-import { modeTourCustomers, modeVisibleCustomers, servicePlanningCustomerCount } from '../features/customerScope.js';
+import { modeTourCustomers, modeVisibleCustomers, servicePlanningCustomerCount, servicePlanningVisitCount, normalizedServiceCustomerScope } from '../features/customerScope.js';
 import { showToast } from './toast.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
@@ -511,20 +511,22 @@ const MODE_CONFIG = {
     },
     service: {
         label: 'Service',
-        primaryTab: 'vertraege',
+        primaryTab: 'einsaetze',
         markerColorModes: ['auto', 'bezirk', 'gruppe', 'luecken'],
         defaultColorMode: 'rep',
-        hint: 'Experten-Modus: Verträge prüfen und Touren mit passenden Servicekunden planen.'
+        hint: 'Experten-Modus: aktuelle Einsätze planen und Verträge getrennt im Blick behalten.'
     }
 };
 
-/** Service-Scope und seine beiden nachvollziehbaren Zähler spiegeln. */
+/** Operativen Service-Handlungsfokus und seine nachvollziehbaren Zähler spiegeln. */
 function syncServiceCustomerScope() {
     const container = document.getElementById('service-customer-scope');
     if (!container) return;
 
-    const scope = state.ui.serviceCustomerScope === 'all' ? 'all' : 'contracts';
-    const contractCount = servicePlanningCustomerCount();
+    const scope = normalizedServiceCustomerScope();
+    const nowCount = servicePlanningCustomerCount('now');
+    const weekCount = servicePlanningCustomerCount('week');
+    const contractCount = servicePlanningCustomerCount('contracts');
     const allCount = state.customers.length;
     const formatCount = (value) => Number(value || 0).toLocaleString('de-DE');
 
@@ -533,19 +535,37 @@ function syncServiceCustomerScope() {
         const active = button.dataset.serviceCustomerScope === scope;
         button.classList.toggle('active', active);
         button.setAttribute('aria-pressed', String(active));
+        if (['now', 'week'].includes(button.dataset.serviceCustomerScope)) {
+            button.disabled = state.serviceVisits.length === 0;
+        }
     });
+    const now = container.querySelector('[data-service-customer-count="now"]');
+    const week = container.querySelector('[data-service-customer-count="week"]');
     const contracts = container.querySelector('[data-service-customer-count="contracts"]');
     const all = container.querySelector('[data-service-customer-count="all"]');
+    if (now) now.textContent = formatCount(nowCount);
+    if (week) week.textContent = formatCount(weekCount);
     if (contracts) contracts.textContent = formatCount(contractCount);
     if (all) all.textContent = formatCount(allCount);
 
     const summary = document.getElementById('service-customer-scope-summary');
     if (summary) {
-        summary.textContent = scope === 'all'
-            ? `Servicefilter aus · ${formatCount(allCount)} Kunden`
-            : contractCount
-                ? `${formatCount(contractCount)} von ${formatCount(allCount)} Kunden`
-                : 'Keine Vertragskunden zugeordnet';
+        const customers = servicePlanningCustomerCount(scope);
+        const assignments = servicePlanningVisitCount(scope);
+        summary.textContent = scope === 'now' || scope === 'week'
+            ? assignments
+                ? `${formatCount(assignments)} Einsätze bei ${formatCount(customers)} Kunden · alle auf Karte und Tour`
+                : 'Aktuell kein planbarer Handlungsbedarf'
+            : scope === 'all'
+                ? `Nebenoption aktiv · ${formatCount(allCount)} Kunden`
+                : contractCount
+                    ? `${formatCount(contractCount)} aktive Vertragskunden`
+                    : 'Keine Vertragskunden zugeordnet';
+    }
+    const dataStatus = document.getElementById('service-action-data-status');
+    if (dataStatus) {
+        const dates = Object.values(state.serviceVisitSources || {}).map((meta) => meta?.dataAsOf).filter(Boolean).sort();
+        dataStatus.textContent = dates.length ? `Einsätze · Stand ${dates[0]}` : 'Einsatzdaten fehlen';
     }
 }
 
@@ -665,7 +685,11 @@ export function applyMode(mode, userInitiated = true, persist = true) {
     if (!MODE_CONFIG[mode]) mode = 'aussendienst';
     const cfg = MODE_CONFIG[mode];
     const enteringService = mode === 'service' && previousMode !== 'service';
-    if (userInitiated && enteringService) state.ui.serviceCustomerScope = 'contracts';
+    if (userInitiated && enteringService) {
+        state.ui.serviceCustomerScope = state.serviceVisits.some((visit) => ['OFFEN', 'EINGEPLANT', 'IN_ARBEIT'].includes(visit?.status))
+            ? 'now'
+            : 'contracts';
+    }
     // Verkaufs-Chancen und Besuchsstatus sind im Service kein impliziter
     // Planungsfilter. Der Service startet daher mit neutralen Kundenmarkern.
     const forceServiceNeutral = mode === 'service' && state.colorMode === 'status';
@@ -688,7 +712,8 @@ export function applyMode(mode, userInitiated = true, persist = true) {
     // - Wiederherstellen -> gespeicherten Tab behalten, falls im Modus sichtbar
     const empty = state.customers.length === 0
         && Object.keys(state.territories).length === 0
-        && state.serviceContracts.length === 0;
+        && state.serviceContracts.length === 0
+        && state.serviceVisits.length === 0;
     if (isMobileUi()) {
         const fallback = empty ? 'daten' : 'karte';
         const current = tabs.find((b) => b.dataset.tab === state.ui.activeTab);
@@ -723,8 +748,8 @@ export function applyMode(mode, userInitiated = true, persist = true) {
 }
 
 async function clearAllData() {
-    if (state.customers.length === 0 && Object.keys(state.territories).length === 0 && state.serviceContracts.length === 0) return;
-    if (!confirm('Alle Kunden-, Vertrags- und Gebietszuordnungen aus dem Browser löschen?')) return;
+    if (state.customers.length === 0 && Object.keys(state.territories).length === 0 && state.serviceContracts.length === 0 && state.serviceVisits.length === 0) return;
+    if (!confirm('Alle Kunden-, Einsatz-, Vertrags- und Gebietszuordnungen aus dem Browser löschen?')) return;
     // Ohne Daten gibt es nichts zu schützen -> Tresor mit deaktivieren,
     // sonst bliebe beim nächsten Öffnen ein Sperrbildschirm ohne Inhalt.
     if (vaultEnabled()) removeVaultMeta();
@@ -735,6 +760,7 @@ async function clearAllData() {
     state.tour.mapFocus = false;
     state.fileName = null;
     state.territories = {};
+    clearServiceVisits({ dirty: false });
     clearServiceContracts({ dirty: false });
     setCustomers([]);
     emit('tour:changed');
@@ -767,7 +793,7 @@ export function initSidebar() {
 
     document.querySelectorAll('[data-service-customer-scope]').forEach((btn) => {
         btn.addEventListener('click', () => {
-            const scope = btn.dataset.serviceCustomerScope === 'all' ? 'all' : 'contracts';
+            const scope = normalizedServiceCustomerScope(btn.dataset.serviceCustomerScope);
             if (state.ui.serviceCustomerScope === scope) return;
             state.ui.serviceCustomerScope = scope;
             syncServiceCustomerScope();
@@ -868,6 +894,7 @@ export function initSidebar() {
     on('mode:changed', updateChancenCount);
     on('service-customer-scope:changed', updateChancenCount);
     on('service-contracts:changed', () => { syncServiceCustomerScope(); updateChancenCount(); });
+    on('service-visits:changed', () => { syncServiceCustomerScope(); updateChancenCount(); });
     on('tour:scope-changed', updateChancenCount);
     on('filters:changed', updateChancenCount);
     syncAussenView();
@@ -1035,7 +1062,7 @@ function persistSettings() {
     saveSettings({
         mode: state.ui.mode,
         activeTab: state.ui.activeTab,
-        serviceCustomerScope: state.ui.serviceCustomerScope === 'all' ? 'all' : 'contracts',
+        serviceCustomerScope: normalizedServiceCustomerScope(),
         level: state.fixedLevel,
         levelMode: state.levelMode,
         fixedLevel: state.fixedLevel,
