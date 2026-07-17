@@ -28,10 +28,13 @@ function read(provided) {
         const raw = JSON.parse(store(provided)?.getItem(STORE_KEY) || '{}');
         return {
             done: Array.isArray(raw.done) ? raw.done.filter((id) => typeof id === 'string') : [],
-            dismissed: raw.dismissed === true
+            dismissed: raw.dismissed === true,
+            // undefined = noch keine bewusste/automatische Wahl -> UI entscheidet
+            // nach Gerät (mobil startet eingeklappt, Desktop ausgeklappt).
+            collapsed: typeof raw.collapsed === 'boolean' ? raw.collapsed : undefined
         };
     } catch {
-        return { done: [], dismissed: false };
+        return { done: [], dismissed: false, collapsed: undefined };
     }
 }
 
@@ -52,8 +55,19 @@ export function markFirstStepDone(id, provided) {
     return true;
 }
 
+/** „Nicht mehr zeigen" – bewusste, explizite Abwahl (über Info umkehrbar). */
 export function dismissFirstSteps(provided) {
     write({ ...read(provided), dismissed: true }, provided);
+}
+
+/** Abwahl aufheben und ausklappen („Erste Schritte anzeigen" im Info-Dialog). */
+export function unhideFirstSteps(provided) {
+    write({ ...read(provided), dismissed: false, collapsed: false }, provided);
+}
+
+/** „Später" bzw. Chip-Klick: nur die Darstellung wechseln, nichts geht verloren. */
+export function setFirstStepsCollapsed(collapsed, provided) {
+    write({ ...read(provided), collapsed: collapsed === true }, provided);
 }
 
 export function resetFirstSteps(provided) {
@@ -81,4 +95,15 @@ export function allFirstStepsDone(doneIds = []) {
 /** Sichtbar nur mit geladenen Daten, solange nicht abgewählt oder abgeschlossen. */
 export function shouldShowFirstSteps({ customerCount = 0, doneIds = [], dismissed = false } = {}) {
     return customerCount > 0 && !dismissed && !allFirstStepsDone(doneIds);
+}
+
+/**
+ * Die volle Karte gehört der Kennenlernphase. Sobald der Nutzer erkennbar
+ * arbeitet – ein weiterer Schritt über „Daten laden" hinaus ist erledigt oder
+ * die Tour hat Stopps –, reicht die schmale Fortschrittszeile.
+ */
+export function shouldAutoCollapseFirstSteps({ doneIds = [], tourStopCount = 0 } = {}) {
+    const done = new Set(doneIds);
+    const beyondData = FIRST_STEPS.filter((step) => step.id !== 'daten' && done.has(step.id)).length;
+    return beyondData > 0 || tourStopCount > 0;
 }

@@ -74,6 +74,22 @@ describe('Onboarding-Trichter: ein Einstieg, sichtbare nächste Schritte', () =>
         expect(css).toContain('.first-steps-list');
     });
 
+    it('bietet drei Zustände: „Später", Chip-Zeile und umkehrbares „Nicht mehr zeigen"', () => {
+        const ui = source('src/ui/firstSteps.js');
+        const html = source('index.html');
+        const css = source('src/styles/components.css');
+
+        // Kein unwiederbringliches Wegkreuzen mehr – nur Später/Chip/explizite Abwahl.
+        expect(ui).not.toContain('first-steps-dismiss');
+        expect(ui).toContain('first-steps-later');
+        expect(ui).toContain('first-steps-never');
+        expect(ui).toContain('first-steps-chip');
+        expect(ui).toContain('unhideFirstSteps()');
+        // Abwahl ist über den Info-Dialog umkehrbar.
+        expect(html).toContain('id="btn-first-steps-restore"');
+        expect(css).toContain('.first-steps-chip');
+    });
+
     it('hebt die Compliance-Checkbox am Ort hervor, wenn sie fehlt', () => {
         const wizard = source('src/ui/importWizard.js');
         const css = source('src/styles/components.css');

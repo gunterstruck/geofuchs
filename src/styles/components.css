@@ -1326,15 +1326,39 @@ dialog footer { margin-top: 14px; display: flex; justify-content: flex-end; gap:
     gap: 8px;
 }
 .first-steps-head .muted { margin-left: auto; }
-.first-steps-dismiss {
+.first-steps-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 10px;
+}
+.first-steps-foot .first-steps-later {
+    padding: 5px 14px;
+    font-size: 0.82rem;
+}
+.first-steps-foot .first-steps-never {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+}
+/* Eingeklappt: schmale Fortschrittszeile im Stil des Bezirks-Chips */
+.first-steps.collapsed {
+    padding: 0;
     border: none;
     background: transparent;
-    color: var(--color-text-muted);
-    padding: 2px 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
 }
-.first-steps-dismiss:hover { color: var(--color-text); background: transparent; }
+.first-steps-chip {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 7px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-s);
+    background: var(--color-surface-2);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.first-steps-chip:hover { border-color: var(--color-primary); background: var(--color-surface-2); }
 .first-steps-list {
     list-style: none;
     margin: 8px 0 0;
