@@ -15,6 +15,7 @@ import { printDayPlan, downloadIcs, DEFAULT_VISIT_MINUTES } from '../features/to
 import { combinePlanStart, todayInputValue } from '../features/dayPlanner.js';
 import { encodeTourPayload, MAX_QR_STOPS } from '../features/tourShare.js';
 import { initTourQr, openShareDialog } from './tourQr.js';
+import { noteTourSharedToPhone } from './firstSteps.js';
 import { copyText, tourText } from '../features/handoff.js';
 import { visitStatus, STATUS_COLORS, STATUS_LABELS, markVisitedToday, lastVisit, agoText } from '../features/visits.js';
 import { loadTours, saveTours } from '../services/storage.js';
@@ -1182,6 +1183,7 @@ function shareTourAsQr() {
         stopCount: Math.min(eff.length, MAX_QR_STOPS),
         skipped: Math.max(0, eff.length - MAX_QR_STOPS)
     });
+    noteTourSharedToPhone();
 }
 
 function optimizeTour() {

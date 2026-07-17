@@ -94,6 +94,9 @@
                 <button class="tab-button" data-tab="tour" data-modes="aussendienst service" role="tab">Tour</button>
             </nav>
 
+            <!-- Erste-Schritte-Checkliste: sichtbarer roter Faden nach dem ersten Import -->
+            <div id="first-steps" class="first-steps" hidden></div>
+
             <!-- Tab: Daten -->
             <section id="tab-daten" class="tab-panel active">
                 <input id="file-input" type="file" accept=".xlsx,.xls,.csv,.ods,text/csv" hidden>
@@ -113,6 +116,8 @@
                     <div class="ob-or"><span>oder</span></div>
                     <button id="btn-own-data" class="primary ob-primary-action">📂 Eigene Daten laden</button>
                     <p class="muted small ob-action-sub">Excel/CSV oder verschlüsselte TourFuchs-Datei.</p>
+
+                    <button id="btn-showcase-ob" class="linklike ob-showcase-link">🎬 Lieber zuschauen? Geführte Vorführung starten</button>
                 </div>
 
                 <!-- Datenübersicht + Verwaltung (nur mit geladenen Daten) -->

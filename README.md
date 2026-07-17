@@ -27,7 +27,7 @@ TourFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 | 🗺️ **Gebiete** | Landkreise (400 Kreise & Städte) **und** PLZ-Ebenen (1-, 2-, 3- und 5-stellig); Flächen primär nach **Betriebsbezirk** einfärbbar, optional nach Vertriebsgruppe (mit Label und Umsatzsumme); Klick zeigt Kunden & Bezirksverteilung je Gebiet |
 | ✏️ **Gebiets-Editor** | Im Gebiets-Popup „Kunden dieses Gebiets umordnen": Kundenliste des Gebiets mit Checkboxen & Filter, ausgewählte Kunden (oder das ganze Gebiet) einem anderen Betriebsbezirk oder einer Gruppe zuweisen – auch gemischte Gebiete gezielt aufteilen; wirkt sofort auf der Karte, mit **Rückgängig** |
 | 🔍 **Zoom-Automatik** | „Automatisch (nach Zoom)": weit herausgezoomt zeigt die Karte Vertriebsgruppen als Flächen (mit Umsatz), mittlerer Zoom die Betriebsbezirke, hineingezoomt die einzelnen Kunden – der Detailgrad wächst mit dem Zoom |
-| 👥 **Filter** | **Betriebsbezirk** ist die führende Pflicht-Ebene. Vertriebsgruppe kann zusätzlich eingeblendet werden; weitere optionale Ebenen lassen sich bei Bedarf ergänzen. Kundenzähler helfen beim schnellen Prüfen der Verteilung |
+| 👥 **Filter** | **Betriebsbezirk** ist die führende Ebene. Vertriebsgruppe kann zusätzlich eingeblendet werden; weitere optionale Ebenen lassen sich bei Bedarf ergänzen. Kundenzähler helfen beim schnellen Prüfen der Verteilung |
 | 🚗 **Tour** | Startpunkt = eigener GPS-Standort oder ein Kunde; Vorschläge „Wen könnte ich in der Nähe noch besuchen?“ (Umkreis einstellbar); Tourenoptimierung (kürzeste Strecke, Nearest-Neighbor + 2-Opt); Übergabe an Google Maps zur Navigation |
 | 📆 **Plan-Einstellungen** | Datum, Startzeit und Besuchsdauer (z. B. 45 min) der Tagestour sind einstellbar und fließen in Tagesplan-Druck und Kalender-Termine (.ics für Outlook, ein Termin je Besuch inkl. Fahrzeit) ein |
 | 📲 **QR-Übergabe** | Am Desktop geplante Tour als QR-Code anzeigen, am Handy mit der Kamera scannen und übernehmen – nur die Tour (keine Datenbank), Bildschirm zu Kamera, ohne Netzwerk und ohne Server. Navigation und Kalender-Termine funktionieren direkt aus dem gescannten Code |
@@ -50,14 +50,14 @@ und können beim Import manuell zugeordnet werden. Empfohlene Spalten:
 | PLZ | ✅ (für die Karte) | 50667 |
 | Straße & Hausnummer | – | Hauptstraße 12 |
 | Ort | – | Köln |
-| Betriebsbezirk | ✅ | Bezirk Rheinland |
+| Betriebsbezirk | – (empfohlen) | Bezirk Rheinland |
 | Vertriebschannel | – | Fachhandel |
 | Vertriebsgruppe | – | Handel |
 | Ansprechpartner, Telefon, E-Mail | – | Demo-Team · 0221 4710 000 · kunde-0001@example.com |
 | Besuchsrhythmus (Wochen), Letzter Besuch | – | 6 · 12.05.2026 |
 | Kundennummer, Umsatz, Lat/Lng | – | optional |
 
-Der **Betriebsbezirk** ist die führende operative Pflicht-Ebene und steuert Gebietsplanung, Farben, Cockpit und Tourfilter. **Vertriebsgruppe** ist die empfohlene zweite Ebene; Vertriebschannel und weitere Ebenen sind optional und werden nur angezeigt, wenn sie bewusst ergänzt werden. Persönliche Vertriebsnamen sind für die Gebietssteuerung nicht leitend.
+Der **Betriebsbezirk** ist die führende operative Ebene und steuert Gebietsplanung, Farben, Cockpit und Tourfilter. Er ist beim Import keine Pflicht: Eine einfache Liste (Name + PLZ) landet sofort auf der Karte, Kunden ohne Bezirk laufen unter „Ohne Zuordnung" und können später per neuem Import zugeordnet werden. **Vertriebsgruppe** ist die empfohlene zweite Ebene; Vertriebschannel und weitere Ebenen sind optional und werden nur angezeigt, wenn sie bewusst ergänzt werden. Persönliche Vertriebsnamen sind für die Gebietssteuerung nicht leitend.
 
 Eine fertige Vorlage gibt es in der App unter **Daten → Excel-Vorlage herunterladen**.
 

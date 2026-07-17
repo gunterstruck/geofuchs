@@ -88,7 +88,7 @@ describe('Showcase-Onboarding', () => {
         }
     });
 
-    it('zeigt auf Desktop zuerst die Begrüßung und startet danach den Fünf-Sekunden-Timer', () => {
+    it('zeigt zuerst die Begrüßung und öffnet den Showcase nur noch auf Klick', () => {
         const stateSource = readFileSync(resolve(process.cwd(), 'src/core/state.js'), 'utf8');
         const mainSource = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8');
         const showcaseSource = readFileSync(resolve(process.cwd(), 'src/ui/showcase.js'), 'utf8');
@@ -98,22 +98,24 @@ describe('Showcase-Onboarding', () => {
         expect(stateSource).toContain('sidebarOpen: window.innerWidth > 900');
         expect(welcomeIndex).toBeGreaterThan(-1);
         expect(appReadyIndex).toBeGreaterThan(welcomeIndex);
-        expect(showcaseSource).toContain('const AUTO_OFFER_DELAY_MS = 5000;');
-        expect(showcaseSource).toContain("on('app:ready', scheduleAutoOffer);");
+        // Ein Trichter: keine konkurrierenden Auto-Dialoge über dem Willkommens-Panel.
+        expect(showcaseSource).not.toContain('scheduleAutoOffer');
+        expect(showcaseSource).not.toContain("on('app:ready'");
     });
 
-    it('verdrahtet Fünf-Sekunden-Start, Importabschluss und mobiles Vollformat', () => {
+    it('verdrahtet Klick-Einstiege, Datenlösch-Reset und mobiles Vollformat', () => {
         const showcase = readFileSync(resolve(process.cwd(), 'src/ui/showcase.js'), 'utf8');
         const importWizard = readFileSync(resolve(process.cwd(), 'src/ui/importWizard.js'), 'utf8');
         const main = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8');
         const sidebar = readFileSync(resolve(process.cwd(), 'src/ui/sidebar.js'), 'utf8');
+        const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
         const css = readFileSync(resolve(process.cwd(), 'src/styles/showcase.css'), 'utf8');
 
-        expect(showcase).toContain('AUTO_OFFER_DELAY_MS = 5000');
-        expect(showcase).toContain("on('app:ready', scheduleAutoOffer)");
-        expect(showcase).toContain("on('dataset:cleared', restartAutoOfferAfterDataClear)");
-        expect(showcase).toContain('if (!hasCustomers)');
-        expect(showcase).toContain('resetShowcaseAfterDataClear()');
+        // Showcase öffnet nur auf bewussten Klick: Info-Dialog + Willkommens-Panel.
+        expect(showcase).toContain("document.getElementById('btn-showcase')");
+        expect(showcase).toContain("document.getElementById('btn-showcase-ob')");
+        expect(html).toContain('id="btn-showcase-ob"');
+        expect(showcase).toContain("on('dataset:cleared', () => resetShowcaseAfterDataClear())");
         expect(showcase).toContain('showStoryCompletion(story)');
         expect(importWizard).toContain('markShowcaseImportCompleted()');
         expect(main).toContain("emit('app:ready')");

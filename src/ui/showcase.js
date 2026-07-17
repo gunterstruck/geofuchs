@@ -17,11 +17,7 @@ import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js
 import { saveDataset } from '../services/storage.js';
 import {
     allShowcaseStoriesSeen,
-    canAutoOfferShowcase,
-    isShowcaseAutoSuppressed,
     markShowcaseCompleted,
-    markShowcaseDismissed,
-    markShowcaseImportCompleted,
     markShowcaseStorySeen,
     nextUnseenShowcaseStory,
     resetShowcaseAfterDataClear,
@@ -38,9 +34,6 @@ const ROUTING_CONSENT_KEY = 'gf_routing_consent';
 
 const isMobileView = () => window.matchMedia('(max-width: 768px)').matches;
 
-const AUTO_OFFER_DELAY_MS = 5000;
-const AUTO_RETRY_DELAY_MS = 1000;
-const AUTO_RETRY_LIMIT = 30;
 const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const insideMobilePreview = new URLSearchParams(location.search).has('mobilePreview');
 
@@ -59,9 +52,6 @@ let priorConsent = undefined; // Routing-Zustimmung vor der Demo (zum Zurückset
 let demoVaultCreated = false; // hat DIESE Demo den Tresor angelegt? (nur dann abbauen)
 let priorDepth = null;        // Ansichtstiefe vor der Demo (zum Zurücksetzen)
 let showcaseTourPlan = null;  // reproduzierbare Start-/Stoppwahl der aktuellen Demo
-let autoOfferHandled = false;
-let autoOfferTimer = null;
-let autoRetryCount = 0;
 
 class AbortError extends Error {}
 
@@ -714,7 +704,6 @@ function showShowcaseDialog() {
 
 function startStory(story) {
     if (!story || running) return;
-    autoOfferHandled = true;
     if (dialog.open) dialog.close();
     void play(story);
 }
@@ -796,92 +785,22 @@ function buildPanel() {
         </div>
         <div class="sc-tiles">${tiles}</div>
         <div class="sc-panel-foot">
-            <label><input type="checkbox" id="sc-dismiss"> Nicht mehr automatisch zeigen</label>
             <button type="button" class="sc-later primary">Später</button>
         </div>`;
     dialog.querySelectorAll('.sc-tile').forEach((tile) => {
         tile.addEventListener('click', () => {
             const story = STORIES.find((s) => s.id === tile.dataset.story);
-            persistDismissChoice();
             startStory(story);
         });
     });
-    dialog.querySelector('.sc-later').addEventListener('click', () => { persistDismissChoice(); dialog.close(); });
-}
-function persistDismissChoice() {
-    const cb = dialog.querySelector('#sc-dismiss');
-    if (cb?.checked) markShowcaseDismissed();
+    dialog.querySelector('.sc-later').addEventListener('click', () => dialog.close());
 }
 function openPanel() {
+    // In der Handy-Vorschau (iframe) keine Vorführungen starten.
+    if (insideMobilePreview) return;
     if (!dialog) return;
-    autoOfferHandled = true;
     buildPanel();
     showShowcaseDialog();
-}
-
-function blockingDialogOpen() {
-    return [...document.querySelectorAll('dialog[open]')].some((item) => item !== dialog);
-}
-
-function tryAutoOffer() {
-    autoOfferTimer = null;
-    if (autoOfferHandled) return;
-
-    const hasCustomers = state.customers.length > 0;
-    if (!hasCustomers) {
-        resetShowcaseAfterDataClear();
-    } else if (state.fileName && state.fileName !== 'Demo-Daten') {
-        markShowcaseImportCompleted();
-    }
-
-    const stories = currentVisibleStories();
-    const seen = seenShowcaseIds();
-    const allStoriesSeen = allShowcaseStoriesSeen(stories, seen);
-    if (allStoriesSeen) {
-        markShowcaseCompleted();
-        return;
-    }
-
-    const lock = document.getElementById('vault-lock');
-    const locked = Boolean(lock && !lock.hidden);
-    const blocked = blockingDialogOpen();
-    const suppressed = isShowcaseAutoSuppressed();
-    const eligible = canAutoOfferShowcase({
-        suppressed,
-        hasCustomers,
-        allStoriesSeen,
-        running,
-        dialogOpen: Boolean(dialog.open),
-        locked,
-        blockingDialogOpen: blocked
-    });
-
-    if (eligible) {
-        openPanel();
-        return;
-    }
-
-    const transientBlock = !suppressed && !hasCustomers && !allStoriesSeen
-        && (running || dialog.open || locked || blocked);
-    if (transientBlock && autoRetryCount < AUTO_RETRY_LIMIT) {
-        autoRetryCount++;
-        autoOfferTimer = setTimeout(tryAutoOffer, AUTO_RETRY_DELAY_MS);
-    }
-}
-
-function scheduleAutoOffer() {
-    if (insideMobilePreview) return;
-    if (autoOfferHandled || autoOfferTimer) return;
-    autoRetryCount = 0;
-    autoOfferTimer = setTimeout(tryAutoOffer, AUTO_OFFER_DELAY_MS);
-}
-
-function restartAutoOfferAfterDataClear() {
-    resetShowcaseAfterDataClear();
-    if (autoOfferTimer) clearTimeout(autoOfferTimer);
-    autoOfferTimer = null;
-    autoOfferHandled = false;
-    scheduleAutoOffer();
 }
 
 export function initShowcase() {
@@ -889,19 +808,17 @@ export function initShowcase() {
     if (!dialog) return;
     ensureDom();
 
+    // Ein Trichter statt konkurrierender Auto-Dialoge: Der Showcase öffnet nur
+    // noch auf bewussten Klick – aus dem Willkommens-Panel oder der Info.
     document.getElementById('btn-showcase')?.addEventListener('click', () => {
         document.getElementById('info-dialog')?.close();
         openPanel();
     });
-
-    dialog.addEventListener('close', () => {
-        if (dialog.dataset.view === 'intro') persistDismissChoice();
-    });
+    document.getElementById('btn-showcase-ob')?.addEventListener('click', () => openPanel());
 
     // ESC bricht eine laufende Vorführung ab (statt nur den Dialog zu schließen)
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && running) { e.preventDefault(); abortNow(); } }, true);
 
-    // Erst nach vollständig wiederhergestelltem App-Zustand fünf Sekunden warten.
-    on('app:ready', scheduleAutoOffer);
-    on('dataset:cleared', restartAutoOfferAfterDataClear);
+    // Nach bewusstem Datenlöschen zählt der Demo-Fortschritt neu.
+    on('dataset:cleared', () => resetShowcaseAfterDataClear());
 }
