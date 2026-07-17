@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { state, setCustomers, setServiceContracts } from '../src/core/state.js';
+import { state, setCustomers, setServiceContracts, setServiceVisits } from '../src/core/state.js';
 import {
     applyServiceCustomerScope,
     modeTourCustomers,
     modeVisibleCustomers,
     servicePlanningCustomerCount,
+    servicePlanningVisitCount,
     serviceScopeActive
 } from '../src/features/customerScope.js';
 
@@ -23,6 +24,10 @@ const CONTRACTS = [
 beforeEach(() => {
     setCustomers(CUSTOMERS.map((customer) => ({ ...customer })), { fileName: 'test.xlsx' });
     setServiceContracts(CONTRACTS.map((contract) => ({ ...contract })), { SAP: { count: 3 } });
+    setServiceVisits([
+        { id: 'e1', sourceSystem: 'SAP', workOrderId: 'E1', customerNumber: '0001', dueDate: '2026-07-17', status: 'OFFEN' },
+        { id: 'e2', sourceSystem: 'SAP', workOrderId: 'E2', customerNumber: '0002', dueDate: '2026-07-19', status: 'OFFEN' }
+    ], { SAP: { count: 2 } });
     state.ui.mode = 'aussendienst';
     state.ui.serviceCustomerScope = 'contracts';
     state.tour.bezirk = '__all__';
@@ -45,6 +50,17 @@ describe('Servicekunden-Scope', () => {
         expect(servicePlanningCustomerCount()).toBe(2);
     });
 
+    it('trennt den operativen Jetzt-Fokus von Vertragskunden und zählt Einsätze transparent', () => {
+        state.ui.mode = 'service';
+        state.ui.serviceCustomerScope = 'now';
+
+        expect(modeVisibleCustomers().map((customer) => customer.id)).toEqual(['service-west']);
+        expect(servicePlanningCustomerCount('now', '2026-07-17')).toBe(1);
+        expect(servicePlanningVisitCount('now', '2026-07-17')).toBe(1);
+        expect(servicePlanningCustomerCount('week', '2026-07-17')).toBe(2);
+        expect(servicePlanningVisitCount('week', '2026-07-17')).toBe(2);
+    });
+
     it('gibt mit dem Profi-Schalter bewusst alle Kunden frei', () => {
         state.ui.mode = 'service';
         state.ui.serviceCustomerScope = 'all';
@@ -52,7 +68,7 @@ describe('Servicekunden-Scope', () => {
         expect(serviceScopeActive()).toBe(false);
         expect(modeVisibleCustomers().map((customer) => customer.id))
             .toEqual(['service-west', 'service-ost', 'ohne-vertrag']);
-        expect(servicePlanningCustomerCount()).toBe(2);
+        expect(servicePlanningCustomerCount()).toBe(3);
     });
 
     it('übernimmt im Service keine unsichtbaren alten Vertriebsfilter', () => {

@@ -8,7 +8,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 
 import { CONFIG } from './core/config.js';
 import { demoCustomersNeedNormalization, normalizeDemoCustomers } from './core/demoSafety.js';
-import { state, on, emit, setCustomers, setServiceContracts, datasetSnapshot } from './core/state.js';
+import { state, on, emit, setCustomers, setServiceContracts, setServiceVisits, datasetSnapshot } from './core/state.js';
 import { loadDataset, saveDataset, loadSettings, hasStoredDataset } from './services/storage.js';
 import { isEnabled as vaultEnabled, isLocked as vaultLocked, removeVaultMeta } from './services/vault.js';
 import { enrichPlacesByPlz, geocodeByPlz } from './services/geocode.js';
@@ -32,6 +32,7 @@ import { initContextHelp } from './ui/contextHelp.js';
 import { initCustomerBriefing } from './ui/customerBriefing.js';
 import { initContractRadar } from './ui/contractRadar.js';
 import { upgradeDemoServiceContracts } from './features/demoServiceContracts.js';
+import { upgradeDemoServiceVisits } from './features/demoServiceVisits.js';
 import { fitToCustomers } from './features/map.js';
 
 async function restorePersistedState() {
@@ -43,7 +44,9 @@ async function restorePersistedState() {
     state.levelMode = settings?.levelMode === 'fixed' ? 'fixed' : 'auto';
     emit('level:control-changed');
     if (settings?.radiusKm) state.tour.radiusKm = settings.radiusKm;
-    state.ui.serviceCustomerScope = settings?.serviceCustomerScope === 'all' ? 'all' : 'contracts';
+    state.ui.serviceCustomerScope = ['now', 'week', 'contracts', 'all'].includes(settings?.serviceCustomerScope)
+        ? settings.serviceCustomerScope
+        : 'contracts';
     if (settings?.basemap && CONFIG.tileLayers?.[settings.basemap]) {
         state.basemap = settings.basemap;
         const basemapSelect = document.getElementById('basemap-select');
@@ -61,9 +64,11 @@ async function restorePersistedState() {
     const dataset = await loadDataset();
     if (dataset?.territories) state.territories = dataset.territories;
     setServiceContracts(dataset?.serviceContracts || [], dataset?.serviceContractSources || {});
+    setServiceVisits(dataset?.serviceVisits || [], dataset?.serviceVisitSources || {});
     if (dataset?.customers?.length) {
         let enrichedDemoPlaces = 0;
         let migratedDemoContracts = false;
+        let migratedDemoVisits = false;
         const migratedDemoCustomers = demoCustomersNeedNormalization(dataset.customers);
         if (migratedDemoCustomers) normalizeDemoCustomers(dataset.customers);
         if (dataset.fileName === 'Demo-Daten') {
@@ -89,7 +94,18 @@ async function restorePersistedState() {
             setServiceContracts(contractUpgrade.serviceContracts, contractUpgrade.serviceContractSources);
             migratedDemoContracts = true;
         }
-        if (enrichedDemoPlaces > 0 || migratedDemoCustomers || migratedDemoContracts) {
+        const visitUpgrade = upgradeDemoServiceVisits({
+            fileName: dataset.fileName,
+            customers: state.customers,
+            serviceContracts: state.serviceContracts,
+            serviceVisits: state.serviceVisits,
+            serviceVisitSources: state.serviceVisitSources
+        });
+        if (visitUpgrade.changed) {
+            setServiceVisits(visitUpgrade.serviceVisits, visitUpgrade.serviceVisitSources);
+            migratedDemoVisits = true;
+        }
+        if (enrichedDemoPlaces > 0 || migratedDemoCustomers || migratedDemoContracts || migratedDemoVisits) {
             await saveDataset(datasetSnapshot());
         }
 
@@ -172,6 +188,25 @@ async function init() {
     initPwaUpdates();
     initContextHelp();
     initSafeTransfer();
+
+    // Die operative Serviceplanung ist eine Profi-Funktion. Code, Styles und
+    // Excel-Import werden erst beim Wechsel in den Service-Fokus geladen, damit
+    // der 90-%-Basisweg schlank bleibt.
+    let serviceVisitPlannerPromise = null;
+    const ensureServiceVisitPlanner = () => {
+        if (!serviceVisitPlannerPromise) {
+            serviceVisitPlannerPromise = import('./ui/serviceVisitPlanner.js')
+                .then(({ initServiceVisitPlanner }) => initServiceVisitPlanner())
+                .catch((error) => {
+                    serviceVisitPlannerPromise = null;
+                    console.warn('Serviceeinsatz-Planung konnte nicht geladen werden:', error);
+                });
+        }
+        return serviceVisitPlannerPromise;
+    };
+    on('mode:changed', (mode) => {
+        if (mode === 'service') ensureServiceVisitPlanner();
+    });
 
     on('dataset:dirty', scheduleSave);
 

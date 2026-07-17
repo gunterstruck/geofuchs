@@ -35,6 +35,10 @@ export const state = {
     // Quellsystem + Vertrags-ID gepflegt und nur per Kundennummer verknüpft.
     serviceContracts: [],
     serviceContractSources: {},
+    // Operative Serviceeinsätze/Work Orders bleiben fachlich von Verträgen
+    // getrennt. Auch sie werden ausschließlich über die Kundennummer verknüpft.
+    serviceVisits: [],
+    serviceVisitSources: {},
 
     // Vertriebsbeauftragte: name -> { color, visible }
     reps: new Map(),
@@ -63,7 +67,9 @@ export const state = {
         roundTrip: false,   // Rundreise: am Ende zurück zum Start
         suggestMode: 'radius', // 'radius' = Umkreis um Start | 'route' = Korridor entlang der Tour
         mapFocus: false,    // Karte zeigt nur Tour + passende Vorschlagskunden
-        routeLineMode: 'air' // 'air' = Luftlinie | 'road' = Straßenroute
+        routeLineMode: 'air', // 'air' = Luftlinie | 'road' = Straßenroute
+        servicePlan: null,  // bestätigter, erklärbarer Tagesvorschlag
+        serviceVisitByCustomer: {}
     },
 
     ui: {
@@ -165,14 +171,24 @@ export function setTerritory(level, regionKey, attr, value, name) {
 /** Kompletter Datensatz-Schnappschuss für die Persistenz */
 export function datasetSnapshot() {
     return {
-        schemaVersion: 2,
+        schemaVersion: 3,
         customers: state.customers,
         fileName: state.fileName,
         importedAt: state.importedAt,
         territories: state.territories,
         serviceContracts: state.serviceContracts,
-        serviceContractSources: state.serviceContractSources
+        serviceContractSources: state.serviceContractSources,
+        serviceVisits: state.serviceVisits,
+        serviceVisitSources: state.serviceVisitSources
     };
+}
+
+/** Verwirft einen bestätigten Service-Tagesplan nach manueller Touränderung. */
+export function clearServiceTourPlan() {
+    const hadPlan = Boolean(state.tour.servicePlan);
+    state.tour.servicePlan = null;
+    state.tour.serviceVisitByCustomer = {};
+    return hadPlan;
 }
 
 /** Vertragsbestand aus Persistenz oder sicherem Umzug wiederherstellen. */
@@ -238,6 +254,73 @@ export function clearServiceContracts({ dirty = true } = {}) {
     if (dirty) emit('dataset:dirty');
 }
 
+function normalizeServiceVisitSource(value) {
+    return String(value ?? '').normalize('NFKC').trim().toLocaleUpperCase('de-DE');
+}
+
+/** Operative Serviceeinsätze aus Persistenz oder sicherem Umzug wiederherstellen. */
+export function setServiceVisits(visits = [], sources = {}) {
+    state.serviceVisits = (Array.isArray(visits) ? visits : []).filter(Boolean).map((visit) => {
+        const sourceSystem = normalizeServiceVisitSource(visit?.sourceSystem);
+        return sourceSystem ? { ...visit, sourceSystem, sourceKey: sourceSystem } : visit;
+    });
+    state.serviceVisitSources = Object.entries(sources && typeof sources === 'object' ? sources : {})
+        .reduce((result, [source, meta]) => {
+            const key = normalizeServiceVisitSource(source);
+            if (key) result[key] = { ...(result[key] || {}), ...(meta || {}) };
+            return result;
+        }, {});
+    clearServiceTourPlan();
+    emit('service-visits:changed');
+}
+
+/**
+ * Importierte Einsatzquellen atomar ersetzen; Kunden, Verträge und alle nicht
+ * enthaltenen Einsatzquellen bleiben erhalten.
+ */
+export function replaceServiceVisitSources(visits, metaBySource = {}) {
+    const incoming = (Array.isArray(visits) ? visits : []).filter(Boolean).map((visit) => {
+        const sourceSystem = normalizeServiceVisitSource(visit?.sourceSystem);
+        return sourceSystem ? { ...visit, sourceSystem, sourceKey: sourceSystem } : visit;
+    });
+    const sourceKeys = new Set(incoming.map((visit) => normalizeServiceVisitSource(visit.sourceSystem)).filter(Boolean));
+    if (sourceKeys.size === 0) return false;
+
+    state.serviceVisits = [
+        ...state.serviceVisits.filter((visit) => !sourceKeys.has(normalizeServiceVisitSource(visit.sourceSystem))),
+        ...incoming
+    ];
+    const nextSources = { ...(state.serviceVisitSources || {}) };
+    for (const existingSource of Object.keys(nextSources)) {
+        if (sourceKeys.has(normalizeServiceVisitSource(existingSource))) delete nextSources[existingSource];
+    }
+    const normalizedMeta = Object.entries(metaBySource || {}).reduce((result, [source, meta]) => {
+        const key = normalizeServiceVisitSource(source);
+        if (key) result[key] = { ...(result[key] || {}), ...(meta || {}) };
+        return result;
+    }, {});
+    for (const source of sourceKeys) {
+        nextSources[source] = {
+            ...(normalizedMeta[source] || {}),
+            count: incoming.filter((visit) => normalizeServiceVisitSource(visit.sourceSystem) === source).length
+        };
+    }
+    state.serviceVisitSources = nextSources;
+    clearServiceTourPlan();
+    emit('service-visits:changed');
+    emit('dataset:dirty');
+    return true;
+}
+
+export function clearServiceVisits({ dirty = true } = {}) {
+    state.serviceVisits = [];
+    state.serviceVisitSources = {};
+    state.tour.servicePlan = null;
+    state.tour.serviceVisitByCustomer = {};
+    emit('service-visits:changed');
+    if (dirty) emit('dataset:dirty');
+}
+
 /**
  * Kundenliste setzen und Vertriebsbeauftragte/Gruppen ableiten.
  * Bestehende Farb-/Sichtbarkeits-Einstellungen bleiben erhalten.
@@ -294,6 +377,7 @@ export function setCustomers(customers, meta = {}) {
     emit('customers:changed');
     // Zuordnungsstatus im Vertragsradar folgt der Kundennummer dynamisch.
     if (state.serviceContracts.length) emit('service-contracts:changed');
+    if (state.serviceVisits.length) emit('service-visits:changed');
 }
 
 /**
@@ -310,7 +394,9 @@ export function replaceCustomers(customers, meta = {}) {
         roundTrip: false,
         suggestMode: 'radius',
         mapFocus: false,
-        routeLineMode: 'air'
+        routeLineMode: 'air',
+        servicePlan: null,
+        serviceVisitByCustomer: {}
     });
     setCustomers(customers, meta);
     emit('tour:changed');

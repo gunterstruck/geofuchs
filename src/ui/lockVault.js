@@ -7,7 +7,9 @@
  */
 
 import * as vault from '../services/vault.js';
-import { state, setCustomers, clearServiceContracts, emit, on, datasetSnapshot } from '../core/state.js';
+import {
+    state, setCustomers, clearServiceContracts, clearServiceVisits, emit, on, datasetSnapshot
+} from '../core/state.js';
 import { saveDataset } from '../services/storage.js';
 import { isPlatformAuthenticatorAvailable, registerBiometric, evaluatePrf } from '../services/biometric.js';
 import { showToast } from './toast.js';
@@ -156,6 +158,7 @@ function onLocked() {
     // Sensible Daten aus dem Arbeitsspeicher entfernen und Sperre zeigen.
     state.territories = {};
     clearServiceContracts({ dirty: false });
+    clearServiceVisits({ dirty: false });
     setCustomers([]);
     emit('customers:changed');
     renderControls();
@@ -164,6 +167,7 @@ function onLocked() {
 function onWiped() {
     state.territories = {};
     clearServiceContracts({ dirty: false });
+    clearServiceVisits({ dirty: false });
     setCustomers([]);
     emit('customers:changed');
     hideLockScreen();
@@ -194,6 +198,7 @@ function wireControls() {
 function dataPresent() {
     return (state.customers?.length || 0) > 0
         || (state.serviceContracts?.length || 0) > 0
+        || (state.serviceVisits?.length || 0) > 0
         || Object.keys(state.territories || {}).length > 0;
 }
 
@@ -233,7 +238,7 @@ function renderControls() {
     const status = document.getElementById('vault-status');
     if (status) {
         status.textContent = !enabled
-            ? 'Aus. Aktiviere den Tresor, damit deine Kunden- und Vertragsdaten AES-256-verschlüsselt gespeichert und beim Öffnen per PIN entsperrt werden.'
+            ? 'Aus. Aktiviere den Tresor, damit deine Kunden-, Vertrags- und Einsatzdaten AES-256-verschlüsselt gespeichert und beim Öffnen per PIN entsperrt werden.'
             : unlocked
                 ? `🔓 Aktiv und entsperrt. Daten sind verschlüsselt gespeichert.${hasBio ? ' Face/Touch ID eingerichtet.' : ''}`
                 : '🔒 Aktiv und gesperrt.';
@@ -246,7 +251,10 @@ function onDataImported(payload) {
     if (!dataPresent()) return;
     const count = payload?.count;
     const isContracts = payload?.type === 'service-contracts';
-    const importedLabel = isContracts ? 'Servicevertragsdaten' : 'Kundendaten';
+    const isVisits = payload?.type === 'service-visits';
+    const importedLabel = isContracts
+        ? 'Servicevertragsdaten'
+        : isVisits ? 'Serviceeinsatzdaten' : 'Kundendaten';
     openSetupDialog({
         forced: true,
         title: 'Eigene Daten schützen',

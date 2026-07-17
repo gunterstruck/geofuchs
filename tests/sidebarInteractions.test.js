@@ -32,12 +32,12 @@ describe('Sidebar-Bedienung', () => {
     it('hält den Service-Kundenscope kompakt, synchron und explizit', () => {
         const scope = doc.getElementById('service-customer-scope');
         expect(scope?.previousElementSibling?.id).toBe('mode-hint');
-        expect(scope?.querySelectorAll('[data-service-customer-scope]')).toHaveLength(2);
+        expect(scope?.querySelectorAll('[data-service-customer-scope]')).toHaveLength(4);
         expect(contractsCss).toMatch(/\.service-customer-scope\s*{[\s\S]*?display:\s*grid;/);
-        expect(sidebarSource).toContain("state.ui.serviceCustomerScope = 'contracts'");
+        expect(sidebarSource).toContain("? 'now'");
         expect(sidebarSource).toContain("emit('mode:changed', mode)");
         expect(sidebarSource).toContain("emit('service-customer-scope:changed'");
-        expect(sidebarSource).toContain("serviceCustomerScope: state.ui.serviceCustomerScope === 'all' ? 'all' : 'contracts'");
+        expect(sidebarSource).toContain('serviceCustomerScope: normalizedServiceCustomerScope()');
         expect(sidebarSource).toContain("if (mode === 'service') state.ui.opportunityOnly = false");
     });
 

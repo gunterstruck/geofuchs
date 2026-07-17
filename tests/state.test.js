@@ -80,7 +80,7 @@ describe('Servicevertrags-Datenhaltung', () => {
         expect(state.serviceContractSources.Sap).toBeUndefined();
         expect(state.serviceContractSources.SIESALES.fileName).toBe('crm.xlsx');
         expect(datasetSnapshot()).toMatchObject({
-            schemaVersion: 2,
+            schemaVersion: 3,
             serviceContracts: state.serviceContracts,
             serviceContractSources: state.serviceContractSources
         });

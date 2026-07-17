@@ -9,7 +9,7 @@
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, getCustomer, repColor, customerInTourScope, markDirty, UNASSIGNED } from '../core/state.js';
+import { state, on, emit, getCustomer, repColor, customerInTourScope, markDirty, clearServiceTourPlan, UNASSIGNED } from '../core/state.js';
 import { suggestNearby, suggestAlongRoute, optimizeOrder, routeDistance, googleMapsLink } from '../features/tour.js';
 import { printDayPlan, downloadIcs, DEFAULT_VISIT_MINUTES } from '../features/tourExport.js';
 import { combinePlanStart, todayInputValue } from '../features/dayPlanner.js';
@@ -21,6 +21,9 @@ import { loadTours, saveTours } from '../services/storage.js';
 import { getRoadRoute, routingKey, hasRoutingConsent, requestRoutingConsent } from '../services/routing.js';
 import { flyToCustomer, focusPoint, fitTourRoute } from '../features/map.js';
 import { modeVisibleCustomers, modeTourCustomers } from '../features/customerScope.js';
+import { proposeServiceDay } from '../features/serviceDayPlanner.js';
+import { serviceVisitWindow } from '../features/serviceVisits.js';
+import { normalizeCustomerNumber } from '../features/serviceContracts.js';
 import { showMapView } from './sidebar.js';
 import { showToast } from './toast.js';
 
@@ -38,6 +41,8 @@ let suggestionRoadPath = null;
 let suggestionRoadLoading = false;
 let suggestionRoadFailed = false;
 let suggestionRoadSeq = 0;
+let serviceDayPreview = null;
+let serviceDayGroups = new Map();
 
 const HIDDEN_EXPERT_KEY = 'gf_hidden_expert_sections';
 const SWIPE_HIDE_PX = 72;
@@ -48,6 +53,7 @@ export function initTourPanel() {
 
     // Plan-Einstellungen (Datum/Startzeit/Besuchsdauer) + QR-Übergabe
     document.getElementById('plan-date').value = todayInputValue();
+    document.getElementById('btn-service-day-preview')?.addEventListener('click', buildServiceDayPreview);
     document.getElementById('btn-tour-qr').addEventListener('click', shareTourAsQr);
     initTourQr();
 
@@ -55,6 +61,7 @@ export function initTourPanel() {
     const scopeEl = document.getElementById('tour-scope');
     scopeEl.addEventListener('change', (e) => {
         if (e.target.id !== 'tour-bezirk') return;
+        invalidateAcceptedServicePlan();
         state.tour.bezirk = e.target.value;
         pruneTourToScope();
         scopeExpanded = false;
@@ -96,6 +103,7 @@ export function initTourPanel() {
 
     document.getElementById('round-trip').checked = state.tour.roundTrip;
     document.getElementById('round-trip').addEventListener('change', (e) => {
+        invalidateAcceptedServicePlan(true);
         state.tour.roundTrip = e.target.checked;
         emit('tour:changed');
     });
@@ -138,6 +146,7 @@ export function initTourPanel() {
         state.tour.start = null;
         state.tour.destination = null;
         state.tour.mapFocus = false;
+        clearAcceptedServicePlan();
         emit('tour:changed');
     });
     document.getElementById('btn-tour-save').addEventListener('click', saveCurrentTour);
@@ -166,6 +175,7 @@ export function initTourPanel() {
             btn.addEventListener('click', () => {
                 const c = getCustomer(btn.dataset.id);
                 if (!c) return;
+                invalidateAcceptedServicePlan(true);
                 state.tour.start = {
                     lat: c.lat, lng: c.lng, label: c.name, customerId: c.id,
                     strasse: c.strasse, plz: c.plz, ort: c.ort
@@ -179,6 +189,7 @@ export function initTourPanel() {
 
     // Zielpunkt per Suchfeld (Kunden)
     wireCustomerSearch('dest-search', 'dest-results', (c) => {
+        invalidateAcceptedServicePlan(true);
         const first = !state.tour.destination;
         state.tour.destination = {
             lat: c.lat, lng: c.lng, label: c.name, customerId: c.id,
@@ -198,6 +209,8 @@ export function initTourPanel() {
     on('mode:changed', refreshPlanningScope);
     on('service-customer-scope:changed', refreshPlanningScope);
     on('service-contracts:changed', refreshPlanningScope);
+    on('service-visits:changed', refreshPlanningScope);
+    on('service-day:focus', focusServiceDayPlanner);
     syncModeSpecificTourControls();
     applyTourMode(state.ui.depth === 'profi' ? 'expert' : 'basic', false);
     renderTourScope();
@@ -289,11 +302,265 @@ function syncModeSpecificTourControls() {
     const priority = document.getElementById('tour-sales-priority');
     if (mapView) mapView.hidden = service;
     if (priority) priority.hidden = service;
+    const servicePlanner = document.getElementById('service-day-planner');
+    const endField = document.getElementById('service-plan-end-field');
+    if (servicePlanner) servicePlanner.hidden = !service;
+    if (endField) endField.hidden = !service;
     if (service) {
         overdueFirst = false;
         const checkbox = document.getElementById('overdue-first');
         if (checkbox) checkbox.checked = false;
+    } else {
+        serviceDayPreview = null;
+        const preview = document.getElementById('service-day-preview');
+        if (preview) preview.innerHTML = '';
     }
+}
+
+function clearAcceptedServicePlan() {
+    clearServiceTourPlan();
+}
+
+function invalidateAcceptedServicePlan(notify = false) {
+    if (!clearServiceTourPlan()) return;
+    serviceDayPreview = null;
+    renderServiceDayPreview();
+    if (notify) showToast('Der bestätigte Service-Zeitplan wurde wegen der manuellen Touränderung verworfen.', 'info', 4500);
+}
+
+function exactCustomerIndex() {
+    const index = new Map();
+    for (const customer of state.customers || []) {
+        const number = normalizeCustomerNumber(customer?.nummer);
+        if (!number) continue;
+        if (!index.has(number)) index.set(number, []);
+        index.get(number).push(customer);
+    }
+    return index;
+}
+
+function windowTimeForDate(value, workDate) {
+    const raw = String(value || '').trim();
+    if (!raw) return { value: '', matchesDate: true };
+    if (/^\d{1,2}:\d{2}$/.test(raw)) return { value: raw, matchesDate: true };
+    const match = raw.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{1,2}:\d{2})/);
+    return match
+        ? { value: match[2], matchesDate: match[1] === workDate }
+        : { value: raw, matchesDate: true };
+}
+
+function priorityRank(value) {
+    return ['KRITISCH', 'HOCH', 'MITTEL', 'NIEDRIG'].indexOf(String(value || '').toUpperCase());
+}
+
+function buildServiceJobGroups(workDate) {
+    const index = exactCustomerIndex();
+    const assignee = String(document.getElementById('service-plan-assignee')?.value || '').trim();
+    const scope = state.ui.serviceCustomerScope === 'now' ? 'now' : 'week';
+    const groups = new Map();
+    const skipped = [];
+
+    for (const visit of state.serviceVisits || []) {
+        if (!serviceVisitWindow(visit, scope)) continue;
+        if (assignee && visit.assignedTo !== assignee) continue;
+        const customers = index.get(normalizeCustomerNumber(visit.customerNumber)) || [];
+        if (customers.length !== 1) {
+            skipped.push({ visit, reason: 'Kunde nicht eindeutig zugeordnet' });
+            continue;
+        }
+        const customer = customers[0];
+        if (!customerInTourScope(customer)) continue;
+        const startWindow = windowTimeForDate(visit.timeWindowStart, workDate);
+        const endWindow = windowTimeForDate(visit.timeWindowEnd, workDate);
+        if (!startWindow.matchesDate || !endWindow.matchesDate) {
+            skipped.push({ visit, customer, reason: 'Termin liegt an einem anderen Tag' });
+            continue;
+        }
+        if (!groups.has(customer.id)) {
+            groups.set(customer.id, {
+                id: `service-stop:${customer.id}`,
+                customer,
+                visits: [],
+                durationMin: 0,
+                priority: 'NIEDRIG',
+                dueDate: '',
+                slaDueAt: '',
+                timeWindowStart: '',
+                timeWindowEnd: '',
+                requiredSkills: []
+            });
+        }
+        const group = groups.get(customer.id);
+        group.visits.push(visit);
+        group.durationMin += Number(visit.durationMin) || Number(document.getElementById('plan-visit-min')?.value) || DEFAULT_VISIT_MINUTES;
+        if (priorityRank(visit.priority) >= 0 && (priorityRank(group.priority) < 0 || priorityRank(visit.priority) < priorityRank(group.priority))) {
+            group.priority = visit.priority;
+        }
+        if (!group.dueDate || String(visit.dueDate) < group.dueDate) group.dueDate = visit.dueDate;
+        if (visit.slaDueAt && (!group.slaDueAt || String(visit.slaDueAt) < group.slaDueAt)) group.slaDueAt = visit.slaDueAt;
+        if (startWindow.value && (!group.timeWindowStart || startWindow.value > group.timeWindowStart)) group.timeWindowStart = startWindow.value;
+        if (endWindow.value && (!group.timeWindowEnd || endWindow.value < group.timeWindowEnd)) group.timeWindowEnd = endWindow.value;
+        group.requiredSkills = [...new Set([...group.requiredSkills, ...(visit.requiredSkills || [])])];
+    }
+    return { groups: [...groups.values()], skipped, scope };
+}
+
+function plannerReasonText(reason) {
+    const labels = {
+        'missing-skills': 'Qualifikation fehlt',
+        'missing-or-invalid-customer-coordinates': 'keine Kartenposition',
+        'time-window-missed': 'Zeitfenster nicht erreichbar',
+        'shift-end-exceeded': 'Rückkehr nach Arbeitsende',
+        'duration-exceeds-time-window': 'Einsatzdauer passt nicht ins Zeitfenster',
+        'no-feasible-insertion': 'kein freier Platz im Tagesplan',
+        'shift-capacity-kept-higher-urgency-jobs': 'dringendere Einsätze haben Vorrang',
+        'invalid-time-window': 'Zeitfenster ungültig'
+    };
+    return labels[reason?.code] || String(reason?.code || 'nicht planbar').replace(/-/g, ' ');
+}
+
+function planReasonText(entry, group) {
+    const reasons = entry.reasons || [];
+    if (reasons.some((reason) => reason.code === 'sla-overdue-before-shift' || reason.code === 'sla-late')) return 'SLA zuerst';
+    if (reasons.some((reason) => reason.code === 'due-overdue')) return 'überfällig';
+    if (reasons.some((reason) => reason.code === 'due-today')) return 'heute fällig';
+    return group?.priority === 'KRITISCH' ? 'kritischer Einsatz' : 'kurzer sinnvoller Fahrtweg';
+}
+
+function formatPlanTime(value) {
+    const match = String(value || '').match(/T(\d{2}:\d{2})/);
+    return match ? match[1] : '—';
+}
+
+function renderServiceDayPreview() {
+    const target = document.getElementById('service-day-preview');
+    if (!target) return;
+    if (!serviceDayPreview) { target.innerHTML = ''; return; }
+    const { result, preSkipped } = serviceDayPreview;
+    const entries = result.itinerary || [];
+    const unscheduled = result.unscheduled || [];
+    if (!entries.length) {
+        const firstReason = unscheduled[0]?.reasons?.[0];
+        target.innerHTML = `<div class="service-day-preview-card"><p class="service-day-unscheduled"><b>Kein machbarer Tagesvorschlag.</b><br>${escapeHtml(plannerReasonText(firstReason))}. Arbeitszeit, Qualifikationen oder Zeitfenster prüfen.</p></div>`;
+        return;
+    }
+    const rows = entries.map((entry) => {
+        const group = serviceDayGroups.get(entry.jobId);
+        const reasons = group?.visits?.map((visit) => visit.reason).filter(Boolean).join(' + ') || 'Serviceeinsatz';
+        return `<div class="service-day-preview-stop"><b>${escapeHtml(formatPlanTime(entry.start))}</b><div>
+            <strong>${escapeHtml(entry.customer?.name || 'Servicekunde')}</strong>
+            <small>${escapeHtml(reasons)} · ${entry.durationMin} Min. · ${Math.round(entry.km)} km Anfahrt</small>
+            <small>${escapeHtml(planReasonText(entry, group))}</small>
+        </div></div>`;
+    }).join('');
+    const omitted = unscheduled.length + preSkipped.length;
+    const omittedRows = [
+        ...unscheduled.map((item) => ({
+            label: item.customer?.name || item.jobId || 'Einsatz',
+            reason: plannerReasonText(item.reasons?.[0])
+        })),
+        ...preSkipped.map((item) => ({
+            label: item.customer?.name || item.visit?.workOrderId || 'Einsatz',
+            reason: item.reason
+        }))
+    ];
+    target.innerHTML = `<div class="service-day-preview-card">
+        <div class="service-day-preview-summary"><b>${entries.length} Stopps · ca. ${Math.round(result.metrics.totalKm)} km</b><span>Rückkehr ${escapeHtml(formatPlanTime(result.metrics.finishAt))} · ${Math.round(result.metrics.utilizationPct || 0)} % Auslastung</span></div>
+        <div class="service-day-preview-list">${rows}</div>
+        ${omitted ? `<details class="service-day-unscheduled"><summary>${omitted} Einsatz${omitted === 1 ? '' : 'sätze'} nicht eingeplant · Gründe anzeigen</summary><ul>${omittedRows.slice(0, 12).map((item) => `<li><b>${escapeHtml(item.label)}:</b> ${escapeHtml(item.reason)}</li>`).join('')}</ul></details>` : ''}
+        <button type="button" id="btn-service-day-accept" class="primary">Vorschlag als Tour übernehmen</button>
+    </div>`;
+    document.getElementById('btn-service-day-accept')?.addEventListener('click', acceptServiceDayPreview);
+}
+
+function buildServiceDayPreview() {
+    if (state.ui.mode !== 'service') return;
+    if (!state.tour.start) {
+        showToast('Bitte zuerst einen Startpunkt wählen.', 'info');
+        document.getElementById('tour-start')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+    const workDate = document.getElementById('plan-date')?.value;
+    const shiftStart = document.getElementById('plan-time')?.value;
+    const shiftEnd = document.getElementById('service-plan-end')?.value;
+    const { groups, skipped, scope } = buildServiceJobGroups(workDate);
+    if (!groups.length) {
+        serviceDayPreview = { result: { itinerary: [], unscheduled: [], metrics: {} }, preSkipped: skipped };
+        renderServiceDayPreview();
+        showToast('In diesem Bezirk und Zeitraum gibt es keine eindeutig planbaren Einsätze.', 'info');
+        return;
+    }
+    const skillsInput = document.getElementById('service-plan-skills');
+    if (skillsInput && !skillsInput.value.trim() && groups.every((group) => group.visits.every((visit) => visit.sourceSystem === 'DEMO'))) {
+        skillsInput.value = [...new Set(groups.flatMap((group) => group.requiredSkills))].join(', ');
+    }
+    const technicianSkills = String(skillsInput?.value || '').split(/[;,|]+/).map((value) => value.trim()).filter(Boolean);
+    const result = proposeServiceDay({
+        jobs: groups.map((group) => ({
+            id: group.id,
+            customer: group.customer,
+            dueDate: group.dueDate,
+            slaDueAt: group.slaDueAt,
+            timeWindowStart: group.timeWindowStart,
+            timeWindowEnd: group.timeWindowEnd,
+            durationMin: group.durationMin,
+            priority: group.priority,
+            requiredSkills: group.requiredSkills,
+            status: 'OFFEN'
+        })),
+        start: state.tour.start,
+        end: destPoint() || state.tour.start,
+        workDate,
+        shiftStart,
+        shiftEnd,
+        technicianSkills,
+        defaultDurationMin: Number(document.getElementById('plan-visit-min')?.value) || DEFAULT_VISIT_MINUTES
+    });
+    serviceDayGroups = new Map(groups.map((group) => [group.id, group]));
+    serviceDayPreview = { result, preSkipped: skipped, scope, workDate, shiftStart, shiftEnd, technicianSkills };
+    renderServiceDayPreview();
+}
+
+function acceptServiceDayPreview() {
+    const result = serviceDayPreview?.result;
+    if (!result?.itinerary?.length) return;
+    if (state.tour.stops.length && !window.confirm('Die vorhandenen Tourstopps durch diesen Service-Tagesvorschlag ersetzen?')) return;
+    const stopIds = result.itinerary.map((entry) => entry.customer?.id).filter(Boolean);
+    state.tour.stops = [...new Set(stopIds)];
+    state.tour.serviceVisitByCustomer = Object.fromEntries(result.itinerary.map((entry) => {
+        const group = serviceDayGroups.get(entry.jobId);
+        return [entry.customer?.id, group?.visits?.map((visit) => visit.id).filter(Boolean) || []];
+    }).filter(([customerId]) => customerId));
+    state.tour.servicePlan = {
+        version: 1,
+        generatedAt: new Date().toISOString(),
+        workDate: serviceDayPreview.workDate,
+        shiftStart: serviceDayPreview.shiftStart,
+        shiftEnd: serviceDayPreview.shiftEnd,
+        technicianSkills: serviceDayPreview.technicianSkills,
+        itinerary: result.itinerary.map((entry) => ({
+            jobId: entry.jobId, customerId: entry.customer?.id,
+            arrival: entry.arrival, start: entry.start, end: entry.end,
+            driveMin: entry.driveMin, km: entry.km, durationMin: entry.durationMin,
+            visitIds: serviceDayGroups.get(entry.jobId)?.visits?.map((visit) => visit.id) || []
+        })),
+        assumptions: result.assumptions,
+        metrics: result.metrics
+    };
+    if (!state.tour.destination) state.tour.roundTrip = true;
+    document.getElementById('round-trip').checked = state.tour.roundTrip;
+    emit('tour:changed');
+    showToast(`${state.tour.stops.length} Service-Stopps übernommen. Zeiten und Gründe bleiben am Plan gespeichert.`, 'success', 5000);
+}
+
+function focusServiceDayPlanner() {
+    if (state.ui.mode !== 'service') return;
+    window.setTimeout(() => {
+        const planner = document.getElementById('service-day-planner');
+        planner?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!state.tour.start) showToast('Bezirk und Startpunkt wählen – danach erstellt TourFuchs den Tagesvorschlag.', 'info', 4500);
+        else buildServiceDayPreview();
+    }, 0);
 }
 
 function updatePlannerVisibility() {
@@ -318,6 +585,7 @@ function applyTourMode(mode, doEmit = true) {
     if (!tourExpert) {
         // Basis: nur Umkreis-Vorschläge, kein Ziel
         state.tour.suggestMode = 'radius';
+        if (state.tour.destination) invalidateAcceptedServicePlan();
         state.tour.destination = null;
     }
     updateSuggestModeUi();
@@ -420,11 +688,17 @@ function scopedCustomerById(id) {
 }
 
 function pruneTourToScope() {
+    const previous = JSON.stringify({
+        start: state.tour.start?.customerId || null,
+        destination: state.tour.destination?.customerId || null,
+        stops: state.tour.stops
+    });
     if (!state.tour.bezirk || state.tour.bezirk === '__none__') {
         state.tour.start = null;
         state.tour.destination = null;
         state.tour.stops = [];
         state.tour.mapFocus = false;
+        if (previous !== JSON.stringify({ start: null, destination: null, stops: [] })) invalidateAcceptedServicePlan();
         return;
     }
     state.tour.stops = state.tour.stops.filter((id) => !!scopedCustomerById(id));
@@ -434,6 +708,12 @@ function pruneTourToScope() {
     if (state.tour.destination?.customerId && !scopedCustomerById(state.tour.destination.customerId)) {
         state.tour.destination = null;
     }
+    const next = JSON.stringify({
+        start: state.tour.start?.customerId || null,
+        destination: state.tour.destination?.customerId || null,
+        stops: state.tour.stops
+    });
+    if (previous !== next) invalidateAcceptedServicePlan();
 }
 
 /** Kundensuche an ein Eingabefeld hängen (Treffer -> onPick(customer)) */
@@ -474,6 +754,7 @@ function useMyLocation() {
     showToast('Standort wird ermittelt…', 'info', 2000);
     navigator.geolocation.getCurrentPosition(
         (pos) => {
+            invalidateAcceptedServicePlan(true);
             state.tour.start = {
                 lat: pos.coords.latitude,
                 lng: pos.coords.longitude,
@@ -503,6 +784,7 @@ function findNearby() {
     showToast('Standort wird ermittelt…', 'info', 2000);
     navigator.geolocation.getCurrentPosition(
         (pos) => {
+            invalidateAcceptedServicePlan(true);
             const here = { lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'Mein Standort' };
             state.tour.start = here;
             state.tour.suggestMode = 'radius';
@@ -610,6 +892,7 @@ function renderDest() {
     el.innerHTML = `<div class="start-chip">🏁 <b>${escapeHtml(d.label)}</b>
         <button type="button" id="btn-dest-clear" class="chip-x" title="Ziel entfernen">✕</button></div>`;
     document.getElementById('btn-dest-clear').addEventListener('click', () => {
+        invalidateAcceptedServicePlan(true);
         state.tour.destination = null;
         emit('tour:changed');
     });
@@ -638,6 +921,8 @@ function serviceScopeExceptionIds(stops) {
 function renderStops() {
     const el = document.getElementById('tour-stops');
     const stops = state.tour.stops.map(getCustomer).filter(Boolean);
+    const plannedEntries = new Map((state.tour.servicePlan?.itinerary || []).map((entry) => [entry.customerId, entry]));
+    const visitsById = new Map((state.serviceVisits || []).map((visit) => [visit.id, visit]));
     const serviceExceptions = serviceScopeExceptionIds(stops);
     const exceptionCount = serviceExceptions.size;
     const exceptionWarning = exceptionCount
@@ -664,6 +949,12 @@ function renderStops() {
             const dot = status !== 'none'
                 ? `<span class="stop-status-dot" style="background:${STATUS_COLORS[status]}" title="${STATUS_LABELS[status]}"></span>`
                 : '';
+            const planned = plannedEntries.get(c.id);
+            const linkedVisits = (state.tour.serviceVisitByCustomer?.[c.id] || []).map((id) => visitsById.get(id)).filter(Boolean);
+            const serviceReason = linkedVisits.map((visit) => visit.reason).filter(Boolean).join(' + ');
+            const servicePlanLine = planned
+                ? `<span class="service-stop-plan">🛠️ ${escapeHtml(formatPlanTime(planned.start))}–${escapeHtml(formatPlanTime(planned.end))}${serviceReason ? ` · ${escapeHtml(serviceReason)}` : ''}</span>`
+                : '';
             return `
             <div class="stop-row${autoLastStopIsDestination && i === stops.length - 1 ? ' final-row' : ''}${done ? ' stop-visited' : ''}">
                 <span class="stop-num">${i + 1}</span>
@@ -672,6 +963,7 @@ function renderStops() {
                     ${autoLastStopIsDestination && i === stops.length - 1 ? '<span class="route-role">Ziel</span>' : ''}
                     ${outsideServiceScope ? '<span class="route-role scope-exception">Außerhalb Servicefilter</span>' : ''}
                     <br><span class="muted small">${escapeHtml(c.plz)} ${escapeHtml(c.ort)}${done ? ' · heute besucht' : (lastVisit(c) ? ` · zuletzt ${agoText(lastVisit(c))}` : '')}</span>
+                    ${servicePlanLine ? `<br>${servicePlanLine}` : ''}
                 </span>
                 <span class="stop-actions">
                     <button type="button" class="stop-visit${done ? ' is-done' : ''}" data-visit="${i}" title="${done ? 'Heute besucht' : 'Als heute besucht markieren'}">${done ? '✓' : '✓ Heute'}</button>
@@ -692,15 +984,18 @@ function renderStops() {
         }));
 
         el.querySelectorAll('[data-remove]').forEach((btn) => btn.addEventListener('click', () => {
+            invalidateAcceptedServicePlan(true);
             state.tour.stops.splice(parseInt(btn.dataset.remove, 10), 1);
             emit('tour:changed');
         }));
         el.querySelectorAll('[data-up]').forEach((btn) => btn.addEventListener('click', () => {
+            invalidateAcceptedServicePlan(true);
             const i = parseInt(btn.dataset.up, 10);
             [state.tour.stops[i - 1], state.tour.stops[i]] = [state.tour.stops[i], state.tour.stops[i - 1]];
             emit('tour:changed');
         }));
         el.querySelectorAll('[data-down]').forEach((btn) => btn.addEventListener('click', () => {
+            invalidateAcceptedServicePlan(true);
             const i = parseInt(btn.dataset.down, 10);
             [state.tour.stops[i + 1], state.tour.stops[i]] = [state.tour.stops[i], state.tour.stops[i + 1]];
             emit('tour:changed');
@@ -718,7 +1013,11 @@ function renderStops() {
                 <span class="stop-actions"><button type="button" id="dest-row-x" title="Ziel entfernen">✕</button></span>
             </div>`);
         const x = document.getElementById('dest-row-x');
-        if (x) x.addEventListener('click', () => { state.tour.destination = null; emit('tour:changed'); });
+        if (x) x.addEventListener('click', () => {
+            invalidateAcceptedServicePlan(true);
+            state.tour.destination = null;
+            emit('tour:changed');
+        });
     }
 
     if (state.tour.roundTrip && state.tour.start && effStops().length > 0) {
@@ -741,12 +1040,18 @@ function renderStops() {
             ? 'Ziel ist wieder der Start.'
             : (explicitDest ? 'Ziel festgelegt.' : 'Letzter Stopp ist automatisch Ziel.');
         const exportHint = eff.length > CONFIG.tour.maxWaypoints + 1 ? `, Google-Maps-Export: max. ${CONFIG.tour.maxWaypoints + 1} Stopps` : "";
-        summary.innerHTML = `Geschätzte Strecke${rt}: <b>~${Math.round(roadKmEstimate)} km</b> <span class="muted small">${endHint} ${Math.round(airKm)} km Luftlinie${exportHint}.</span>`;
+        summary.innerHTML = state.tour.servicePlan
+            ? `🛠️ <b>Bestätigter Service-Tagesplan</b> · ${state.tour.servicePlan.itinerary.length} Stopps · ca. ${Math.round(state.tour.servicePlan.metrics?.totalKm || roadKmEstimate)} km <span class="muted small">Rückkehr ${escapeHtml(formatPlanTime(state.tour.servicePlan.metrics?.finishAt))}. Manuelle Änderungen verwerfen die fixierten Zeiten.</span>`
+            : `Geschätzte Strecke${rt}: <b>~${Math.round(roadKmEstimate)} km</b> <span class="muted small">${endHint} ${Math.round(airKm)} km Luftlinie${exportHint}.</span>`;
     } else {
         summary.innerHTML = '';
     }
     const hasRoute = state.tour.start && eff.length >= 1;
-    document.getElementById('btn-optimize').disabled = !(state.tour.start && tourStops().length >= 2);
+    const optimizeButton = document.getElementById('btn-optimize');
+    optimizeButton.disabled = Boolean(state.tour.servicePlan) || !(state.tour.start && tourStops().length >= 2);
+    optimizeButton.title = state.tour.servicePlan
+        ? 'Reihenfolge und Zeiten stammen aus dem bestätigten Service-Tagesplan.'
+        : 'Reihenfolge optimieren';
     const routeFocus = document.getElementById('btn-route-focus');
     routeFocus.disabled = !hasRoute;
     routeFocus.textContent = !state.tour.mapFocus
@@ -830,6 +1135,7 @@ function renderSuggestions() {
 
     el.querySelectorAll('[data-add]').forEach((btn) => btn.addEventListener('click', () => {
         if (!state.tour.stops.includes(btn.dataset.add)) {
+            invalidateAcceptedServicePlan(true);
             state.tour.stops.push(btn.dataset.add);
             emit('tour:changed');
         }
@@ -847,7 +1153,9 @@ function planOptions() {
     const visit = Number(document.getElementById('plan-visit-min')?.value);
     return {
         startTime: combinePlanStart(date, time),
-        visitMinutes: Number.isFinite(visit) && visit > 0 ? visit : DEFAULT_VISIT_MINUTES
+        visitMinutes: Number.isFinite(visit) && visit > 0 ? visit : DEFAULT_VISIT_MINUTES,
+        servicePlan: state.tour.servicePlan,
+        serviceVisits: state.serviceVisits
     };
 }
 
@@ -882,6 +1190,7 @@ function optimizeTour() {
     // Fester Streckenendpunkt: Zielkunde, sonst bei Rundreise der Start, sonst offen
     const endPoint = destPoint() || (state.tour.roundTrip ? state.tour.start : null);
     const before = routeDistance(state.tour.start, effStops(), state.tour.roundTrip).airKm;
+    invalidateAcceptedServicePlan(true);
     const optimized = optimizeOrder(state.tour.start, stops, endPoint);
     state.tour.stops = optimized.map((c) => c.id);
     const dest = destPoint();
@@ -944,7 +1253,9 @@ async function saveCurrentTour() {
         start: { ...state.tour.start },
         destination: state.tour.destination ? { ...state.tour.destination } : null,
         roundTrip: !!state.tour.roundTrip,
-        stopIds: [...state.tour.stops]
+        stopIds: [...state.tour.stops],
+        servicePlan: state.tour.servicePlan ? structuredClone(state.tour.servicePlan) : null,
+        serviceVisitByCustomer: state.tour.servicePlan ? structuredClone(state.tour.serviceVisitByCustomer || {}) : {}
     };
     // gleicher Name -> ersetzen
     savedTours = savedTours.filter((t) => t.name !== name);
@@ -966,11 +1277,19 @@ function loadSavedTour(id) {
         ? { ...tour.destination } : null;
     state.tour.roundTrip = !!tour.roundTrip;
     state.tour.stops = validIds;
+    const planCustomerIds = new Set((tour.servicePlan?.itinerary || []).map((entry) => entry.customerId));
+    const servicePlanComplete = Boolean(tour.servicePlan)
+        && validIds.length === tour.stopIds.length
+        && validIds.every((customerId) => planCustomerIds.has(customerId));
+    state.tour.servicePlan = servicePlanComplete ? structuredClone(tour.servicePlan) : null;
+    state.tour.serviceVisitByCustomer = servicePlanComplete
+        ? structuredClone(tour.serviceVisitByCustomer || {})
+        : {};
     emit('tour:changed');
     const lost = tour.stopIds.length - validIds.length;
     showToast(lost > 0
         ? `Tour „${tour.name}" geladen (${lost} nicht mehr vorhandene Kunden ausgelassen).`
-        : `Tour „${tour.name}" geladen.`, 'success');
+        : `Tour „${tour.name}" geladen${servicePlanComplete ? ' – inklusive Service-Zeitplan' : ''}.`, 'success');
 }
 
 async function deleteSavedTour(id) {
@@ -990,7 +1309,7 @@ function renderSavedTours() {
         <div class="saved-tour-row">
             <button type="button" class="saved-tour-load" data-load="${escapeHtml(t.id)}" title="Tour laden">
                 <b>${escapeHtml(t.name)}</b><br>
-                <span class="muted small">${t.stopIds.length} Stopp${t.stopIds.length === 1 ? '' : 's'} · ab ${escapeHtml(t.start.label)}</span>
+                <span class="muted small">${t.stopIds.length} Stopp${t.stopIds.length === 1 ? '' : 's'} · ab ${escapeHtml(t.start.label)}${t.servicePlan ? ' · Service-Zeitplan' : ''}</span>
             </button>
             <button type="button" class="saved-tour-del" data-del="${escapeHtml(t.id)}" title="Löschen">🗑</button>
         </div>

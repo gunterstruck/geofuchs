@@ -35,29 +35,78 @@ export function schedule(start, stops, startTime, visitMinutes = DEFAULT_VISIT_M
     return result;
 }
 
+function exportRows(start, stops, startTime, visitMinutes, servicePlan) {
+    const itinerary = Array.isArray(servicePlan?.itinerary) ? servicePlan.itinerary : [];
+    const entries = new Map(itinerary.map((entry) => [entry.customerId, entry]));
+    if (itinerary.length && stops.every((customer) => entries.has(customer?.id))) {
+        return stops.map((customer) => {
+            const entry = entries.get(customer.id);
+            const arrival = new Date(entry.start || entry.arrival);
+            const end = new Date(entry.end);
+            return {
+                customer,
+                arrival,
+                end,
+                driveMin: Number(entry.driveMin) || 0,
+                km: Number(entry.km) || 0,
+                durationMin: Number(entry.durationMin) || Math.max(1, Math.round((end - arrival) / 60000)),
+                visitIds: Array.isArray(entry.visitIds) ? entry.visitIds : [],
+                planned: true
+            };
+        });
+    }
+    return schedule(start, stops, startTime, visitMinutes).map((row) => ({
+        ...row,
+        end: new Date(row.arrival.getTime() + visitMinutes * 60000),
+        durationMin: visitMinutes,
+        visitIds: [],
+        planned: false
+    }));
+}
+
+function visitsForRow(row, serviceVisits) {
+    const byId = new Map((serviceVisits || []).map((visit) => [visit.id, visit]));
+    return row.visitIds.map((id) => byId.get(id)).filter(Boolean);
+}
+
 function hhmm(date) {
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
 /** Druckbaren Tagesplan in neuem Fenster öffnen */
-export function printDayPlan(start, stops, { startTime = defaultStart(), tourName = 'Tagestour', visitMinutes = DEFAULT_VISIT_MINUTES } = {}) {
-    const rows = schedule(start, stops, startTime, visitMinutes);
+export function printDayPlan(start, stops, {
+    startTime = defaultStart(), tourName = 'Tagestour', visitMinutes = DEFAULT_VISIT_MINUTES,
+    servicePlan = null, serviceVisits = []
+} = {}) {
+    const rows = exportRows(start, stops, startTime, visitMinutes, servicePlan);
+    const planned = rows.length > 0 && rows.every((row) => row.planned);
     const demo = isDemoCustomer(start) || hasDemoCustomers(stops);
-    const totalKm = rows.reduce((sum, r) => sum + r.km, 0);
-    const dateStr = new Date(startTime).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+    const totalKm = planned && Number.isFinite(Number(servicePlan?.metrics?.totalKm))
+        ? Number(servicePlan.metrics.totalKm)
+        : rows.reduce((sum, r) => sum + r.km, 0);
+    const effectiveStart = planned ? `${servicePlan.workDate}T${servicePlan.shiftStart}` : startTime;
+    const dateStr = new Date(effectiveStart).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
 
     const body = rows.map((r, i) => {
         const c = r.customer;
         const addr = [c.strasse, `${c.plz} ${c.ort}`.trim()].filter(Boolean).join(', ');
         const contact = [c.ansprechpartner, c.telefon].filter(Boolean).join(' · ');
         const last = lastVisit(c);
+        const visits = visitsForRow(r, serviceVisits);
+        const serviceDetails = visits.map((visit) => [
+            visit.workOrderId,
+            visit.reason,
+            visit.priority && `Priorität ${visit.priority}`,
+            visit.assignedTo
+        ].filter(Boolean).map(escapeHtml).join(' · ')).join('<br>');
         return `<tr>
             <td class="num">${i + 1}</td>
-            <td class="time">${hhmm(r.arrival)}<br><span class="muted">${r.driveMin} min · ${Math.round(r.km)} km</span></td>
+            <td class="time">${hhmm(r.arrival)}${r.planned ? `–${hhmm(r.end)}` : ''}<br><span class="muted">${r.driveMin} min · ${Math.round(r.km)} km</span></td>
             <td>
                 <b>${escapeHtml(c.name)}</b><br>
                 ${escapeHtml(addr)}
                 ${contact ? `<br><span class="muted">${escapeHtml(contact)}</span>` : ''}
+                ${serviceDetails ? `<br><span class="service">${serviceDetails}</span>` : ''}
                 ${c.rhythmusWochen ? `<br><span class="muted">Rhythmus: ${c.rhythmusWochen} Wochen · letzter Besuch ${last ? formatDateDe(last) : '—'} (${agoText(last)})</span>` : ''}
             </td>
             <td class="check">☐</td>
@@ -77,18 +126,21 @@ export function printDayPlan(start, stops, { startTime = defaultStart(), tourNam
             .time { white-space: nowrap; font-variant-numeric: tabular-nums; }
             .check { font-size: 1.3rem; width: 30px; text-align: center; }
             .muted { color: #64748b; font-size: 0.85rem; }
+            .service { display: inline-block; margin-top: 4px; color: #0f766e; font-size: 0.85rem; }
             .demo { padding: 8px 10px; background: #fffbeb; border: 1px solid #f59e0b; color: #92400e; font-weight: 700; }
             .foot { margin-top: 16px; color: #64748b; font-size: 0.85rem; }
             @media print { body { margin: 0; } .noprint { display: none; } }
         </style></head><body>
         <h1>🦊 ${escapeHtml(tourName)}</h1>
         ${demo ? `<p class="demo">${DEMO_DATA_LABEL}</p>` : ''}
-        <p class="sub">${dateStr} · Start ${hhmm(new Date(startTime))} bei „${escapeHtml(start.label)}" · ${rows.length} Besuche · ca. ${Math.round(totalKm)} km</p>
+        <p class="sub">${dateStr} · Start ${planned ? escapeHtml(servicePlan.shiftStart) : hhmm(new Date(startTime))} bei „${escapeHtml(start.label)}" · ${rows.length} Besuche · ca. ${Math.round(totalKm)} km</p>
         <table>
             <thead><tr><th>#</th><th>Ankunft</th><th>Kunde</th><th>✓</th></tr></thead>
             <tbody>${body}</tbody>
         </table>
-        <p class="foot">Zeiten geschätzt (${visitMinutes} min je Besuch, ${AVG_SPEED_KMH} km/h Fahrt). Erstellt mit TourFuchs Vertrieb.</p>
+        <p class="foot">${planned
+            ? `Bestätigter Service-Tagesvorschlag · Rückkehr ${escapeHtml(String(servicePlan?.metrics?.finishAt || '').slice(11, 16) || '—')} · Fahrzeiten bleiben Planungsschätzungen.`
+            : `Zeiten geschätzt (${visitMinutes} min je Besuch, ${AVG_SPEED_KMH} km/h Fahrt).`} Erstellt mit TourFuchs Vertrieb.</p>
         <button class="noprint" onclick="window.print()" style="margin-top:16px;padding:8px 16px;">Drucken</button>
         </body></html>`;
 
@@ -108,8 +160,11 @@ function icsDate(date) {
 }
 
 /** Tour als .ics-Datei (ein VEVENT je Stopp) herunterladen */
-export function downloadIcs(start, stops, { startTime = defaultStart(), tourName = 'Tagestour', visitMinutes = DEFAULT_VISIT_MINUTES } = {}) {
-    const rows = schedule(start, stops, startTime, visitMinutes);
+export function downloadIcs(start, stops, {
+    startTime = defaultStart(), tourName = 'Tagestour', visitMinutes = DEFAULT_VISIT_MINUTES,
+    servicePlan = null, serviceVisits = []
+} = {}) {
+    const rows = exportRows(start, stops, startTime, visitMinutes, servicePlan);
     const demo = isDemoCustomer(start) || hasDemoCustomers(stops);
     const now = icsDate(new Date());
     const lines = [
@@ -117,14 +172,22 @@ export function downloadIcs(start, stops, { startTime = defaultStart(), tourName
     ];
     rows.forEach((r, i) => {
         const c = r.customer;
-        const end = new Date(r.arrival.getTime() + visitMinutes * 60000);
+        const end = r.end || new Date(r.arrival.getTime() + visitMinutes * 60000);
         const addr = [c.strasse, `${c.plz} ${c.ort}`.trim()].filter(Boolean).join(', ');
+        const serviceDetails = visitsForRow(r, serviceVisits).flatMap((visit) => [
+            visit.workOrderId && `Auftrag: ${visit.workOrderId}`,
+            visit.reason && `Anlass: ${visit.reason}`,
+            visit.priority && `Priorität: ${visit.priority}`,
+            visit.assignedTo && `Verantwortlich: ${visit.assignedTo}`,
+            visit.sourceUrl && `Quelle: ${visit.sourceUrl}`
+        ]).filter(Boolean);
         const desc = [
             demo && DEMO_DATA_LABEL,
             c.ansprechpartner && `Hauptansprechpartner: ${c.ansprechpartner}`,
             c.telefon && `Telefon: ${c.telefon}`,
             c.email && `E-Mail: ${c.email}`,
-            c.nummer && `Kd.-Nr.: ${c.nummer}`
+            c.nummer && `Kd.-Nr.: ${c.nummer}`,
+            ...serviceDetails
         ].filter(Boolean).join('\n');
         lines.push(
             'BEGIN:VEVENT',

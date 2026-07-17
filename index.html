@@ -57,20 +57,27 @@
                 <button type="button" class="mode-btn expert-only" data-mode="service">🛡️ Service</button>
             </div>
             <p id="mode-hint" class="mode-hint"></p>
-            <div id="service-customer-scope" class="service-customer-scope expert-only" hidden>
+            <section id="service-customer-scope" class="service-customer-scope expert-only" hidden>
                 <div class="service-customer-scope-head">
-                    <span>🗺️ Karte &amp; Tour</span>
-                    <small id="service-customer-scope-summary" aria-live="polite"></small>
+                    <span>🧭 Handlungsbedarf</span>
+                    <small id="service-action-data-status"></small>
                 </div>
-                <div class="seg-toggle" role="group" aria-label="Kundenauswahl für Servicekarte und Tour">
+                <div class="service-action-options" role="group" aria-label="Handlungsbedarf für Servicekarte und Tour">
+                    <button type="button" class="seg" data-service-customer-scope="now" aria-pressed="false">
+                        Jetzt einplanen <b data-service-customer-count="now">0</b>
+                    </button>
+                    <button type="button" class="seg" data-service-customer-scope="week" aria-pressed="false">
+                        Diese Woche <b data-service-customer-count="week">0</b>
+                    </button>
                     <button type="button" class="seg active" data-service-customer-scope="contracts" aria-pressed="true">
-                        Vertragskunden <b data-service-customer-count="contracts">0</b>
-                    </button>
-                    <button type="button" class="seg" data-service-customer-scope="all" aria-pressed="false">
-                        Alle Kunden <b data-service-customer-count="all">0</b>
+                        Alle Vertragskunden <b data-service-customer-count="contracts">0</b>
                     </button>
                 </div>
-            </div>
+                <p id="service-customer-scope-summary" class="muted small" aria-live="polite"></p>
+                <button type="button" class="linklike service-all-customers" data-service-customer-scope="all" aria-pressed="false">
+                    Auch Kunden ohne Vertrag anzeigen <b data-service-customer-count="all">0</b>
+                </button>
+            </section>
             <label class="basemap-control" for="basemap-select">
                 <span>Kartenstil</span>
                 <select id="basemap-select"></select>
@@ -82,6 +89,7 @@
                 <button class="tab-button active" data-tab="daten" data-modes="aussendienst gebietsplanung" role="tab">📄 Daten</button>
                 <button class="tab-button" data-tab="team" data-modes="aussendienst gebietsplanung" role="tab">Filter</button>
                 <button class="tab-button" data-tab="gebiete" data-modes="gebietsplanung" role="tab">🗺️ Gebiete</button>
+                <button class="tab-button expert-only" data-tab="einsaetze" data-modes="service" role="tab">🧰 Einsätze</button>
                 <button class="tab-button expert-only" data-tab="vertraege" data-modes="service" role="tab">🛡️ Verträge</button>
                 <button class="tab-button" data-tab="tour" data-modes="aussendienst service" role="tab">Tour</button>
             </nav>
@@ -159,17 +167,58 @@
                 <p class="privacy-note">🔒 Ihre Kundendaten bleiben lokal. Nur ein von Ihnen gestartetes Kundenbriefing übergibt die zuvor angezeigten Identifikationsdaten an Ihren Microsoft 365 Copilot.</p>
             </section>
 
+            <!-- Tab: operative Serviceeinsätze (bewusst nur im Profi-Fokus sichtbar) -->
+            <section id="tab-einsaetze" class="tab-panel">
+                <input id="service-visit-file-input" type="file" accept=".xlsx,.xls,.csv,text/csv" hidden>
+                <div class="contract-tab-head service-visit-tab-head">
+                    <div>
+                        <span class="contract-kicker">Profi · Service</span>
+                        <h2>Service-Cockpit</h2>
+                    </div>
+                </div>
+                <p class="muted small">Aktuelle Einsatzaufträge beantworten: Wer muss wann angefahren werden? Vertragsfristen bleiben davon bewusst getrennt.</p>
+
+                <section id="service-day-start" class="service-day-start">
+                    <div><b>✨ Dein nächster Service-Tag</b><span id="service-day-start-summary">Aktuelle Einsätze laden und sofort einen erklärbaren Tagesvorschlag erhalten.</span></div>
+                    <button id="btn-plan-service-day" class="primary" type="button">Meinen Service-Tag planen</button>
+                    <small>Start, Ziel, Arbeitszeit und Qualifikation werden im Tour-Tab geprüft.</small>
+                </section>
+
+                <details id="service-visit-data-sources" class="service-visit-data-sources" open>
+                    <summary>Datenquelle <span id="service-visit-source-health">Einsätze fehlen</span></summary>
+                    <div id="service-visit-source-summary" class="contract-source-summary"></div>
+                    <div class="contract-source-actions">
+                        <button id="btn-service-visit-import" class="primary" type="button">📥 Einsatzdatei importieren</button>
+                        <button id="btn-service-visit-template" type="button">📋 Excel-Vorlage</button>
+                        <button id="btn-service-visit-csv" type="button">CSV-Beispiel</button>
+                        <button id="btn-service-visit-issues" type="button" hidden>⬇ Letzte Hinweise</button>
+                        <button id="btn-service-visit-clear" class="danger" type="button">Einsatzdaten löschen</button>
+                    </div>
+                </details>
+
+                <div id="service-visit-kpis" class="service-visit-kpis" aria-live="polite"></div>
+                <div class="contract-filter-grid service-visit-filter-grid">
+                    <label>Techniker / Team
+                        <select id="service-visit-assignee"><option value="">Alle</option></select>
+                    </label>
+                    <label class="contract-search-label">Suche
+                        <input id="service-visit-search" type="search" placeholder="Kunde, Einsatz, Anlage …" autocomplete="off">
+                    </label>
+                </div>
+                <div id="service-visit-list" class="service-visit-list"></div>
+            </section>
+
             <!-- Tab: Service-Verträge (bewusst nur im Profi-Fokus sichtbar) -->
             <section id="tab-vertraege" class="tab-panel">
                 <input id="contract-file-input" type="file" accept=".xlsx,.xls,.csv,text/csv" hidden>
                 <div class="contract-tab-head">
                     <div>
                         <span class="contract-kicker">Profi · Service</span>
-                        <h2>Vertragsradar</h2>
+                        <h2>Vertragsmanagement</h2>
                     </div>
                     <button id="btn-contract-open" type="button" title="Vertragsradar groß öffnen">↗</button>
                 </div>
-                <p class="muted small">Vertragsfristen und -werte aus SAP, SieSales oder gepflegten Listen. Kundendaten werden nur über die Kundennummer verknüpft.</p>
+                <p class="muted small">Fristen, Verlängerungen und Vertragswert – unabhängig von der Einsatzplanung. Kundendaten werden nur über die Kundennummer verknüpft.</p>
 
                 <div id="contract-source-summary" class="contract-source-summary"></div>
                 <div class="contract-source-actions">
@@ -298,9 +347,24 @@
                             <input type="time" id="plan-time" value="08:00"></label>
                         <label class="plan-field">Besuch (Min.)
                             <input type="number" id="plan-visit-min" value="45" min="10" max="240" step="5"></label>
+                        <label id="service-plan-end-field" class="plan-field" hidden>Arbeitsende
+                            <input type="time" id="service-plan-end" value="17:00"></label>
                     </div>
                     <p class="muted small">Datum, Startzeit und Besuchsdauer für den Tagesplan-Druck, die Kalender-Termine (.ics) und die QR-Übergabe.</p>
                 </div>
+
+                <section id="service-day-planner" class="service-day-planner" hidden>
+                    <div class="service-day-planner-head">
+                        <div><b>✨ Erklärbarer Tagesvorschlag</b><small>Ein Techniker · ein Tag · lokale Planung ohne Live-Verkehr</small></div>
+                    </div>
+                    <div class="service-day-plan-settings">
+                        <label>Techniker / Team<select id="service-plan-assignee"><option value="">Alle offenen Einsätze</option></select></label>
+                        <label>Verfügbare Qualifikationen<input id="service-plan-skills" type="text" placeholder="z. B. Elektro, SPS" autocomplete="off"></label>
+                    </div>
+                    <p class="muted small">Start und Ziel oben festlegen. Ohne Ziel plant TourFuchs die Rückkehr zum Start. Zeitfenster, Einsatzdauer und Arbeitsende bleiben harte Grenzen.</p>
+                    <button id="btn-service-day-preview" class="primary" type="button">Tagesvorschlag berechnen</button>
+                    <div id="service-day-preview" aria-live="polite"></div>
+                </section>
 
                 <div class="expert-only expert-swipe-section" data-expert-section="destination">
                     <h3>2. Ziel <span class="muted small">(optional)</span> <span class="help-dot" tabindex="0" title="Mit Ziel berechnet TourFuchs Vorschläge entlang der Strecke. Ohne Ziel ist der letzte Stopp automatisch das Ziel.">?</span></h3>
@@ -457,6 +521,27 @@
             <footer>
                 <button id="contract-import-errors" type="button" hidden>⬇ Fehlerliste (.xlsx)</button>
                 <button id="contract-mapping-confirm" class="primary" type="button">Verträge prüfen und importieren</button>
+            </footer>
+        </dialog>
+
+        <!-- Serviceeinsatz-Import: eigener Mapper, ersetzt niemals Kunden oder Verträge -->
+        <dialog id="service-visit-import-dialog" class="contract-import-dialog">
+            <header>
+                <h2>🧰 Einsatzfelder zuordnen</h2>
+                <button class="dialog-close" type="button" aria-label="Schließen">Schließen</button>
+            </header>
+            <p id="service-visit-mapping-file-info" class="muted"></p>
+            <p class="muted small">Jede Zeile ist ein konkreter Einsatzauftrag. Nur die in der Datei enthaltenen Einsatzquellen werden aktualisiert; Kunden und Verträge bleiben erhalten.</p>
+            <div class="table-scroll">
+                <table class="mapping-table">
+                    <thead><tr><th>Einsatzfeld</th><th>Spalte in Ihrer Datei</th><th>Beispielwerte</th></tr></thead>
+                    <tbody id="service-visit-mapping-rows"></tbody>
+                </table>
+            </div>
+            <div id="service-visit-import-feedback" class="contract-import-feedback" aria-live="polite"></div>
+            <footer>
+                <button id="service-visit-import-errors" type="button" hidden>⬇ Fehlerliste (.xlsx)</button>
+                <button id="service-visit-mapping-confirm" class="primary" type="button">Einsätze prüfen und importieren</button>
             </footer>
         </dialog>
 

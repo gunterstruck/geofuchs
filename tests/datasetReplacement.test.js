@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { state, setCustomers, setServiceContracts } from '../src/core/state.js';
+import { state, setCustomers, setServiceContracts, setServiceVisits } from '../src/core/state.js';
 import { datasetReplacementMessage, hasExistingDataset } from '../src/ui/datasetReplacement.js';
 
 describe('Warnung vor Datensatz-Ersetzung', () => {
@@ -7,6 +7,7 @@ describe('Warnung vor Datensatz-Ersetzung', () => {
         state.territories = {};
         setCustomers([], { fileName: null });
         setServiceContracts([], {});
+        setServiceVisits([], {});
     });
 
     it('nennt Umfang, Wirkung und Wiederherstellung vor dem Vollimport', () => {
@@ -48,5 +49,21 @@ describe('Warnung vor Datensatz-Ersetzung', () => {
         expect(preserving).toContain('über die Kundennummer neu zugeordnet');
         expect(replacing).toContain('1 Servicevertrag');
         expect(replacing).not.toContain('Serviceverträge bleiben erhalten');
+    });
+
+    it('behandelt operative Serviceeinsätze beim Erhalten und Vollersatz eindeutig', () => {
+        setServiceVisits([
+            { sourceSystem: 'SAP', workOrderId: 'WO-1' },
+            { sourceSystem: 'OUTREACH', workOrderId: 'WO-2' }
+        ], { SAP: { count: 1 }, OUTREACH: { count: 1 } });
+
+        const preserving = datasetReplacementMessage({ incomingCount: 3 });
+        const replacing = datasetReplacementMessage({ incomingCount: 3, replacesVisits: true });
+
+        expect(hasExistingDataset()).toBe(true);
+        expect(preserving).toContain('Serviceeinsätze bleiben erhalten');
+        expect(preserving).toContain('über die Kundennummer neu zugeordnet');
+        expect(replacing).toContain('2 Serviceeinsätze');
+        expect(replacing).not.toContain('Serviceeinsätze bleiben erhalten');
     });
 });
