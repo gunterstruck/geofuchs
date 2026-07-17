@@ -77,6 +77,8 @@ export const state = {
         depth: 'basis',
         // Chancen-Fokus: nur fällige/überfällige Kunden auf der Karte zeigen
         opportunityOnly: false,
+        // Im Service-Fokus standardmäßig nur Kunden mit planungsrelevantem Vertrag.
+        serviceCustomerScope: 'contracts',
         sidebarOpen: window.innerWidth > 900
     }
 };

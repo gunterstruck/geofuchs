@@ -663,6 +663,32 @@ export function linkServiceContracts(contracts, customers) {
     return { matched, unmatched, ambiguous };
 }
 
+const SERVICE_PLANNING_STATUSES = new Set(['AKTIV', 'IN_VERLAENGERUNG']);
+
+/**
+ * Ein Vertrag ist für die operative Serviceplanung relevant, wenn das
+ * Quellsystem ihn ausdrücklich als aktiv oder in Verlängerung kennzeichnet.
+ * Laufzeit und Freitext werden bewusst nicht juristisch interpretiert.
+ */
+export function isPlanningRelevantServiceContract(contract) {
+    const status = String(contract?.status ?? '').normalize('NFKC').trim().toLocaleUpperCase('de-DE');
+    return SERVICE_PLANNING_STATUSES.has(status);
+}
+
+/**
+ * IDs der eindeutig per Kundennummer verknüpften Servicekunden.
+ * Mehrere relevante Verträge desselben Kunden ergeben weiterhin nur eine ID;
+ * unbekannte und mehrdeutige Kundennummern werden nicht aufgenommen.
+ */
+export function servicePlanningCustomerIds(contracts, customers) {
+    const relevant = (Array.isArray(contracts) ? contracts : [])
+        .filter(isPlanningRelevantServiceContract);
+    const { matched } = linkServiceContracts(relevant, customers);
+    return new Set(matched
+        .map(({ customer }) => customer?.id)
+        .filter((id) => id !== null && id !== undefined && String(id).trim() !== ''));
+}
+
 /**
  * Exklusiver Frist-Bucket anhand des expliziten Feldes `actionBy`:
  * 0 = heute/faellig/ueberfaellig, 30 = 1..30 Tage, 90 = 31..90 Tage,

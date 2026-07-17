@@ -11,6 +11,7 @@ import { saveDataset, clearDataset, saveSettings } from '../services/storage.js'
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { STATUS_COLORS, STATUS_LABELS, isOpportunity } from '../features/visits.js';
 import { automaticLevelActive } from '../features/mapLevel.js';
+import { modeTourCustomers, modeVisibleCustomers, servicePlanningCustomerCount } from '../features/customerScope.js';
 import { showToast } from './toast.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
@@ -512,10 +513,41 @@ const MODE_CONFIG = {
         label: 'Service',
         primaryTab: 'vertraege',
         markerColorModes: ['auto', 'bezirk', 'gruppe', 'luecken'],
-        defaultColorMode: 'status',
-        hint: 'Experten-Modus: Vertragsfristen, Vertragswert und Service-Handlungsbedarf.'
+        defaultColorMode: 'rep',
+        hint: 'Experten-Modus: Verträge prüfen und Touren mit passenden Servicekunden planen.'
     }
 };
+
+/** Service-Scope und seine beiden nachvollziehbaren Zähler spiegeln. */
+function syncServiceCustomerScope() {
+    const container = document.getElementById('service-customer-scope');
+    if (!container) return;
+
+    const scope = state.ui.serviceCustomerScope === 'all' ? 'all' : 'contracts';
+    const contractCount = servicePlanningCustomerCount();
+    const allCount = state.customers.length;
+    const formatCount = (value) => Number(value || 0).toLocaleString('de-DE');
+
+    container.hidden = state.ui.mode !== 'service';
+    container.querySelectorAll('[data-service-customer-scope]').forEach((button) => {
+        const active = button.dataset.serviceCustomerScope === scope;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+    });
+    const contracts = container.querySelector('[data-service-customer-count="contracts"]');
+    const all = container.querySelector('[data-service-customer-count="all"]');
+    if (contracts) contracts.textContent = formatCount(contractCount);
+    if (all) all.textContent = formatCount(allCount);
+
+    const summary = document.getElementById('service-customer-scope-summary');
+    if (summary) {
+        summary.textContent = scope === 'all'
+            ? `Servicefilter aus · ${formatCount(allCount)} Kunden`
+            : contractCount
+                ? `${formatCount(contractCount)} von ${formatCount(allCount)} Kunden`
+                : 'Keine Vertragskunden zugeordnet';
+    }
+}
 
 /** Einen Tab aktivieren (DOM + State); Persistenz steuern die Aufrufer */
 function activateTab(tab) {
@@ -628,15 +660,23 @@ function initDepth() {
 }
 
 export function applyMode(mode, userInitiated = true, persist = true) {
+    const previousMode = state.ui.mode;
     if (isMobileUi() || (mode === 'service' && state.ui.depth !== 'profi')) mode = 'aussendienst';
     if (!MODE_CONFIG[mode]) mode = 'aussendienst';
     const cfg = MODE_CONFIG[mode];
+    const enteringService = mode === 'service' && previousMode !== 'service';
+    if (userInitiated && enteringService) state.ui.serviceCustomerScope = 'contracts';
+    // Verkaufs-Chancen und Besuchsstatus sind im Service kein impliziter
+    // Planungsfilter. Der Service startet daher mit neutralen Kundenmarkern.
+    const forceServiceNeutral = mode === 'service' && state.colorMode === 'status';
+    if (mode === 'service') state.ui.opportunityOnly = false;
     state.ui.mode = mode;
 
     document.querySelectorAll('.mode-btn').forEach((b) =>
         b.classList.toggle('active', b.dataset.mode === mode));
     const hintEl = document.getElementById('mode-hint');
     if (hintEl) hintEl.textContent = cfg.hint;
+    syncServiceCustomerScope();
 
     // Tabs des Modus ein-/ausblenden
     const tabs = [...document.querySelectorAll('.tab-button')];
@@ -667,8 +707,8 @@ export function applyMode(mode, userInitiated = true, persist = true) {
     const mismatched = mode === 'aussendienst'
         ? cfg.areaColorModes.includes(state.colorMode)
         : cfg.markerColorModes.includes(state.colorMode);
-    if (userInitiated || (mode === 'gebietsplanung' && mismatched)) {
-        if (mismatched) {
+    if (userInitiated || ((mode === 'gebietsplanung' || mode === 'service') && mismatched) || forceServiceNeutral) {
+        if (mismatched || forceServiceNeutral) {
             state.colorMode = cfg.defaultColorMode;
             const sel = document.getElementById('colormode-select');
             if (sel) sel.value = state.colorMode;
@@ -677,6 +717,8 @@ export function applyMode(mode, userInitiated = true, persist = true) {
         }
     }
 
+    emit('mode:changed', mode);
+    if (userInitiated && enteringService) emit('service-customer-scope:changed', state.ui.serviceCustomerScope);
     if (persist) persistSettings();
 }
 
@@ -721,6 +763,17 @@ export function initSidebar() {
     // Fokus-Umschalter
     document.querySelectorAll('.mode-btn').forEach((btn) => {
         btn.addEventListener('click', () => applyMode(btn.dataset.mode, true));
+    });
+
+    document.querySelectorAll('[data-service-customer-scope]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const scope = btn.dataset.serviceCustomerScope === 'all' ? 'all' : 'contracts';
+            if (state.ui.serviceCustomerScope === scope) return;
+            state.ui.serviceCustomerScope = scope;
+            syncServiceCustomerScope();
+            emit('service-customer-scope:changed', scope);
+            persistSettings();
+        });
     });
 
     // Tabs
@@ -812,6 +865,10 @@ export function initSidebar() {
     });
     on('colormode:changed', syncAussenView);
     on('customers:changed', () => { syncAussenView(); updateChancenCount(); });
+    on('mode:changed', updateChancenCount);
+    on('service-customer-scope:changed', updateChancenCount);
+    on('service-contracts:changed', () => { syncServiceCustomerScope(); updateChancenCount(); });
+    on('tour:scope-changed', updateChancenCount);
     on('filters:changed', updateChancenCount);
     syncAussenView();
 
@@ -948,7 +1005,11 @@ function updateChancenCount() {
     const el = document.getElementById('chancen-count');
     if (!el) return;
     if (state.customers.length === 0) { el.textContent = ''; return; }
-    const shown = visibleCustomers();
+    const planningMode = state.ui.mode === 'aussendienst' || state.ui.mode === 'service';
+    const tourScoped = planningMode
+        && state.tour.bezirk
+        && state.tour.bezirk !== '__none__';
+    const shown = tourScoped ? modeTourCustomers() : modeVisibleCustomers();
     const chancen = shown.filter((c) => isOpportunity(c)).length;
     if (currentAussenView() === 'chancen') {
         el.textContent = chancen === 0
@@ -974,6 +1035,7 @@ function persistSettings() {
     saveSettings({
         mode: state.ui.mode,
         activeTab: state.ui.activeTab,
+        serviceCustomerScope: state.ui.serviceCustomerScope === 'all' ? 'all' : 'contracts',
         level: state.fixedLevel,
         levelMode: state.levelMode,
         fixedLevel: state.fixedLevel,

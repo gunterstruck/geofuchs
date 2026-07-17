@@ -3,11 +3,13 @@ import {
     SERVICE_CONTRACT_FIELDS,
     autoDetectServiceContractMapping,
     contractUrgency,
+    isPlanningRelevantServiceContract,
     linkServiceContracts,
     mergeServiceContractSources,
     normalizeCustomerNumber,
     parseServiceContractRows,
     serviceContractActionDays,
+    servicePlanningCustomerIds,
     serviceContractReplacementRisks,
     summarizeServiceContracts
 } from '../src/features/serviceContracts.js';
@@ -327,6 +329,44 @@ describe('Kundenverknüpfung', () => {
         expect(links.unmatched).toEqual([]);
         expect(links.ambiguous[0].contract).toBe(item);
         expect(links.ambiguous[0].customers).toHaveLength(2);
+    });
+
+    it('klassifiziert nur aktive Verträge und Verträge in Verlängerung als planungsrelevant', () => {
+        expect(isPlanningRelevantServiceContract({ status: 'AKTIV' })).toBe(true);
+        expect(isPlanningRelevantServiceContract({ status: ' in_verlaengerung ' })).toBe(true);
+        expect(isPlanningRelevantServiceContract({ status: 'PAUSIERT' })).toBe(false);
+        expect(isPlanningRelevantServiceContract({ status: 'ENTWURF' })).toBe(false);
+        expect(isPlanningRelevantServiceContract({ status: 'GEKUENDIGT' })).toBe(false);
+        expect(isPlanningRelevantServiceContract({ status: 'ABGELAUFEN' })).toBe(false);
+        expect(isPlanningRelevantServiceContract({})).toBe(false);
+    });
+
+    it('liefert eindeutige Servicekunden-IDs und dedupliziert mehrere aktive Verträge', () => {
+        const customers = [
+            { id: 'mit-null', nummer: '000123' },
+            { id: 'ohne-null', nummer: '123' },
+            { id: 'inaktiv', nummer: '900' }
+        ];
+        const ids = servicePlanningCustomerIds([
+            { ...contract('SAP', 'A', '000123'), status: 'AKTIV' },
+            { ...contract('CRM', 'B', '000123'), status: 'IN_VERLAENGERUNG' },
+            { ...contract('SAP', 'C', '123'), status: 'AKTIV' },
+            { ...contract('SAP', 'D', '900'), status: 'ABGELAUFEN' }
+        ], customers);
+
+        expect([...ids]).toEqual(['mit-null', 'ohne-null']);
+        expect(ids.size).toBe(2);
+    });
+
+    it('nimmt bei doppelt vergebener Kundennummer keinen Kunden in den Planungsscope auf', () => {
+        const ids = servicePlanningCustomerIds([
+            { ...contract('SAP', 'A', '42'), status: 'AKTIV' }
+        ], [
+            { id: 'k1', nummer: '42' },
+            { id: 'k2', nummer: '42' }
+        ]);
+
+        expect([...ids]).toEqual([]);
     });
 });
 

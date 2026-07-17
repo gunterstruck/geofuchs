@@ -1,5 +1,90 @@
 /* Service-Vertragsradar – nutzt bewusst die bestehende TourFuchs-Formsprache. */
 
+.service-customer-scope {
+    display: grid;
+    gap: 7px;
+    margin: 0 0 10px;
+    padding: 9px 10px;
+    border: 1px solid #99f6e4;
+    border-radius: var(--radius-l);
+    background: linear-gradient(180deg, #f0fdfa 0%, var(--color-surface) 100%);
+}
+
+.service-customer-scope[hidden] { display: none; }
+
+.service-customer-scope-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+}
+
+.service-customer-scope-head > span {
+    color: var(--color-primary-dark);
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
+.service-customer-scope-head small {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: 0.68rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.service-customer-scope .seg-toggle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.service-customer-scope .seg {
+    min-width: 0;
+    padding-inline: 7px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+.service-customer-scope .seg b {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    margin-left: 3px;
+    padding: 1px 5px;
+    border-radius: var(--radius-pill);
+    background: rgb(15 118 110 / 10%);
+    font-size: 0.67rem;
+}
+
+.service-customer-scope .seg.active b {
+    background: rgb(255 255 255 / 22%);
+    color: inherit;
+}
+
+.tour-scope-warning {
+    margin: 6px 0;
+    padding: 7px 9px;
+    border: 1px solid #fed7aa;
+    border-radius: var(--radius-m);
+    background: #fff7ed;
+    color: #9a3412;
+    font-size: 0.74rem;
+    line-height: 1.35;
+}
+
+.route-role.scope-exception {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+#tour-sales-map-view[hidden],
+#tour-sales-priority[hidden] {
+    display: none !important;
+}
+
 .contract-tab-head {
     display: flex;
     align-items: flex-start;

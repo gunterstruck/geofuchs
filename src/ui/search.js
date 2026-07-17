@@ -2,8 +2,9 @@
  * Globale Kundensuche in der Kopfleiste.
  */
 
-import { state, getCustomer } from '../core/state.js';
+import { state, getCustomer, on } from '../core/state.js';
 import { flyToCustomer } from '../features/map.js';
+import { applyServiceCustomerScope } from '../features/customerScope.js';
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
@@ -38,7 +39,10 @@ export function initSearch() {
     input.addEventListener('input', () => {
         const q = normalizeSearchText(input.value);
         if (q.length < 2) { close(); return; }
-        const hits = searchCustomers(state.customers, q);
+        const pool = state.ui.mode === 'service'
+            ? applyServiceCustomerScope(state.customers)
+            : state.customers;
+        const hits = searchCustomers(pool, q);
 
         if (hits.length === 0) {
             results.innerHTML = '<div class="result-empty">Keine Treffer</div>';
@@ -72,4 +76,7 @@ export function initSearch() {
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') { close(); input.blur(); }
     });
+    on('mode:changed', close);
+    on('service-customer-scope:changed', close);
+    on('service-contracts:changed', close);
 }

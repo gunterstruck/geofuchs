@@ -21,6 +21,12 @@ describe('Servicevertrags-Radar Integration', () => {
         const document = new DOMParser().parseFromString(source('index.html'), 'text/html');
         expect(document.querySelector('[data-mode="service"]')?.classList.contains('expert-only')).toBe(true);
         expect(document.querySelector('[data-tab="vertraege"]')?.classList.contains('expert-only')).toBe(true);
+        const customerScope = document.getElementById('service-customer-scope');
+        expect(customerScope?.classList.contains('expert-only')).toBe(true);
+        expect(customerScope?.hasAttribute('hidden')).toBe(true);
+        expect(customerScope?.querySelector('[data-service-customer-scope="contracts"]')).not.toBeNull();
+        expect(customerScope?.querySelector('[data-service-customer-scope="all"]')).not.toBeNull();
+        expect(document.querySelector('[data-tab="tour"]')?.dataset.modes?.split(/\s+/)).toContain('service');
         expect(document.getElementById('tab-vertraege')).not.toBeNull();
         expect(document.getElementById('contract-import-dialog')).not.toBeNull();
         expect(document.getElementById('contract-radar-dialog')).not.toBeNull();

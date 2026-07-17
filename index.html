@@ -57,6 +57,20 @@
                 <button type="button" class="mode-btn expert-only" data-mode="service">🛡️ Service</button>
             </div>
             <p id="mode-hint" class="mode-hint"></p>
+            <div id="service-customer-scope" class="service-customer-scope expert-only" hidden>
+                <div class="service-customer-scope-head">
+                    <span>🗺️ Karte &amp; Tour</span>
+                    <small id="service-customer-scope-summary" aria-live="polite"></small>
+                </div>
+                <div class="seg-toggle" role="group" aria-label="Kundenauswahl für Servicekarte und Tour">
+                    <button type="button" class="seg active" data-service-customer-scope="contracts" aria-pressed="true">
+                        Vertragskunden <b data-service-customer-count="contracts">0</b>
+                    </button>
+                    <button type="button" class="seg" data-service-customer-scope="all" aria-pressed="false">
+                        Alle Kunden <b data-service-customer-count="all">0</b>
+                    </button>
+                </div>
+            </div>
             <label class="basemap-control" for="basemap-select">
                 <span>Kartenstil</span>
                 <select id="basemap-select"></select>
@@ -69,7 +83,7 @@
                 <button class="tab-button" data-tab="team" data-modes="aussendienst gebietsplanung" role="tab">Filter</button>
                 <button class="tab-button" data-tab="gebiete" data-modes="gebietsplanung" role="tab">🗺️ Gebiete</button>
                 <button class="tab-button expert-only" data-tab="vertraege" data-modes="service" role="tab">🛡️ Verträge</button>
-                <button class="tab-button" data-tab="tour" data-modes="aussendienst" role="tab">Tour</button>
+                <button class="tab-button" data-tab="tour" data-modes="aussendienst service" role="tab">Tour</button>
             </nav>
 
             <!-- Tab: Daten -->
@@ -256,7 +270,7 @@
 
                 <div id="tour-planner" hidden>
                 <button id="btn-nearby" class="primary btn-nearby">📍 Was ist in meiner Nähe?</button>
-                <div class="aussen-view-block expert-only expert-swipe-section" data-expert-section="map-view">
+                <div id="tour-sales-map-view" class="aussen-view-block expert-only expert-swipe-section" data-expert-section="map-view">
                     <span class="field-label">Kartenansicht</span>
                     <div class="seg-toggle" id="aussen-view" role="group" aria-label="Kartenansicht">
                         <button type="button" class="seg" data-view="rep">Kunden</button>
@@ -305,7 +319,7 @@
                 <label class="field-label" for="radius-slider"><span id="radius-label">Umkreis</span>: <span id="radius-value"></span></label>
                 <input id="radius-slider" type="range" min="5" max="100" step="5">
                 <p id="suggest-hint" class="muted small"></p>
-                <label class="check-inline"><input type="checkbox" id="overdue-first"> Überfällige zuerst</label>
+                <label id="tour-sales-priority" class="check-inline"><input type="checkbox" id="overdue-first"> Überfällige zuerst</label>
                 <div id="tour-suggestions" class="scroll-list"></div>
 
                 <h3><span id="mytour-head">3. Meine Tour</span> <span class="help-dot" tabindex="0" title="Tippe Kunden aus den Vorschlägen oder aus Karten-Popups zur Tour. Karte zeigt die Reihenfolge farbig von Rot nach Lila.">?</span></h3>
