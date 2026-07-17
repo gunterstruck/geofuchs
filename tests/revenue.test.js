@@ -16,6 +16,16 @@ describe('detectRevenueScale (Spaltenüberschrift)', () => {
             expect(detectRevenueScale(h)).toBe(1);
         }
     });
+    it('skaliert nicht bei t/k mitten im Wort vor €', () => {
+        // „t€"/„k€" nur als eigenständige Einheit, nicht als Wortende.
+        for (const h of ['Umsatz gesamt€', 'Rabatt€', 'Gesamt€', 'Netto Punkt€']) {
+            expect(detectRevenueScale(h)).toBe(1);
+        }
+    });
+    it('erkennt t€/k€ direkt nach einer Ziffer (z. B. 45t€)', () => {
+        expect(detectRevenueScale('Umsatz 45t€')).toBe(1000);
+        expect(detectRevenueScale('Umsatz 45k€')).toBe(1000);
+    });
 });
 
 describe('parseAmountColumn (spaltenweite deutsche Tausendertrennung)', () => {
