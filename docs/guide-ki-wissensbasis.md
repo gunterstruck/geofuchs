@@ -1,6 +1,6 @@
 # TourFuchs Vertrieb - Wissensbasis für den KI-Guide
 
-**Version 2.1 · Stand: 15.07.2026 · App-Version: 3.0.0**
+**Version 2.2 · Stand: 17.07.2026 · App-Version: 3.0.0**
 
 **Zweck:** Verbindliche Produkt-, Bedien-, Schulungs- und Supportgrundlage für
 einen angepassten TourFuchs-Guide. Die Markdown-Datei ist die primäre
@@ -262,11 +262,14 @@ Die Topbar enthält:
 ### 4.2 Zwei globale Schalter im Desktop-Panel
 
 1. **"Basis" / "Profi"** steuert die Ansichtstiefe.
-2. **"Außendienst" / "Gebietsplanung"** steuert den Arbeitsfokus.
+2. **"Außendienst" / "Gebietsplanung" / "Service"** steuert den Arbeitsfokus.
+   Der Fokus **"Service"** erscheint nur in der Ansichtstiefe **"Profi"**.
 
 Tabs im Außendienst: **"Daten"**, **"Filter"**, **"Tour"**.
 
 Tabs in der Gebietsplanung: **"Daten"**, **"Filter"**, **"Gebiete"**.
+
+Tabs im Service-Fokus: **"Einsätze"**, **"Verträge"**, **"Tour"**.
 
 Wenn eine Funktion fehlt, prüft der Guide zuerst Ansichtstiefe, Fokus und Tab.
 
@@ -326,50 +329,73 @@ Beim ersten Start oder nach dem Löschen aller Daten zeigt die Sidebar zunächst
 - **"Schön, dass du da bist."**
 - **"App in 60 Sekunden erleben"**
 - **"Eigene Daten laden"**
+- **"Lieber zuschauen? Geführte Vorführung starten"** (dezenter Link darunter)
 
 Die beiden großen Aktionen sind bewusst gleichwertig:
 
 1. Demo-Daten nutzen und den Wert der App erleben.
 2. Direkt mit einer eigenen Datei beginnen.
 
-Technische Unteroptionen erscheinen erst nach **"Eigene Daten laden"**.
+Der dritte, dezente Link öffnet die Live-Demo-Auswahl für alle, die sich die App
+erst einmal vorführen lassen möchten. Technische Unteroptionen erscheinen erst
+nach **"Eigene Daten laden"**.
 
 Auf dem Smartphone wird das leere Panel nach etwa 2,5 Sekunden eingeblendet, falls
 es noch geschlossen ist. Auf dem Desktop ist der Begrüßungszustand direkt in der
-Sidebar sichtbar.
+Sidebar sichtbar. Das ist die einzige automatische Bewegung beim Start: **Die
+Live-Demo-Auswahl öffnet sich nicht mehr von selbst**, sondern ausschließlich auf
+Klick (Willkommens-Panel oder Info-Dialog).
 
-### 5.2 Automatische Live-Demo-Auswahl
+### 5.2 Live-Demo-Auswahl nur auf Klick
 
-Wenn noch keine Daten vorhanden sind, erscheint die Demo-Auswahl nach etwa
-**5 Sekunden**. Die kurze Pause ist eine bewusste Onboarding-Entscheidung: erst
-orientieren, dann entdecken.
+Die Demo-Auswahl öffnet ausschließlich über zwei bewusste Einstiege:
 
-Die automatische Anzeige bleibt aus, wenn:
+1. `Willkommens-Panel -> "Lieber zuschauen? Geführte Vorführung starten"`
+2. `"Info & Impressum" -> "Funktionen entdecken (Live-Demos)"`
 
-- **"Nicht mehr automatisch zeigen"** aktiviert wurde.
-- eigene Daten erfolgreich importiert wurden.
-- alle für das Gerät sichtbaren Demos bereits angesehen wurden.
-- der Datentresor gesperrt ist.
-- gerade ein anderes Modal oder eine Vorführung aktiv ist.
-
-Bei einer nur vorübergehenden Blockade wartet TourFuchs kurz und versucht es
-erneut.
-
-**"Später"** schließt die Auswahl. Dauerhaft unterdrückt wird sie nur durch das
-aktivierte Kontrollkästchen oder die oben genannten Abschlussbedingungen.
+Ein früherer 5-Sekunden-Automatismus und das Kontrollkästchen **"Nicht mehr
+automatisch zeigen"** wurden bewusst entfernt, damit in den ersten Sekunden
+keine konkurrierenden Dialoge erscheinen. **"Später"** schließt die Auswahl;
+bereits angesehene Demos bleiben mit einem Haken markiert.
 
 ### 5.3 Verhalten nach "Daten löschen"
 
-Das Löschen setzt Demo-Fortschritt und Import-Markierung zurück. Wenn die App
-danach leer ist, wird die Live-Demo-Auswahl nach etwa 5 Sekunden erneut angeboten.
-
-Eine ausdrückliche Entscheidung **"Nicht mehr automatisch zeigen"** wird durch
-das Datenlöschen absichtlich nicht aufgehoben. Die Demos bleiben dennoch manuell
-erreichbar.
+Das Löschen setzt den Demo-Fortschritt (gesehene Demos, Import-Markierung)
+zurück. Es öffnet sich danach kein automatischer Dialog; die Demos bleiben über
+Willkommens-Panel und Info erreichbar.
 
 ### 5.4 Demos später manuell öffnen
 
 **Klickpfad:** `"Info & Impressum" -> "Funktionen entdecken (Live-Demos)"`.
+
+### 5.5 "Erste Schritte"-Checkliste
+
+Nach dem ersten Datenbestand (Demo oder eigene Liste) erscheint oben in der
+Sidebar die Karte **"Erste Schritte"** mit vier Punkten:
+
+1. **Kunden auf der Karte sehen** (durch das Laden bereits erledigt)
+2. **Erste Tour planen**
+3. **Tour aufs Handy holen** (QR-Übergabe)
+4. **Eigene Excel-Liste laden** (hakt sich nur bei Nicht-Demo-Daten ab)
+
+Der Fortschritt wird ausschließlich lokal gespeichert und bleibt dauerhaft
+abgehakt, auch wenn z. B. die Tour später wieder geleert wird.
+
+Die Karte kennt **drei Zustände**:
+
+- **Ausgeklappt:** volle Karte, gehört der Kennenlernphase.
+- **Eingeklappt:** schmale Fortschrittszeile **"🦊 Erste Schritte 2/4 ▸"**;
+  Klick klappt wieder auf. Die Karte klappt **von selbst** ein, sobald der
+  Nutzer erkennbar arbeitet (ein weiterer Schritt über das Datenladen hinaus ist
+  erledigt oder die Tour hat Stopps); ein frisch abgehakter Schritt bleibt zuvor
+  etwa 4 Sekunden als Feedback sichtbar. Auf dem Smartphone startet die Karte
+  direkt eingeklappt. **"Später"** klappt manuell ein.
+- **Abgewählt:** nur über den ausdrücklichen Link **"Nicht mehr zeigen"**.
+  Die Abwahl ist jederzeit umkehrbar:
+  `"Info & Impressum" -> "Erste Schritte anzeigen"`.
+
+Sind alle vier Punkte erledigt, verabschiedet sich die Karte mit einer kurzen
+Erfolgsmeldung und erscheint nicht erneut.
 
 ---
 
@@ -493,7 +519,7 @@ Semikolon, Komma, Tab, UTF-8 und Windows-1252.
 |---|---:|---|
 | Kundenname | Ja für Kundenzeilen | sichtbarer Kundenname |
 | PLZ oder Lat/Lng | Ja für Kartenposition | lokale PLZ-Verortung oder vorhandene Koordinaten |
-| Vertriebsbezirk | Ja für Kundenzeilen | führende operative Ebene |
+| Vertriebsbezirk | empfohlen, keine Pflicht | führende operative Ebene |
 | Kundennummer | dringend empfohlen | eindeutiger Kontakt- und QR-Schlüssel |
 | Straße & Hausnummer | optional | Adresse, Navigation, exakte Verortung |
 | Ort | optional, sehr empfohlen | Anzeige im Popup und Stadtsuche |
@@ -508,6 +534,13 @@ Semikolon, Komma, Tab, UTF-8 und Windows-1252.
 
 Spaltensynonyme werden automatisch erkannt. Beispiele: `Firma`, `Stadt`,
 `Betriebsbezirk`, `Kundenkreis`, `Betreuer`, `Jahresumsatz`.
+
+**Import ohne Vertriebsbezirk:** Eine einfache Liste (nur Kundenname + PLZ)
+wird vollständig importiert. Kunden ohne Bezirk erscheinen unter
+**"Ohne Zuordnung"**; das Importergebnis weist mit einem Hinweis darauf hin.
+Bezirke können jederzeit per erneutem Import ergänzt werden. Ohne aktive
+Bezirks-Ebene plant die Tour automatisch über **"Alle Bezirke"**. Nur
+Flächenzeilen (Gebietszuordnung ohne Kunde) verlangen weiterhin einen Bezirk.
 
 ### 7.5 Import-Schrittfolge
 
@@ -1014,6 +1047,44 @@ Kunden ohne Rhythmus haben keinen Status. Ein Besuch wird in der Tour mit
 **"Heute"** oder im Kunden-Popup mit **"Heute besucht"** dokumentiert. Der Status
 aktualisiert sich sofort und wird lokal gespeichert.
 
+### 10.11 Service-Fokus (Profi): Einsätze, Verträge und Tagesvorschlag
+
+Der Arbeitsfokus **"Service"** ist eine Profi-Funktion (nur in Ansichtstiefe
+**"Profi"** sichtbar) mit den Tabs **"Einsätze"**, **"Verträge"** und
+**"Tour"**. Er hält zwei getrennte Zusatzbestände neben den Kundendaten:
+
+**Serviceverträge (Vertragsradar):** eigener Excel-/CSV-Import. Eindeutiger
+Schlüssel ist `Quellsystem + Vertragsnummer`; die Verknüpfung zum Kunden erfolgt
+ausschließlich über die exakte **Kundennummer** (führende Nullen bleiben
+erhalten, Namen oder PLZ sind bewusst keine Fallbacks). Ein erneuter Import
+ersetzt nur die in der Datei enthaltenen Vertragsquellen; andere Quellen,
+Kunden, Gebiete und Touren bleiben erhalten. Das Radar zeigt Handlungsfristen
+("Handeln bis") in exklusiven Zeitfenstern, Vertragswerte und Verantwortliche.
+
+**Operative Serviceeinsätze (Work Orders):** ebenfalls eigener Import mit
+strenger Validierung (Fällig am, Zeitfenster, Dauer 10-720 Minuten, Priorität
+KRITISCH/HOCH/MITTEL/NIEDRIG, Status). Fehlerhafte Zeilen werden nie
+übernommen; die Fehlerliste steht als Excel bereit.
+
+**Kundenauswahl im Service-Fokus:** Über dem Panel steuert eine Auswahl, welche
+Kunden Karte und Tour zeigen: **"Jetzt"** (fällige/kritische Einsätze),
+**"Diese Woche"**, **"Vertragskunden"** (Standard: Kunden mit aktivem oder in
+Verlängerung befindlichem Vertrag) oder bewusst **"Alle Kunden"**. Zähler an
+den Schaltflächen machen die Wirkung sichtbar. Bereits gewählte Tourstopps
+außerhalb des Filters bleiben mit einem Hinweis in der Tour.
+
+**Tagesvorschlag:** Der Service-Tagesplaner erstellt lokal und deterministisch
+einen erklärbaren Tagesplan (Arbeitstag, Schichtfenster, Techniker-Skills).
+Entfernungen werden als Luftlinie mal Straßenfaktor 1,3 bei 60 km/h geschätzt;
+SLA-Fristen beeinflussen die Reihenfolge, sind aber keine harte Schranke. Jeder
+Stopp trägt nachvollziehbare Gründe, nicht einplanbare Einsätze werden mit
+Ursache gelistet. **"Übernehmen"** ersetzt die Tourstopps und fixiert die
+Zeiten; jede manuelle Touränderung verwirft den fixierten Plan bewusst.
+Tagesplan-Druck und Kalender-Export übernehmen die fixierten Zeiten.
+
+Demo-Daten enthalten passende Demo-Verträge und 20 Demo-Einsatzaufträge, damit
+der Service-Fokus ohne eigene Dateien erlebbar ist.
+
 ---
 
 ## 11. Tour vom Desktop aufs Smartphone übergeben
@@ -1447,7 +1518,14 @@ Vor diesen Aktionen immer Wirkung nennen und bei Bedarf Export empfehlen:
 | Ziel | Klickpfad |
 |---|---|
 | Demo-Daten laden | `Daten -> "App in 60 Sekunden erleben"` |
-| Live-Demos manuell | `Info & Impressum -> "Funktionen entdecken (Live-Demos)"` |
+| Live-Demos manuell | `Willkommens-Panel -> "Lieber zuschauen?"` oder `Info & Impressum -> "Funktionen entdecken (Live-Demos)"` |
+| Erste Schritte einklappen | `Erste-Schritte-Karte -> "Später"` (Zeile bleibt; Klick klappt wieder auf) |
+| Erste Schritte abwählen | `Erste-Schritte-Karte -> "Nicht mehr zeigen"` |
+| Erste Schritte zurückholen | `Info & Impressum -> "Erste Schritte anzeigen"` |
+| Service-Fokus öffnen | `Profi -> Fokus "Service"` |
+| Verträge importieren | `Service -> Verträge -> Vertragsdatei laden` |
+| Einsätze importieren | `Service -> Einsätze -> Einsatzdatei laden` |
+| Service-Tagesvorschlag | `Service -> Tour -> Bezirk + Start -> Tagesvorschlag prüfen -> "Übernehmen"` |
 | Eigene Liste laden | `Daten -> "Eigene Daten laden" -> "Excel- oder CSV-Liste" -> Berechtigung -> "Excel-/CSV-Datei auswählen"` |
 | Spalten prüfen | `"Spalten zuordnen" -> Zuordnungen und Beispiele prüfen -> "Importieren"` |
 | Fehlerliste | `"Import abgeschlossen" -> "Fehlerliste (.xlsx)"` |
@@ -1570,15 +1648,12 @@ Prüfen:
 
 ### 18.9 Live-Demo erscheint nicht automatisch
 
-Prüfen:
+Das ist das erwartete Verhalten: Die Demo-Auswahl öffnet sich nie von selbst.
+Wege zum Öffnen:
 
-1. Ist die App wirklich leer?
-2. Wurden eigene Daten importiert?
-3. Wurde **"Nicht mehr automatisch zeigen"** aktiviert?
-4. Sind bereits alle sichtbaren Demos abgeschlossen?
-5. Ist ein anderes Modal oder der Sperrbildschirm offen?
-
-Manueller Weg: `Info & Impressum -> Funktionen entdecken (Live-Demos)`.
+1. `Willkommens-Panel -> "Lieber zuschauen? Geführte Vorführung starten"`
+   (nur sichtbar, solange keine Daten geladen sind).
+2. `Info & Impressum -> "Funktionen entdecken (Live-Demos)"` (jederzeit).
 
 ### 18.10 Live-Demo wurde unterbrochen
 
@@ -1676,8 +1751,10 @@ altem Namen alte PWA entfernen und neu installieren.
 ### Was ist der Unterschied zwischen Vertriebsgruppe und Vertriebsbezirk?
 
 > Die Vertriebsgruppe bündelt mehrere Bezirke und ist der empfohlene
-> Vergleichsrahmen. Der Vertriebsbezirk ist die führende operative Pflicht-Ebene
-> für Tourfilter, Farben, Cockpit und Zuweisungen.
+> Vergleichsrahmen. Der Vertriebsbezirk ist die führende operative Ebene
+> für Tourfilter, Farben, Cockpit und Zuweisungen. Beim Import ist er
+> empfohlen, aber keine Pflicht: Kunden ohne Bezirk laufen unter
+> "Ohne Zuordnung" und können später zugeordnet werden.
 
 ### Wann wird eine Simulation dauerhaft?
 
@@ -1771,7 +1848,8 @@ aktuelle interne Wissen.
 
 **Ziel:** eigene Datei sicher importieren.
 
-1. Pflichtfelder erklären.
+1. Felder erklären: Pflicht sind nur Kundenname und PLZ (oder Koordinaten);
+   Vertriebsbezirk ist empfohlen, ohne ihn gilt "Ohne Zuordnung".
 2. **"Eigene Daten laden"**.
 3. Berechtigung bestätigen.
 4. Datei öffnen.
@@ -2050,7 +2128,8 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 18. **Warum fehlt "An Handy übergeben" mobil?**
     Weil das Senden an das Smartphone nur am Desktop sinnvoll ist.
 19. **Wann erscheint die Demo-Auswahl automatisch?**
-    In einer leeren App nach etwa 5 Sekunden, sofern nicht unterdrückt/blockiert.
+    Gar nicht mehr. Sie öffnet nur auf Klick: im Willkommens-Panel über
+    "Lieber zuschauen?" oder über Info -> "Funktionen entdecken".
 20. **Welche Scrollwege hat das Desktop-Panel?**
     Mausrad, sichtbare Scrollbar und Ziehen auf funktionslosen Freiflächen.
 
@@ -2060,8 +2139,14 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 
 - **TourFuchs Vertrieb:** lokal-first PWA für Kundenkarte, Gebiete, Tour und
   Kundenbriefing.
-- **Vertriebsbezirk:** führende operative Pflicht-Ebene.
+- **Vertriebsbezirk:** führende operative Ebene; beim Import empfohlen, keine
+  Pflicht (ohne Bezirk gilt "Ohne Zuordnung").
 - **Betriebsbezirk:** akzeptiertes Import-Synonym für Vertriebsbezirk.
+- **Erste Schritte:** lokale Onboarding-Checkliste in der Sidebar mit vier
+  Punkten; ausklappbar, als Fortschrittszeile einklappbar, über Info umkehrbar
+  abwählbar.
+- **Service-Fokus:** Profi-Arbeitsfokus mit Vertragsradar, operativen
+  Serviceeinsätzen und erklärbarem Tagesvorschlag.
 - **Vertriebsgruppe:** übergeordneter Vergleichsrahmen.
 - **Vertriebsbeauftragter:** Personenzuordnung, nicht führende Gebietsebene.
 - **Flächenzeile:** Importzeile ohne Kundenname zur Gebietszuordnung.
@@ -2106,7 +2191,23 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 - Minor: neuer Klickpfad oder neue Funktion.
 - Major: neue Produktstruktur oder geänderte Datenschutzarchitektur.
 
-### 26.3 Änderungen in Version 2.1
+### 26.3 Änderungen in Version 2.2
+
+- Vertriebsbezirk beim Import von Pflicht auf "empfohlen" umgestellt; Verhalten
+  "Ohne Zuordnung" und Hinweis im Importergebnis dokumentiert.
+- automatisches 5-Sekunden-Angebot der Live-Demos entfernt; neue Klick-Einstiege
+  (Willkommens-Panel "Lieber zuschauen?", Info) dokumentiert.
+- neue "Erste Schritte"-Checkliste mit drei Zuständen (ausgeklappt, Zeile,
+  umkehrbar abgewählt) inklusive Auto-Einklappen dokumentiert.
+- Service-Fokus als dritter Profi-Arbeitsfokus ergänzt: Vertragsradar,
+  operative Serviceeinsätze, Kundenauswahl (Jetzt/Woche/Vertragskunden/Alle)
+  und erklärbarer Tagesvorschlag.
+- Klickpfad-Bibliothek, Schnellreferenz, FAQ, Glossar und Prüfungsfragen an das
+  neue Onboarding- und Importverhalten angepasst.
+- interne Korrektur der Umsatz-Einheitenerkennung (t€/k€ nur noch als
+  eigenständige Einheit) - Nutzerhinweis: Gesamtsumme im Importergebnis prüfen.
+
+### 26.4 Änderungen in Version 2.1
 
 - Desktop-Einstieg **"Mobile Außendienst & Tour"** als Produktnutzen benannt.
 - einmaligen, ruhigen Vorschau-Teaser nach vorhandenem Kundenbestand dokumentiert.
@@ -2119,7 +2220,7 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 - gemeinsamen lokalen Datenbestand von Desktop und eingebetteter Vorschau
   klargestellt.
 
-### 26.4 Änderungen in Version 2.0
+### 26.5 Änderungen in Version 2.0
 
 - vollständige Zusammenführung der früheren PDF- und Markdown-Wissensbasis.
 - neues Product-Owner-Kapitel mit priorisierten Wow-Effekten.
@@ -2142,7 +2243,7 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 
 | Thema | Verbindliche Kurzantwort |
 |---|---|
-| Führende Ebene | Vertriebsbezirk |
+| Führende Ebene | Vertriebsbezirk (Import: empfohlen, keine Pflicht; sonst "Ohne Zuordnung") |
 | Vergleichsrahmen | Vertriebsgruppe |
 | Desktop | Daten, Karte, Tour, Gebiete, Cockpit, Simulation, QR-Senden |
 | Smartphone | Karte, Kunden, Briefing, Tour, Navigation, QR-Empfang |
@@ -2163,6 +2264,8 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 | Undo | "Ein Schritt zurück", bis zu 30 Schritte |
 | Tresor | AES-256, PIN, Recovery, optional Face/Touch ID |
 | Sicherer Umzug | `.tfsafe` + getrennter Schlüssel-QR |
-| Live-Demos | leere App nach ca. 5 Sekunden; manuell über Info |
+| Live-Demos | nur auf Klick: Willkommens-Panel "Lieber zuschauen?" oder Info |
+| Erste Schritte | 4-Punkte-Checkliste; klappt beim Arbeiten zur Zeile ein; Abwahl über Info umkehrbar |
+| Service-Fokus | Profi; Verträge + Einsätze getrennt, Join nur über Kundennummer; erklärbarer Tagesvorschlag |
 | Update | App-Dateien neu, lokale Daten bleiben erhalten |
 | Vor Löschen | Export empfehlen |

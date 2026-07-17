@@ -7,7 +7,10 @@ import {
     firstStepsProgress,
     markFirstStepDone,
     resetFirstSteps,
-    shouldShowFirstSteps
+    setFirstStepsCollapsed,
+    shouldAutoCollapseFirstSteps,
+    shouldShowFirstSteps,
+    unhideFirstSteps
 } from '../src/features/firstSteps.js';
 
 beforeEach(() => localStorage.clear());
@@ -51,13 +54,42 @@ describe('Erste-Schritte-Checkliste (Logik)', () => {
         expect(firstStepsProgress().dismissed).toBe(true);
         markFirstStepDone('tour');
         resetFirstSteps();
-        expect(firstStepsProgress()).toEqual({ done: [], dismissed: false });
+        expect(firstStepsProgress()).toEqual({ done: [], dismissed: false, collapsed: undefined });
+    });
+
+    it('macht die Abwahl über „Erste Schritte anzeigen" rückgängig – ausgeklappt', () => {
+        markFirstStepDone('daten');
+        dismissFirstSteps();
+        setFirstStepsCollapsed(true);
+        unhideFirstSteps();
+        const progress = firstStepsProgress();
+        expect(progress.dismissed).toBe(false);
+        expect(progress.collapsed).toBe(false);
+        expect(progress.done).toEqual(['daten']); // Fortschritt bleibt erhalten
+    });
+
+    it('wechselt zwischen ein- und ausgeklappt, ohne Fortschritt zu verlieren', () => {
+        markFirstStepDone('daten');
+        setFirstStepsCollapsed(true);
+        expect(firstStepsProgress().collapsed).toBe(true);
+        setFirstStepsCollapsed(false);
+        expect(firstStepsProgress().collapsed).toBe(false);
+        expect(firstStepsProgress().done).toEqual(['daten']);
+    });
+
+    it('klappt automatisch ein, sobald der Nutzer erkennbar arbeitet', () => {
+        // Nur Daten geladen: Kennenlernphase, Karte bleibt ausgeklappt.
+        expect(shouldAutoCollapseFirstSteps({ doneIds: ['daten'] })).toBe(false);
+        // Ein weiterer Schritt oder Stopps in der Tour: Zeile reicht.
+        expect(shouldAutoCollapseFirstSteps({ doneIds: ['daten', 'tour'] })).toBe(true);
+        expect(shouldAutoCollapseFirstSteps({ doneIds: ['daten'], tourStopCount: 1 })).toBe(true);
+        expect(shouldAutoCollapseFirstSteps({})).toBe(false);
     });
 
     it('übersteht kaputte Persistenz ohne Fehler', () => {
         localStorage.setItem('tf_first_steps', '{kaputt');
-        expect(firstStepsProgress()).toEqual({ done: [], dismissed: false });
-        localStorage.setItem('tf_first_steps', JSON.stringify({ done: [1, 'tour'], dismissed: 'ja' }));
-        expect(firstStepsProgress()).toEqual({ done: ['tour'], dismissed: false });
+        expect(firstStepsProgress()).toEqual({ done: [], dismissed: false, collapsed: undefined });
+        localStorage.setItem('tf_first_steps', JSON.stringify({ done: [1, 'tour'], dismissed: 'ja', collapsed: 'ja' }));
+        expect(firstStepsProgress()).toEqual({ done: ['tour'], dismissed: false, collapsed: undefined });
     });
 });
