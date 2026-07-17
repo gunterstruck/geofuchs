@@ -95,4 +95,31 @@ describe('Wiederherstellungscode', () => {
         expect(normalizeRecoveryCode('tfrc-abcde-fghjk')).toBe('ABCDEFGHJK');
         expect(normalizeRecoveryCode('TFRC-ABCDE-FGHJK')).toBe('ABCDEFGHJK');
     });
+    it('nutzt ausschließlich den verwechslungsfreien Zeichensatz', () => {
+        const allowed = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]+$/;
+        for (let i = 0; i < 50; i++) {
+            const chars = normalizeRecoveryCode(generateRecoveryCode());
+            expect(chars).toHaveLength(20);
+            expect(chars).toMatch(allowed);
+        }
+    });
+    it('verteilt die Zeichen ohne groben Modulo-Bias', () => {
+        // Rejection-Sampling: alle 31 Symbole sollen über viele Codes hinweg
+        // vorkommen; kein Symbol darf klar dominieren (früherer Bias: A–H).
+        const counts = new Map();
+        for (let i = 0; i < 400; i++) {
+            for (const ch of normalizeRecoveryCode(generateRecoveryCode())) {
+                counts.set(ch, (counts.get(ch) ?? 0) + 1);
+            }
+        }
+        expect(counts.size).toBe(31);
+        const values = [...counts.values()];
+        const total = values.reduce((sum, n) => sum + n, 0);
+        const expected = total / 31;
+        // Kein Symbol weicht um mehr als 60 % vom Erwartungswert ab.
+        for (const n of values) {
+            expect(n).toBeGreaterThan(expected * 0.4);
+            expect(n).toBeLessThan(expected * 1.6);
+        }
+    });
 });

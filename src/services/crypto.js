@@ -96,15 +96,22 @@ export async function decryptJson(dek, blob) {
 }
 
 // ---- Wiederherstellungscode ----
-// Zeichensatz ohne verwechselbare Zeichen (kein 0/O, 1/I/L). 256 mod 32 == 0
-// → kein Modulo-Bias. 20 Zeichen ≈ 100 Bit Entropie.
+// Zeichensatz ohne verwechselbare Zeichen (kein 0/O, 1/I/L): 31 Zeichen.
+// 256 ist nicht durch 31 teilbar, deshalb würde ein reines `b % 31` einen
+// Modulo-Bias erzeugen. Wir verwerfen daher die überzähligen Bytewerte
+// (Rejection-Sampling) und ziehen gleichverteilt. 20 Zeichen ≈ 99 Bit Entropie.
 const RECOVERY_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const RECOVERY_LEN = 20;
+// Größtes Vielfaches der Alphabetlänge, das noch in ein Byte passt.
+const RECOVERY_LIMIT = 256 - (256 % RECOVERY_ALPHABET.length);
 
 export function generateRecoveryCode() {
-    const bytes = randomBytes(RECOVERY_LEN);
     let s = '';
-    for (const b of bytes) s += RECOVERY_ALPHABET[b % RECOVERY_ALPHABET.length];
+    while (s.length < RECOVERY_LEN) {
+        const b = randomBytes(1)[0];
+        if (b >= RECOVERY_LIMIT) continue; // biasbehafteten Rest verwerfen
+        s += RECOVERY_ALPHABET[b % RECOVERY_ALPHABET.length];
+    }
     return 'TFRC-' + (s.match(/.{1,5}/g) || [s]).join('-');
 }
 export function normalizeRecoveryCode(code) {

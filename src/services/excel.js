@@ -165,8 +165,10 @@ export function parseNumber(value) {
 export function detectRevenueScale(header) {
     const h = normalizeHeader(header).replace(/\s+/g, ' ');
     if (/\bmio\b|million/.test(h)) return 1_000_000;
-    // t€/teur/tsd/tausend/k€/keur als eigenständiges Token, um Fehltreffer zu vermeiden
-    if (/t€|k€|\bteur\b|\bkeur\b|\btsd\b|\btsd €|tausend/.test(h)) return 1000;
+    // t€/teur/tsd/tausend/k€/keur als eigenständiges Token, um Fehltreffer zu vermeiden.
+    // t€/k€ nur nach Zeilenanfang, Leerzeichen oder Ziffer akzeptieren, damit
+    // Überschriften wie „Umsatz gesamt€" oder „Rabatt€" nicht fälschlich ×1000 skalieren.
+    if (/(?:^|[\s\d])[tk]€|\bteur\b|\bkeur\b|\btsd\b|tausend/.test(h)) return 1000;
     return 1;
 }
 
