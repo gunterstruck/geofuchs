@@ -9,7 +9,7 @@
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, getCustomer, repColor, tourScopedCustomers, customerInTourScope, markDirty, UNASSIGNED } from '../core/state.js';
+import { state, on, emit, getCustomer, repColor, customerInTourScope, markDirty, UNASSIGNED } from '../core/state.js';
 import { suggestNearby, suggestAlongRoute, optimizeOrder, routeDistance, googleMapsLink } from '../features/tour.js';
 import { printDayPlan, downloadIcs, DEFAULT_VISIT_MINUTES } from '../features/tourExport.js';
 import { combinePlanStart, todayInputValue } from '../features/dayPlanner.js';
@@ -20,6 +20,7 @@ import { visitStatus, STATUS_COLORS, STATUS_LABELS, markVisitedToday, lastVisit,
 import { loadTours, saveTours } from '../services/storage.js';
 import { getRoadRoute, routingKey, hasRoutingConsent, requestRoutingConsent } from '../services/routing.js';
 import { flyToCustomer, focusPoint, fitTourRoute } from '../features/map.js';
+import { modeVisibleCustomers, modeTourCustomers } from '../features/customerScope.js';
 import { showMapView } from './sidebar.js';
 import { showToast } from './toast.js';
 
@@ -193,7 +194,11 @@ export function initTourPanel() {
 
     on('tour:changed', renderPanel);
     on('customers:changed', () => { pruneTourToScope(); renderTourScope(); renderPanel(); });
-    on('filters:changed', renderSuggestions);
+    on('filters:changed', refreshPlanningScope);
+    on('mode:changed', refreshPlanningScope);
+    on('service-customer-scope:changed', refreshPlanningScope);
+    on('service-contracts:changed', refreshPlanningScope);
+    syncModeSpecificTourControls();
     applyTourMode(state.ui.depth === 'profi' ? 'expert' : 'basic', false);
     renderTourScope();
     renderPanel();
@@ -203,41 +208,92 @@ export function initTourPanel() {
 function renderTourScope() {
     const scope = document.getElementById('tour-scope');
     if (!scope) return;
+    const availableCustomers = modeVisibleCustomers();
+    const contractScope = state.ui.mode === 'service' && state.ui.serviceCustomerScope !== 'all';
+    const customerLabel = contractScope ? 'Vertragskunden' : 'Kunden';
     const dim = state.dims.bezirk;
-    if (!dim?.active || state.customers.length === 0) {
+    if (state.customers.length === 0) {
         scope.hidden = true;
-        state.tour.bezirk = state.customers.length ? '__all__' : null;
+        state.tour.bezirk = null;
+        updatePlannerVisibility();
+        return;
+    }
+    if (availableCustomers.length === 0) {
+        scope.hidden = false;
+        scope.innerHTML = `<div class="contract-empty compact" role="status">
+            <b>Keine ${contractScope ? 'Vertragskunden' : 'Kunden'} für die Tour</b>
+            <span>${contractScope
+                ? 'Im aktuellen Kunden- und Vertragsstand ist kein eindeutig zugeordneter aktiver Servicevertrag planbar. Oben kannst du bewusst auf „Alle Kunden“ wechseln.'
+                : 'Die aktuellen Kundenfilter liefern keine planbaren Treffer.'}</span>
+        </div>`;
+        const planner = document.getElementById('tour-planner');
+        if (planner) planner.hidden = true;
+        return;
+    }
+    if (!dim?.active) {
+        scope.hidden = true;
+        state.tour.bezirk = '__all__';
         updatePlannerVisibility();
         return;
     }
     scope.hidden = false;
 
-    const bezirke = [...dim.values.keys()].sort((a, b) => a.localeCompare(b, 'de'));
-    if (state.tour.bezirk && state.tour.bezirk !== '__all__' && !bezirke.includes(state.tour.bezirk)) state.tour.bezirk = null;
+    const allBezirke = [...dim.values.keys()];
+    if (state.tour.bezirk && state.tour.bezirk !== '__all__' && !allBezirke.includes(state.tour.bezirk)) state.tour.bezirk = null;
     const chosen = state.tour.bezirk && state.tour.bezirk !== '__none__';
+
+    const counts = new Map();
+    for (const customer of availableCustomers) {
+        const bezirk = String(customer.bezirk ?? '').trim() || UNASSIGNED;
+        counts.set(bezirk, (counts.get(bezirk) ?? 0) + 1);
+    }
+    const bezirke = allBezirke
+        .filter((bezirk) => (counts.get(bezirk) ?? 0) > 0 || bezirk === state.tour.bezirk)
+        .sort((a, b) => a.localeCompare(b, 'de'));
 
     if (chosen && !scopeExpanded) {
         // Eingeklappt: schmale Zeile
         const label = state.tour.bezirk === '__all__' ? 'Alle Bezirke' : state.tour.bezirk;
-        scope.innerHTML = `<button type="button" id="scope-toggle" class="scope-collapsed">🗺️ Bezirk: <b>${escapeHtml(label)}</b><span class="muted"> · ändern ▸</span></button>`;
+        const count = state.tour.bezirk === '__all__'
+            ? availableCustomers.length
+            : (counts.get(state.tour.bezirk) ?? 0);
+        scope.innerHTML = `<button type="button" id="scope-toggle" class="scope-collapsed">🗺️ Bezirk: <b>${escapeHtml(label)}</b><span class="muted"> · ${count} ${customerLabel} · ändern ▸</span></button>`;
         updatePlannerVisibility();
         return;
     }
 
     // Aufgeklappt: voller Picker + Erklärung
-    const counts = new Map();
-    for (const c of state.customers) {
-        const b = String(c.bezirk ?? '').trim() || UNASSIGNED;
-        counts.set(b, (counts.get(b) ?? 0) + 1);
-    }
     const opts = ['<option value="__none__">– Bezirk wählen –</option>',
-        `<option value="__all__">Alle Bezirke (${state.customers.length})</option>`]
+        `<option value="__all__">Alle Bezirke (${availableCustomers.length})</option>`]
         .concat(bezirke.map((b) => `<option value="${escapeHtml(b)}">${escapeHtml(b)} (${counts.get(b) ?? 0})</option>`)).join('');
     scope.innerHTML = `<label class="field-label" for="tour-bezirk">Für welchen Bezirk planst du?</label>
         <select id="tour-bezirk">${opts}</select>
-        <p class="muted small">Wähle deinen Vertriebsbezirk – TourFuchs schlägt dann nur Kunden aus <b>diesem</b> Gebiet für deine Tour vor. Start, Ziel und Route legst du danach fest. („Alle Bezirke" zeigt sämtliche Kunden.)</p>`;
+        <p class="muted small">Wähle deinen Bezirk – TourFuchs schlägt dann nur ${contractScope ? '<b>Vertragskunden</b>' : 'Kunden'} aus diesem Gebiet für deine Tour vor. Start, Ziel und Route legst du danach fest. („Alle Bezirke" zeigt ${contractScope ? 'alle planbaren Vertragskunden' : 'sämtliche sichtbaren Kunden'}.)</p>`;
     document.getElementById('tour-bezirk').value = chosen ? state.tour.bezirk : '__none__';
     updatePlannerVisibility();
+}
+
+/** Planungspool wechseln, ohne eine bereits zusammengestellte Tour zu löschen. */
+function refreshPlanningScope() {
+    syncModeSpecificTourControls();
+    document.getElementById('start-results')?.replaceChildren();
+    document.getElementById('dest-results')?.replaceChildren();
+    renderTourScope();
+    renderPanel();
+}
+
+/** Vertriebs-Priorisierung im Service ausblenden und sicher deaktivieren. */
+function syncModeSpecificTourControls() {
+    const service = state.ui.mode === 'service';
+    const mapView = document.getElementById('tour-sales-map-view');
+    const priority = document.getElementById('tour-sales-priority');
+    if (mapView) mapView.hidden = service;
+    if (priority) priority.hidden = service;
+    if (service) {
+        overdueFirst = false;
+        const checkbox = document.getElementById('overdue-first');
+        if (checkbox) checkbox.checked = false;
+    }
 }
 
 function updatePlannerVisibility() {
@@ -355,7 +411,7 @@ function applyHiddenExpertSections() {
 
 /** Kundenauswahl der Tour: sichtbare Kunden, ggf. auf den gewählten Bezirk beschränkt */
 function tourPool() {
-    return tourScopedCustomers();
+    return modeTourCustomers();
 }
 
 function scopedCustomerById(id) {
@@ -431,8 +487,9 @@ function useMyLocation() {
 }
 
 /**
- * „Was ist in meiner Nähe?": GPS-Standort als Start, Umkreis-Modus, überfällige
- * zuerst – sofort ohne vorher eine Tour zu bauen. Zeigt die nächsten Kunden.
+ * „Was ist in meiner Nähe?": GPS-Standort als Start und Umkreis-Modus – sofort
+ * ohne vorher eine Tour zu bauen. Im Vertrieb werden überfällige Kunden priorisiert;
+ * im Service bleibt die Auswahl frei von Vertriebsmerkmalen.
  */
 function findNearby() {
     if (!navigator.geolocation) {
@@ -449,15 +506,18 @@ function findNearby() {
             const here = { lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'Mein Standort' };
             state.tour.start = here;
             state.tour.suggestMode = 'radius';
-            overdueFirst = true;
+            const salesPriority = state.ui.mode !== 'service';
+            overdueFirst = salesPriority;
             const cb = document.getElementById('overdue-first');
-            if (cb) cb.checked = true;
+            if (cb) cb.checked = salesPriority;
             updateSuggestModeUi();
             emit('tour:changed');
             focusPoint(here.lat, here.lng, 11);
-            const near = suggestNearby(here, tourPool(), state.tour.radiusKm, new Set(), true);
+            const near = suggestNearby(here, tourPool(), state.tour.radiusKm, new Set(), salesPriority);
             showToast(near.length
-                ? `${near.length} Kunde(n) im Umkreis von ${state.tour.radiusKm} km – überfällige zuerst.`
+                ? salesPriority
+                    ? `${near.length} Kunde(n) im Umkreis von ${state.tour.radiusKm} km – überfällige zuerst.`
+                    : `${near.length} Kunde(n) im Umkreis von ${state.tour.radiusKm} km.`
                 : `Keine sichtbaren Kunden im Umkreis von ${state.tour.radiusKm} km. Umkreis erhöhen?`,
                 near.length ? 'success' : 'info', 5000);
         },
@@ -564,14 +624,30 @@ function renderStart() {
     el.innerHTML = `<div class="start-chip">🚩 <b>${escapeHtml(state.tour.start.label)}</b></div>`;
 }
 
+function serviceScopeExceptionIds(stops) {
+    if (state.ui.mode !== 'service' || state.ui.serviceCustomerScope === 'all') return new Set();
+    const serviceIds = new Set(modeVisibleCustomers().map((customer) => customer.id));
+    const routeIds = new Set([
+        state.tour.start?.customerId,
+        ...stops.map((customer) => customer.id),
+        state.tour.destination?.customerId
+    ].filter(Boolean));
+    return new Set([...routeIds].filter((id) => !serviceIds.has(id)));
+}
+
 function renderStops() {
     const el = document.getElementById('tour-stops');
     const stops = state.tour.stops.map(getCustomer).filter(Boolean);
+    const serviceExceptions = serviceScopeExceptionIds(stops);
+    const exceptionCount = serviceExceptions.size;
+    const exceptionWarning = exceptionCount
+        ? `<div class="tour-scope-warning" role="status">ℹ️ ${exceptionCount} bereits gewählte${exceptionCount === 1 ? 'r Kundenpunkt liegt' : ' Kundenpunkte liegen'} außerhalb des Servicefilters und ${exceptionCount === 1 ? 'bleibt' : 'bleiben'} bewusst in der Tour.</div>`
+        : '';
     const explicitDest = destPoint();
     const autoLastStopIsDestination = !state.tour.roundTrip && !explicitDest && stops.length > 0;
 
     if (stops.length === 0) {
-        el.innerHTML = `<div class="tour-empty-guide">
+        el.innerHTML = `${exceptionWarning}<div class="tour-empty-guide">
             <b>Noch keine Stopps</b>
             <ol>
                 <li>Startpunkt wählen</li>
@@ -581,9 +657,10 @@ function renderStops() {
         </div>`;
     } else {
         const today = new Date().toISOString().slice(0, 10);
-        el.innerHTML = stops.map((c, i) => {
+        el.innerHTML = exceptionWarning + stops.map((c, i) => {
             const status = visitStatus(c);
             const done = lastVisit(c) === today;
+            const outsideServiceScope = serviceExceptions.has(c.id);
             const dot = status !== 'none'
                 ? `<span class="stop-status-dot" style="background:${STATUS_COLORS[status]}" title="${STATUS_LABELS[status]}"></span>`
                 : '';
@@ -593,6 +670,7 @@ function renderStops() {
                 <span class="stop-name" title="${escapeHtml(c.name)}">
                     ${dot}${escapeHtml(c.name)}
                     ${autoLastStopIsDestination && i === stops.length - 1 ? '<span class="route-role">Ziel</span>' : ''}
+                    ${outsideServiceScope ? '<span class="route-role scope-exception">Außerhalb Servicefilter</span>' : ''}
                     <br><span class="muted small">${escapeHtml(c.plz)} ${escapeHtml(c.ort)}${done ? ' · heute besucht' : (lastVisit(c) ? ` · zuletzt ${agoText(lastVisit(c))}` : '')}</span>
                 </span>
                 <span class="stop-actions">

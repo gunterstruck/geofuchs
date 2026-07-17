@@ -31,6 +31,7 @@ import { initPwaUpdates } from './ui/pwaUpdate.js';
 import { initContextHelp } from './ui/contextHelp.js';
 import { initCustomerBriefing } from './ui/customerBriefing.js';
 import { initContractRadar } from './ui/contractRadar.js';
+import { upgradeDemoServiceContracts } from './features/demoServiceContracts.js';
 import { fitToCustomers } from './features/map.js';
 
 async function restorePersistedState() {
@@ -42,6 +43,7 @@ async function restorePersistedState() {
     state.levelMode = settings?.levelMode === 'fixed' ? 'fixed' : 'auto';
     emit('level:control-changed');
     if (settings?.radiusKm) state.tour.radiusKm = settings.radiusKm;
+    state.ui.serviceCustomerScope = settings?.serviceCustomerScope === 'all' ? 'all' : 'contracts';
     if (settings?.basemap && CONFIG.tileLayers?.[settings.basemap]) {
         state.basemap = settings.basemap;
         const basemapSelect = document.getElementById('basemap-select');
@@ -61,6 +63,7 @@ async function restorePersistedState() {
     setServiceContracts(dataset?.serviceContracts || [], dataset?.serviceContractSources || {});
     if (dataset?.customers?.length) {
         let enrichedDemoPlaces = 0;
+        let migratedDemoContracts = false;
         const migratedDemoCustomers = demoCustomersNeedNormalization(dataset.customers);
         if (migratedDemoCustomers) normalizeDemoCustomers(dataset.customers);
         if (dataset.fileName === 'Demo-Daten') {
@@ -76,7 +79,19 @@ async function restorePersistedState() {
             fileName: dataset.fileName,
             importedAt: dataset.importedAt
         });
-        if (enrichedDemoPlaces > 0 || migratedDemoCustomers) await saveDataset(datasetSnapshot());
+        const contractUpgrade = upgradeDemoServiceContracts({
+            fileName: dataset.fileName,
+            customers: state.customers,
+            serviceContracts: state.serviceContracts,
+            serviceContractSources: state.serviceContractSources
+        });
+        if (contractUpgrade.changed) {
+            setServiceContracts(contractUpgrade.serviceContracts, contractUpgrade.serviceContractSources);
+            migratedDemoContracts = true;
+        }
+        if (enrichedDemoPlaces > 0 || migratedDemoCustomers || migratedDemoContracts) {
+            await saveDataset(datasetSnapshot());
+        }
 
         // Persistierte Sichtbarkeiten anwenden
         if (settings?.repVisibility) {

@@ -10,7 +10,7 @@ import 'leaflet.markercluster';
 import { CONFIG } from '../core/config.js';
 import { isDemoCustomer } from '../core/demoSafety.js';
 import { formatRevenueShort, formatRevenueFull } from '../core/format.js';
-import { state, on, emit, repColor, attrColor, visibleCustomers, tourScopedCustomers, getCustomer, markDirty, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
+import { state, on, emit, repColor, attrColor, getCustomer, markDirty, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { getRoadRoute, peekRoadRoute } from '../services/routing.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
@@ -19,7 +19,8 @@ import { suggestNearby, suggestAlongRoute } from './tour.js';
 import { popupSafeRect, popupPanOffset, popupContentHeightLimit } from './popupViewport.js';
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
 import { automaticLevelActive, automaticLevelForZoom } from './mapLevel.js';
-import { normalizeCustomerNumber } from './serviceContracts.js';
+import { isPlanningRelevantServiceContract, normalizeCustomerNumber } from './serviceContracts.js';
+import { modeTourCustomers, modeVisibleCustomers } from './customerScope.js';
 import { openRegionEditor } from '../ui/regionEditor.js';
 import { openCustomerBriefing } from '../ui/customerBriefing.js';
 
@@ -368,6 +369,10 @@ export function initMap(containerId) {
 
     on('customers:changed', refreshAll);
     on('filters:changed', refreshAll);
+    on('mode:changed', refreshAll);
+    on('tab:changed', refreshAll);
+    on('service-customer-scope:changed', refreshAll);
+    on('service-contracts:changed', refreshAll);
     on('colormode:changed', applyView);
     on('basemap:changed', applyBasemap);
     on('level:changed', () => { setLevel(state.level); });
@@ -1038,7 +1043,9 @@ function markerColor(customer) {
 function customerIcon(customer) {
     const color = markerColor(customer);
     const inTour = state.tour.stops.includes(customer.id);
-    const overdue = currentView.markerBy !== 'status' && visitStatus(customer) === 'ueberfaellig';
+    const overdue = state.ui.mode !== 'service'
+        && currentView.markerBy !== 'status'
+        && visitStatus(customer) === 'ueberfaellig';
     return L.divIcon({
         className: 'customer-marker-wrapper',
         html: `<div class="customer-marker${customer.geo === 'plz' ? ' approx' : ''}${inTour ? ' in-tour' : ''}${overdue ? ' overdue' : ''}" style="background:${color}"></div>`,
@@ -1110,10 +1117,9 @@ function serviceContractsBlockHtml(customer) {
     // Bei doppelten Kundennummern nie willkürlich denselben Vertrag an mehreren
     // Markern zeigen. Das Radar weist solche Fälle als nicht eindeutig aus.
     if (matchingCustomers.length !== 1) return '';
-    const inactiveStatuses = new Set(['GEKUENDIGT', 'ABGELAUFEN', 'CANCELLED', 'EXPIRED', 'TERMINATED']);
     const linked = (state.serviceContracts || []).filter((contract) => (
         normalizeCustomerNumber(contract.customerNumber) === customerNumber
-        && !inactiveStatuses.has(String(contract.status ?? '').trim().toUpperCase())
+        && isPlanningRelevantServiceContract(contract)
     ));
     if (!linked.length) return '';
 
@@ -1189,13 +1195,16 @@ export function customerPopupHtml(customer) {
 }
 
 function markerCustomers() {
-    if (state.ui.mode === 'aussendienst' && state.tour.mapFocus && state.tour.start) {
+    const planningMode = state.ui.mode === 'aussendienst' || state.ui.mode === 'service';
+    const tourContextActive = state.ui.mode !== 'service' || state.ui.activeTab === 'tour';
+    if (planningMode && tourContextActive && state.tour.mapFocus && state.tour.start) {
         return tourFocusCustomers();
     }
-    const tourScoped = state.ui.mode === 'aussendienst'
+    const tourScoped = planningMode
+        && tourContextActive
         && state.tour.bezirk
         && state.tour.bezirk !== '__none__';
-    return tourScoped ? tourScopedCustomers() : visibleCustomers();
+    return tourScoped ? modeTourCustomers() : modeVisibleCustomers();
 }
 
 function tourFocusCustomers() {
@@ -1206,7 +1215,7 @@ function tourFocusCustomers() {
     if (dest?.id) ids.add(dest.id);
     if (dest?.customerId) ids.add(dest.customerId);
 
-    const pool = tourScopedCustomers();
+    const pool = modeTourCustomers();
     const exclude = new Set(ids);
     const road = state.tour.suggestMode === 'route' ? peekRoadRoute(routePts) : null;
     const roadPath = road?.latLngs?.map(([lat, lng]) => ({ lat, lng })) || null;
