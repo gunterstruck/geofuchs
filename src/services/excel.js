@@ -62,7 +62,10 @@ export async function readWorkbook(file) {
         const separator = delimiters.reduce((best, candidate) => (
             firstLine.split(candidate).length > firstLine.split(best).length ? candidate : best
         ), ';');
-        workbook = XLSX.read(text, { type: 'string', FS: separator, raw: false });
+        // CSV-Werte als Text bewahren: SheetJS würde ISO-Daten sonst anhand der
+        // System-Locale z. B. zu "7/16/26" umformatieren und IDs als Zahlen
+        // interpretieren. Die Fachparser übernehmen Typisierung und Validierung.
+        workbook = XLSX.read(text, { type: 'string', FS: separator, raw: true });
     } else {
         workbook = XLSX.read(buffer, { type: 'array', codepage: 65001 });
     }

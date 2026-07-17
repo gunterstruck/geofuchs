@@ -13,17 +13,25 @@ const DATASET = {
     ],
     fileName: 'kunden.xlsx',
     importedAt: '2026-07-01T10:00:00.000Z',
-    territories: { 'kreis:09162': { name: 'München', farbe: '#f00' } }
+    territories: { 'kreis:09162': { name: 'München', farbe: '#f00' } },
+    serviceContracts: [
+        { id: 'sc:SAP:SC-1', sourceSystem: 'SAP', contractId: 'SC-1', customerNumber: 'c1', annualValue: 42000 }
+    ],
+    serviceContractSources: { SAP: { fileName: 'sap-service.xlsx', count: 1 } }
 };
 
 describe('createSafeTransfer', () => {
     it('erzeugt Container + Schlüssel-QR mit passenden Metadaten', async () => {
-        const { container, keyQr, id, count } = await createSafeTransfer(DATASET);
+        const { container, keyQr, id, count, contractCount, territoryCount } = await createSafeTransfer(DATASET);
         expect(container[SAFE_MAGIC]).toBe(1);
         expect(container.alg).toBe('AES-256-GCM');
         expect(container.id).toBe(id);
         expect(container.count).toBe(2);
         expect(count).toBe(2);
+        expect(container.contractCount).toBe(1);
+        expect(contractCount).toBe(1);
+        expect(container.territoryCount).toBe(1);
+        expect(territoryCount).toBe(1);
         expect(typeof container.iv).toBe('string');
         expect(typeof container.ct).toBe('string');
         expect(keyQr.startsWith(`${SAFE_KEY_PREFIX}${id}:`)).toBe(true);
@@ -37,6 +45,8 @@ describe('createSafeTransfer', () => {
         expect(serialized).not.toContain('Sonnenschein');
         expect(serialized).not.toContain('kunden.xlsx');
         expect(serialized).not.toContain('München');
+        expect(serialized).not.toContain('SC-1');
+        expect(serialized).not.toContain('sap-service.xlsx');
     });
 });
 

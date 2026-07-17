@@ -32,14 +32,16 @@ function randomId(bytes = 6) {
 /**
  * Datensatz in einen verschlüsselten Container packen und den zugehörigen
  * Schlüssel als QR-Text zurückgeben.
- * @param {{customers:Array, fileName?:string, importedAt?:string, territories?:object}} dataset
- * @returns {Promise<{container:object, keyQr:string, id:string, count:number}>}
+ * @param {{customers:Array, serviceContracts?:Array, fileName?:string, importedAt?:string, territories?:object}} dataset
+ * @returns {Promise<{container:object, keyQr:string, id:string, count:number,contractCount:number,territoryCount:number}>}
  */
 export async function createSafeTransfer(dataset) {
     const { raw, key } = await generateDek();
     const id = randomId(6); // 12 Hex-Zeichen
     const blob = await encryptJson(key, dataset ?? {}); // { iv, ct } (Base64)
     const count = Array.isArray(dataset?.customers) ? dataset.customers.length : 0;
+    const contractCount = Array.isArray(dataset?.serviceContracts) ? dataset.serviceContracts.length : 0;
+    const territoryCount = Object.keys(dataset?.territories || {}).length;
     const container = {
         [SAFE_MAGIC]: 1,
         v: SAFE_VERSION,
@@ -47,11 +49,13 @@ export async function createSafeTransfer(dataset) {
         id,
         createdAt: new Date().toISOString(),
         count,            // nur Metadaten (Anzahl) – kein Inhalt im Klartext
+        contractCount,
+        territoryCount,
         iv: blob.iv,
         ct: blob.ct
     };
     const keyQr = `${SAFE_KEY_PREFIX}${id}:${toB64(raw)}`;
-    return { container, keyQr, id, count };
+    return { container, keyQr, id, count, contractCount, territoryCount };
 }
 
 /** Prüft, ob ein Objekt ein gültiger TourFuchs-Container ist. */

@@ -66,11 +66,13 @@ export async function removeFromCache(key) {
 export async function saveDataset(dataset) {
     try {
         // Aktiver, gesperrter Tresor: niemals im Klartext schreiben – lieber gar nicht.
-        if (isEnabled() && !isUnlocked()) return;
+        if (isEnabled() && !isUnlocked()) return false;
         const payload = (isEnabled() && isUnlocked()) ? await encryptForStore(dataset) : dataset;
         await saveToCache(KEYS.dataset, payload);
+        return true;
     } catch (error) {
         console.warn('Kundendaten konnten nicht gespeichert werden:', error);
+        return false;
     }
 }
 

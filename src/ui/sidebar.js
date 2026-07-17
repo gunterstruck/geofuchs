@@ -4,7 +4,7 @@
  */
 
 import { CONFIG } from '../core/config.js';
-import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, filterDimensionDefs, datasetSnapshot } from '../core/state.js';
+import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, clearServiceContracts, filterDimensionDefs, datasetSnapshot } from '../core/state.js';
 import { exactGeocodeCandidates, geocodeExact } from '../services/geocode.js';
 import { isDemoDataset } from '../core/demoSafety.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
@@ -507,6 +507,13 @@ const MODE_CONFIG = {
         markerColorModes: ['rep', 'status'],
         defaultColorMode: 'auto',
         hint: 'Experten-Modus: Gebiete schneiden, Zuständigkeiten, Cockpit, Simulation.'
+    },
+    service: {
+        label: 'Service',
+        primaryTab: 'vertraege',
+        markerColorModes: ['auto', 'bezirk', 'gruppe', 'luecken'],
+        defaultColorMode: 'status',
+        hint: 'Experten-Modus: Vertragsfristen, Vertragswert und Service-Handlungsbedarf.'
     }
 };
 
@@ -570,7 +577,7 @@ function tabInMode(tabBtn, mode) {
 /**
  * Fokus-Modus anwenden: passende Tabs zeigen/verbergen, Einstieg wählen und
  * die Karte auf einen zum Modus passenden Standard einstellen.
- * @param {'aussendienst'|'gebietsplanung'} mode
+ * @param {'aussendienst'|'gebietsplanung'|'service'} mode
  * @param {boolean} userInitiated  true bei Klick (Karte + Einstieg an Modus anpassen),
  *                                  false beim Wiederherstellen (gespeicherten Tab/Farbe behalten)
  * @param {boolean} persist  Einstellungen sichern (beim allerersten Init false,
@@ -600,6 +607,7 @@ export function applyDepth(depth, persist = true) {
     document.querySelectorAll('#depth-switch .seg').forEach((b) =>
         b.classList.toggle('active', b.dataset.depth === state.ui.depth));
     syncLevelControl();
+    if (!profi && state.ui.mode === 'service') applyMode('aussendienst', true, persist);
     if (persist) { try { localStorage.setItem(DEPTH_KEY, state.ui.depth); } catch (e) { /* egal */ } }
     emit('depth:changed');
 }
@@ -620,7 +628,7 @@ function initDepth() {
 }
 
 export function applyMode(mode, userInitiated = true, persist = true) {
-    if (isMobileUi()) mode = 'aussendienst';
+    if (isMobileUi() || (mode === 'service' && state.ui.depth !== 'profi')) mode = 'aussendienst';
     if (!MODE_CONFIG[mode]) mode = 'aussendienst';
     const cfg = MODE_CONFIG[mode];
     state.ui.mode = mode;
@@ -638,12 +646,14 @@ export function applyMode(mode, userInitiated = true, persist = true) {
     // - leere App (keine Kunden/Gebiete) -> Daten-Tab als Einstieg (Onboarding)
     // - aktiver Wechsel -> Einstieg des Modus (man will die neue „Welt" sehen)
     // - Wiederherstellen -> gespeicherten Tab behalten, falls im Modus sichtbar
-    const empty = state.customers.length === 0 && Object.keys(state.territories).length === 0;
+    const empty = state.customers.length === 0
+        && Object.keys(state.territories).length === 0
+        && state.serviceContracts.length === 0;
     if (isMobileUi()) {
         const fallback = empty ? 'daten' : 'karte';
         const current = tabs.find((b) => b.dataset.tab === state.ui.activeTab);
         activateTab(!current || current.hidden ? fallback : state.ui.activeTab);
-    } else if (empty) {
+    } else if (empty && mode !== 'service') {
         activateTab('daten');
     } else if (userInitiated) {
         activateTab(cfg.primaryTab);
@@ -671,8 +681,8 @@ export function applyMode(mode, userInitiated = true, persist = true) {
 }
 
 async function clearAllData() {
-    if (state.customers.length === 0 && Object.keys(state.territories).length === 0) return;
-    if (!confirm('Alle Kundendaten und Gebietszuordnungen aus dem Browser löschen?')) return;
+    if (state.customers.length === 0 && Object.keys(state.territories).length === 0 && state.serviceContracts.length === 0) return;
+    if (!confirm('Alle Kunden-, Vertrags- und Gebietszuordnungen aus dem Browser löschen?')) return;
     // Ohne Daten gibt es nichts zu schützen -> Tresor mit deaktivieren,
     // sonst bliebe beim nächsten Öffnen ein Sperrbildschirm ohne Inhalt.
     if (vaultEnabled()) removeVaultMeta();
@@ -683,6 +693,7 @@ async function clearAllData() {
     state.tour.mapFocus = false;
     state.fileName = null;
     state.territories = {};
+    clearServiceContracts({ dirty: false });
     setCustomers([]);
     emit('tour:changed');
     emit('dataset:cleared');
@@ -699,6 +710,7 @@ export function initSidebar() {
     syncTopnavPlacement();
     // Bei Wechsel Desktop <-> Handy (Drehen/Resize) Elemente umhängen.
     mobileQuery.addEventListener('change', () => {
+        if (isMobileUi() && state.ui.mode === 'service') applyMode('aussendienst', false);
         syncSidebarPositionForViewport();
         syncTopnavPlacement();
         applySidebar();

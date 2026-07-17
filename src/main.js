@@ -8,7 +8,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 
 import { CONFIG } from './core/config.js';
 import { demoCustomersNeedNormalization, normalizeDemoCustomers } from './core/demoSafety.js';
-import { state, on, emit, setCustomers, datasetSnapshot } from './core/state.js';
+import { state, on, emit, setCustomers, setServiceContracts, datasetSnapshot } from './core/state.js';
 import { loadDataset, saveDataset, loadSettings, hasStoredDataset } from './services/storage.js';
 import { isEnabled as vaultEnabled, isLocked as vaultLocked, removeVaultMeta } from './services/vault.js';
 import { enrichPlacesByPlz, geocodeByPlz } from './services/geocode.js';
@@ -30,6 +30,7 @@ import { initVault } from './ui/lockVault.js';
 import { initPwaUpdates } from './ui/pwaUpdate.js';
 import { initContextHelp } from './ui/contextHelp.js';
 import { initCustomerBriefing } from './ui/customerBriefing.js';
+import { initContractRadar } from './ui/contractRadar.js';
 import { fitToCustomers } from './features/map.js';
 
 async function restorePersistedState() {
@@ -57,6 +58,7 @@ async function restorePersistedState() {
 
     const dataset = await loadDataset();
     if (dataset?.territories) state.territories = dataset.territories;
+    setServiceContracts(dataset?.serviceContracts || [], dataset?.serviceContractSources || {});
     if (dataset?.customers?.length) {
         let enrichedDemoPlaces = 0;
         const migratedDemoCustomers = demoCustomersNeedNormalization(dataset.customers);
@@ -115,7 +117,7 @@ async function restorePersistedState() {
 
     // Fokus-Modus wiederherstellen (Farbmodus wurde bereits oben gesetzt -> nicht überschreiben)
     if (typeof settings?.activeTab === 'string') state.ui.activeTab = settings.activeTab;
-    if (settings?.mode === 'aussendienst' || settings?.mode === 'gebietsplanung') {
+    if (['aussendienst', 'gebietsplanung', 'service'].includes(settings?.mode)) {
         state.ui.mode = settings.mode;
     }
     applyMode(state.ui.mode, false);
@@ -141,6 +143,7 @@ function handleSharedTourFromUrl() {
 async function init() {
     initToasts();
     initCustomerBriefing();
+    initContractRadar();
     initMap('map');
     initSidebar();
     initImportWizard();

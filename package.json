@@ -1,7 +1,7 @@
 {
   "name": "tourfuchs",
   "version": "3.0.0",
-  "description": "TourFuchs Vertrieb – Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete (Landkreise & PLZ), Team-Filter und Besuchsplanung mit Tourenoptimierung. PWA, alle Daten bleiben im Browser.",
+  "description": "TourFuchs – Kundenlisten aus Excel auf der Deutschlandkarte: Vertriebsgebiete, Besuchsplanung und Servicevertrags-Radar. PWA, alle Daten bleiben im Browser.",
   "type": "module",
   "scripts": {
     "dev": "vite",

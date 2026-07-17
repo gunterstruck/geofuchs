@@ -9,7 +9,7 @@
 
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
-import { state, replaceCustomers, emit, datasetSnapshot } from '../core/state.js';
+import { state, replaceCustomers, setServiceContracts, emit, datasetSnapshot } from '../core/state.js';
 import { saveDataset } from '../services/storage.js';
 import { isEnabled } from '../services/vault.js';
 import { geocodeByPlz } from '../services/geocode.js';
@@ -57,7 +57,7 @@ export function initSafeTransfer() {
 // ---- Export (Desktop) ----
 async function openExportDialog() {
     const snap = datasetSnapshot();
-    if (!snap.customers?.length) {
+    if (!snap.customers?.length && !snap.serviceContracts?.length && !Object.keys(snap.territories || {}).length) {
         showToast('Keine Daten zum Exportieren vorhanden.', 'info');
         return;
     }
@@ -81,7 +81,7 @@ async function openExportDialog() {
         return;
     }
     document.getElementById('safe-export-info').innerHTML =
-        `Verschlüsselte Datei mit <b>${bundle.count} Kunde${bundle.count === 1 ? '' : 'n'}</b> heruntergeladen. `
+        `Verschlüsselte Datei mit <b>${transferCountText(bundle)}</b> heruntergeladen. `
         + 'Bring sie aufs Handy (Mail, Cloud, USB) und scanne dort diesen QR-Schlüssel.';
     const keyText = document.getElementById('safe-export-keytext');
     if (keyText) keyText.value = bundle.keyQr;
@@ -96,6 +96,17 @@ function downloadContainer(container) {
     a.download = `TourFuchs-Umzug-${new Date().toISOString().slice(0, 10)}${SAFE_FILE_EXT}`;
     a.click();
     URL.revokeObjectURL(url);
+}
+
+function transferCountText(meta) {
+    const customers = Number(meta?.count) || 0;
+    const contracts = Number(meta?.contractCount) || 0;
+    const territories = Number(meta?.territoryCount) || 0;
+    return [
+        customers ? `${customers} Kunde${customers === 1 ? '' : 'n'}` : '',
+        contracts ? `${contracts} Servicevertrag${contracts === 1 ? '' : 'e'}` : '',
+        territories ? `${territories} Gebietszuordnung${territories === 1 ? '' : 'en'}` : ''
+    ].filter(Boolean).join(' · ') || '0 Einträgen';
 }
 
 // ---- Empfang (Handy) ----
@@ -154,7 +165,7 @@ async function onFileChosen(e) {
     const created = container.createdAt
         ? new Date(container.createdAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
         : 'unbekannt';
-    meta.innerHTML = `🔒 Verschlüsselte Datei · <b>${container.count ?? '?'} Kunden</b> · erstellt am ${escapeHtml(created)}`;
+    meta.innerHTML = `🔒 Verschlüsselte Datei · <b>${transferCountText(container)}</b> · erstellt am ${escapeHtml(created)}`;
     meta.hidden = false;
     showStep('key');
 }
@@ -253,9 +264,11 @@ async function handleKeyText(text) {
 
 async function applyImported(dataset) {
     const customers = Array.isArray(dataset?.customers) ? dataset.customers : [];
+    const serviceContracts = Array.isArray(dataset?.serviceContracts) ? dataset.serviceContracts : [];
     if (!confirmDatasetReplacement({
         incomingCount: customers.length,
-        sourceLabel: 'Die empfangene TourFuchs-Datei'
+        sourceLabel: 'Die empfangene TourFuchs-Datei',
+        replacesContracts: true
     })) {
         showToast('Import abgebrochen. Die bisherigen Daten bleiben vollständig erhalten.', 'info', 5000);
         return;
@@ -266,13 +279,14 @@ async function applyImported(dataset) {
         importedAt: dataset?.importedAt,
         territories: dataset?.territories || {}
     });
+    setServiceContracts(serviceContracts, dataset?.serviceContractSources || {});
     fitToCustomers();
     receiveDialog.close();
 
     if (isEnabled()) {
         // Auf diesem Gerät ist bereits ein Tresor aktiv -> direkt verschlüsselt sichern.
         await saveDataset(datasetSnapshot());
-        showToast(`Daten empfangen (${customers.length} Kunden) und im Tresor gesichert.`, 'success', 6000);
+        showToast(`Daten empfangen (${transferCountText({ count: customers.length, contractCount: serviceContracts.length })}) und im Tresor gesichert.`, 'success', 6000);
         return;
     }
     // Kein Tresor aktiv -> Setup erzwingen, damit die Daten sofort geschützt sind.
@@ -280,7 +294,7 @@ async function applyImported(dataset) {
         forced: true,
         title: 'Importierte Daten schützen',
         intro: 'Die empfangenen Kundendaten liegen jetzt auf diesem Gerät. Lege eine PIN fest, damit sie <b>AES-256-verschlüsselt</b> gespeichert und beim Öffnen der App per PIN entsperrt werden.',
-        onDone: () => showToast(`Daten empfangen (${customers.length} Kunden) und mit dem Tresor gesichert.`, 'success', 6000),
+        onDone: () => showToast(`Daten empfangen (${transferCountText({ count: customers.length, contractCount: serviceContracts.length })}) und mit dem Tresor gesichert.`, 'success', 6000),
         onDismiss: async () => {
             await saveDataset(datasetSnapshot());
             showToast('Daten empfangen. Achtung: ohne Tresor unverschlüsselt gespeichert – du kannst ihn jederzeit im Tab „Daten" aktivieren.', 'info', 8000);

@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { state, setCustomers } from '../src/core/state.js';
+import { state, setCustomers, setServiceContracts } from '../src/core/state.js';
 import { datasetReplacementMessage, hasExistingDataset } from '../src/ui/datasetReplacement.js';
 
 describe('Warnung vor Datensatz-Ersetzung', () => {
     beforeEach(() => {
         state.territories = {};
         setCustomers([], { fileName: null });
+        setServiceContracts([], {});
     });
 
     it('nennt Umfang, Wirkung und Wiederherstellung vor dem Vollimport', () => {
@@ -34,5 +35,18 @@ describe('Warnung vor Datensatz-Ersetzung', () => {
 
         expect(message).toContain('Datentresor wird dabei deaktiviert');
         expect(message).toContain('PIN entfernt');
+    });
+
+    it('erklärt beim Kundenimport, dass separate Verträge erhalten und neu verknüpft werden', () => {
+        setServiceContracts([{ sourceSystem: 'SAP', contractId: 'SC-1' }], { SAP: { count: 1 } });
+
+        const preserving = datasetReplacementMessage({ incomingCount: 3 });
+        const replacing = datasetReplacementMessage({ incomingCount: 3, replacesContracts: true });
+
+        expect(hasExistingDataset()).toBe(true);
+        expect(preserving).toContain('Serviceverträge bleiben erhalten');
+        expect(preserving).toContain('über die Kundennummer neu zugeordnet');
+        expect(replacing).toContain('1 Servicevertrag');
+        expect(replacing).not.toContain('Serviceverträge bleiben erhalten');
     });
 });

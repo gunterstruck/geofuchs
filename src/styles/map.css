@@ -158,6 +158,30 @@
 .popup-actions { display: flex; gap: 6px; margin-top: 8px; }
 .popup-actions button { font-size: 0.8rem; padding: 4px 8px; flex: 1; }
 
+.popup-contract-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    margin: 7px 0 2px;
+    padding: 8px 10px;
+    border: 1px solid #99f6e4;
+    border-radius: var(--radius-l);
+    background: #f0fdfa;
+    color: var(--color-primary-dark);
+    text-align: left;
+}
+
+.popup-contract-summary span:first-child,
+.popup-contract-summary b,
+.popup-contract-summary small { display: block; }
+.popup-contract-summary span:first-child { min-width: 0; }
+.popup-contract-summary b { font-size: 0.8rem; }
+.popup-contract-summary small { margin-top: 2px; overflow: hidden; color: var(--color-text-muted); font-size: 0.7rem; text-overflow: ellipsis; white-space: nowrap; }
+.popup-contract-summary > span:last-child { flex: 0 0 auto; font-size: 1.15rem; }
+.popup-contract-summary:hover { border-color: var(--color-primary); background: var(--color-primary-light); }
+
 .contact-links { display: flex; gap: 6px; margin: 4px 0; }
 .contact-link {
     display: inline-block;

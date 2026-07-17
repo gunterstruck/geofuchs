@@ -6,7 +6,7 @@
  */
 
 import { geocodeByPlz } from '../services/geocode.js';
-import { state, setCustomers, replaceCustomers, emit, datasetSnapshot, setTerritory } from '../core/state.js';
+import { state, setCustomers, replaceCustomers, setServiceContracts, clearServiceContracts, emit, datasetSnapshot, setTerritory } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { saveDataset } from '../services/storage.js';
 import { markShowcaseImportCompleted } from '../services/showcaseOnboarding.js';
@@ -221,6 +221,7 @@ async function confirmImport() {
             delete c._sheetRow; delete c._raw;
         }
         if (contactRows.length) attachContacts(customers, contactRows, errors);
+        removeDemoContracts();
         replaceCustomers(customers, { fileName: parsed.fileName });
         areaCount = await resolveAreas(areaRows, errors);
         if (areaCount > 0) emit('customers:changed');
@@ -339,12 +340,79 @@ async function loadDemo() {
     if (!confirmDatasetReplacement({
         incomingCount: customers.length,
         sourceLabel: 'Die Beispieldaten',
-        disablesVault
+        disablesVault,
+        replacesContracts: true
     })) return;
     if (disablesVault) removeVaultMeta();
+    clearServiceContracts({ dirty: false });
     await applyCustomers(customers, 'Demo-Daten');
+    const serviceContracts = createDemoServiceContracts(customers);
+    const today = new Date().toISOString().slice(0, 10);
+    setServiceContracts(serviceContracts, {
+        DEMO: {
+            fileName: 'Demo-Serviceverträge',
+            importedAt: new Date().toISOString(),
+            dataAsOf: today,
+            count: serviceContracts.length,
+            warnings: 0,
+            unmatched: 0
+        }
+    });
+    await saveDataset(datasetSnapshot());
     emit('demo:loaded');
     showToast('Demo geladen – tippe auf einen Pin oder plane eine Tour. Eigene Daten? Lade jederzeit deine Excel-Liste.', 'success', 6000);
+}
+
+function removeDemoContracts() {
+    if (!state.serviceContractSources?.DEMO) return;
+    const sources = { ...(state.serviceContractSources || {}) };
+    delete sources.DEMO;
+    setServiceContracts(
+        state.serviceContracts.filter((contract) => contract.sourceSystem !== 'DEMO'),
+        sources
+    );
+}
+
+function createDemoServiceContracts(customers) {
+    const isoOffset = (days) => {
+        const date = new Date();
+        date.setHours(12, 0, 0, 0);
+        date.setDate(date.getDate() + days);
+        return date.toISOString().slice(0, 10);
+    };
+    const definitions = [
+        { days: -8, end: 75, value: 185000, type: 'Full Service', auto: true, scope: '24/7-Bereitschaft und vorbeugende Wartung', manager: 'Anna Beispiel' },
+        { days: 24, end: 120, value: 76000, type: 'Bereitschaft', auto: false, scope: 'Werktägliche Hotline und Entstörung', manager: 'Anna Beispiel' },
+        { days: 68, end: 180, value: 42000, type: 'Wartung', auto: true, scope: 'Jährliche Inspektion und Wartung', manager: 'Ben Beispiel' },
+        { days: 210, end: 330, value: 128000, type: 'Premium Service', auto: true, scope: 'Inspektion, Ersatzteile und Remote Support', manager: 'Carla Beispiel' }
+    ];
+    return definitions.map((definition, index) => {
+        const customer = customers[index % customers.length];
+        const contractId = `DEMO-SC-${String(index + 1).padStart(3, '0')}`;
+        return {
+            key: `DEMO::${contractId}`,
+            sourceSystem: 'DEMO',
+            contractId,
+            customerNumber: String(customer?.nummer ?? ''),
+            status: 'AKTIV',
+            dataAsOf: isoOffset(0),
+            unlimited: false,
+            autoRenewal: definition.auto,
+            startDate: isoOffset(-365),
+            endDate: isoOffset(definition.end),
+            actionBy: isoOffset(definition.days),
+            renewalMonths: definition.auto ? 12 : null,
+            title: `${definition.type} · ${customer?.name ?? 'Demokunde'}`,
+            type: definition.type,
+            annualValue: definition.value,
+            currency: 'EUR',
+            manager: definition.manager,
+            scope: definition.scope,
+            criticality: index === 0 ? 'HOCH' : 'MITTEL',
+            sourceUrl: '',
+            note: 'Fiktiver Demo-Vertrag'
+        };
+    });
 }
 
 async function applyCustomers(customers, fileName) {

@@ -1,6 +1,6 @@
 ﻿# 🦊 TourFuchs Vertrieb
 
-**Kundenlisten aus Excel auf der Deutschlandkarte – Gebietsübersicht und Besuchsplanung für den Außendienst.**
+**Kundenlisten aus Excel auf der Deutschlandkarte – Gebiets-, Besuchs- und Servicevertragsplanung.**
 
 > Installierbare Web-App (PWA) · Lokal nutzbar · Optionale M365-Anmeldung nur für Kundenbriefings
 
@@ -32,6 +32,7 @@ TourFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 | 📆 **Plan-Einstellungen** | Datum, Startzeit und Besuchsdauer (z. B. 45 min) der Tagestour sind einstellbar und fließen in Tagesplan-Druck und Kalender-Termine (.ics für Outlook, ein Termin je Besuch inkl. Fahrzeit) ein |
 | 📲 **QR-Übergabe** | Am Desktop geplante Tour als QR-Code anzeigen, am Handy mit der Kamera scannen und übernehmen – nur die Tour (keine Datenbank), Bildschirm zu Kamera, ohne Netzwerk und ohne Server. Navigation und Kalender-Termine funktionieren direkt aus dem gescannten Code |
 | 📋 **Kundenbriefing** | In **Basis** sofort ohne Einrichtung nutzbar: kundenspezifischen Prompt kopieren, Corporate Copilot öffnen und dort bewusst absenden. **Profi** ergänzt optional die automatische Entra-/Copilot-Verbindung und zeigt das Ergebnis direkt in TourFuchs |
+| 🛡️ **Service-Vertragsradar** | Separater Excel-/CSV-Import für Vertragsstände aus SAP, SieSales/Salesforce oder weiteren Quellen. Exakter Kundenabgleich per Kundennummer, Quellenalter, Handlungsfristen, Vertragswert, SLA und Verantwortliche – im Profi-Modus, ohne den ruhigen Basis-Einstieg zu verändern |
 | 🔍 **Suche** | Kunden nach Name, Ort, PLZ oder Kundennummer finden und anfliegen |
 | 📱 **PWA** | Auf Smartphone/Desktop installierbar, App-Shell und Gebietsdaten offline verfügbar, zuletzt gesehene Kartenausschnitte werden gecacht; mobil wird die Karte ruhig per Zwei-Finger-Geste statt zusätzlicher Zoomtasten bedient |
 | 🖥️ **Mobile-Vorschau** | Zeigt am Desktop dieselben Kunden-, Briefing- und Tourabläufe im Smartphone-Format. Nach dem ersten Datenbestand weist ein einmaliger, ruhiger Kurzlauf auf den Einstieg hin und öffnet gezielt den mobilen Tour-Bereich |
@@ -59,6 +60,12 @@ und können beim Import manuell zugeordnet werden. Empfohlene Spalten:
 Der **Betriebsbezirk** ist die führende operative Pflicht-Ebene und steuert Gebietsplanung, Farben, Cockpit und Tourfilter. **Vertriebsgruppe** ist die empfohlene zweite Ebene; Vertriebschannel und weitere Ebenen sind optional und werden nur angezeigt, wenn sie bewusst ergänzt werden. Persönliche Vertriebsnamen sind für die Gebietssteuerung nicht leitend.
 
 Eine fertige Vorlage gibt es in der App unter **Daten → Excel-Vorlage herunterladen**.
+
+### Servicevertrags-Dateien
+
+Serviceverträge werden bewusst als separater Datenbestand importiert. Eine Zeile entspricht einem aktuellen Vertrag; eindeutiger Schlüssel ist `Quellsystem + Vertrags-ID`, die Verknüpfung zum Kunden erfolgt ausschließlich über die exakte `Kundennummer`. Ein Reimport ersetzt nur die in der Datei enthaltenen Vertragsquellen. Andere Quellen, Kunden, Gebiete und Touren bleiben erhalten.
+
+Die geprüfte Excel-Vorlage mit Auswahllisten und Feldbeschreibung sowie ein UTF-8-CSV-Beispiel stehen im Profi-Modus unter **Service → Verträge** bereit. Das vollständige Schema und die Importregeln beschreibt [Serviceverträge in TourFuchs importieren](./docs/servicevertraege-import.md).
 
 #### Flächenzeilen (Gebiete ohne Kunden zuordnen)
 
