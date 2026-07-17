@@ -1289,3 +1289,83 @@ dialog footer { margin-top: 14px; display: flex; justify-content: flex-end; gap:
     background: #16a34a;
     color: #fff;
 }
+
+/* ---- Onboarding: Showcase-Link im Willkommens-Panel ---- */
+.ob-showcase-link {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: 12px;
+    font-size: 0.85rem;
+}
+
+/* ---- Compliance-Checkbox: sanfter Hinweis-Puls statt nur Toast ---- */
+.compliance-optin.attention {
+    animation: compliance-attention 1.2s ease;
+    border-radius: 8px;
+}
+@keyframes compliance-attention {
+    0%, 100% { background: transparent; }
+    25%, 60% { background: #fef3c7; box-shadow: 0 0 0 2px #f59e0b inset; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .compliance-optin.attention { animation: none; box-shadow: 0 0 0 2px #f59e0b inset; }
+}
+
+/* ---- Erste-Schritte-Checkliste ---- */
+.first-steps {
+    margin: 10px 14px 0;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-s);
+    background: var(--color-surface-2);
+}
+.first-steps-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.first-steps-head .muted { margin-left: auto; }
+.first-steps-dismiss {
+    border: none;
+    background: transparent;
+    color: var(--color-text-muted);
+    padding: 2px 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.first-steps-dismiss:hover { color: var(--color-text); background: transparent; }
+.first-steps-list {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+}
+.first-steps-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.first-steps-mark {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    font-size: 0.8rem;
+}
+.first-steps-list li.done .first-steps-mark {
+    background: var(--color-success);
+    border-color: var(--color-success);
+    color: #fff;
+    font-weight: 700;
+}
+.first-steps-text { display: grid; }
+.first-steps-text b { font-size: 0.85rem; }
+.first-steps-text small { color: var(--color-text-muted); }
+.first-steps-list li.done .first-steps-text { opacity: 0.65; }
+.first-steps-list li.done .first-steps-text b { text-decoration: line-through; }

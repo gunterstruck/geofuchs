@@ -23,7 +23,7 @@ export const FIELDS = [
     { key: 'vb',      label: 'Vertriebsbeauftragter',  required: false, synonyms: ['vertriebsbeauftragter', 'vertriebsbeauftragte', 'vb', 'betreuer', 'außendienst', 'aussendienst', 'ad', 'vertriebler', 'verkäufer', 'verkaeufer', 'sales rep', 'mitarbeiter', 'ansprechpartner vertrieb', 'gebietsleiter', 'kam'] },
     { key: 'channel', label: 'Vertriebschannel',       required: false, synonyms: ['vertriebschannel', 'vertriebskanal', 'channel', 'kanal', 'absatzkanal', 'vertriebsweg', 'saleschannel', 'sales channel', 'vertriebslinie'] },
     { key: 'gruppe',  label: 'Vertriebsgruppe',        required: false, synonyms: ['vertriebsgruppe', 'gruppe', 'vg neu', 'vg', 'kundengruppe', 'kundenkreis', 'segment', 'kategorie', 'sparte', 'branche', 'klasse', 'team'] },
-    { key: 'bezirk',  label: 'Vertriebsbezirk',        required: true,  synonyms: ['vertriebsbezirk', 'betriebsbezirk', 'bezirk', 'vbez neu', 'vbez', 'verkaufsbezirk', 'gebietsbezirk', 'außendienstbezirk', 'aussendienstbezirk', 'district'] },
+    { key: 'bezirk',  label: 'Vertriebsbezirk',        required: false, synonyms: ['vertriebsbezirk', 'betriebsbezirk', 'bezirk', 'vbez neu', 'vbez', 'verkaufsbezirk', 'gebietsbezirk', 'außendienstbezirk', 'aussendienstbezirk', 'district'] },
     { key: 'gebiet',  label: 'Gebiet (nur Flächenzeile: LK oder PLZ)', required: false, synonyms: ['gebiet', 'landkreis', 'lk', 'kreis', 'plz-gebiet', 'plz gebiet', 'fläche', 'flaeche', 'gebietszuweisung', 'nur gebiet'] },
     { key: 'ansprechpartner', label: 'Hauptansprechpartner', required: false, synonyms: ['hauptansprechpartner', 'haupt ansprechpartner', 'ansprechpartner', 'kontaktperson', 'kontakt', 'hauptkontakt', 'primary contact', 'main contact', 'contact', 'ap', 'ansprechpartner in'] },
     { key: 'telefon', label: 'Telefon',                required: false, synonyms: ['telefon', 'tel', 'telefonnummer', 'phone', 'mobil', 'handy', 'rufnummer', 'festnetz'] },
@@ -362,9 +362,11 @@ export function parseRows(rows, mapping) {
             return;
         }
 
-        // Kundenzeile
+        // Kundenzeile – ein fehlender Vertriebsbezirk ist kein Ausschlussgrund:
+        // Der Kunde läuft dann unter „Ohne Zuordnung" und kann später per neuem
+        // Import einem Bezirk zugeordnet werden. Die typische erste Liste eines
+        // Nutzers (Name + PLZ) soll ohne Hürde auf der Karte landen.
         const bezirk = get('bezirk');
-        if (!bezirk) { err(sheetRow, 'Vertriebsbezirk fehlt (Pflichtfeld)', row); return; }
 
         const plz = cleanPlz(get('plz'));
         const lat = parseCoord(mapping.lat ? row[mapping.lat] : null);
@@ -412,6 +414,14 @@ export function parseRows(rows, mapping) {
         }
         customers.push(syncPrimaryContact(customer));
     });
+
+    const ohneBezirk = customers.filter((c) => !String(c.bezirk ?? '').trim()).length;
+    if (ohneBezirk > 0) {
+        errors.push({
+            Zeile: '—', Typ: 'Hinweis',
+            Grund: `${ohneBezirk} Kunde${ohneBezirk === 1 ? '' : 'n'} ohne Vertriebsbezirk importiert – ${ohneBezirk === 1 ? 'er erscheint' : 'sie erscheinen'} unter „Ohne Zuordnung". Bezirke können jederzeit per neuem Import ergänzt werden.`
+        });
+    }
 
     return { customers, areaRows, contactRows, errors, skipped };
 }

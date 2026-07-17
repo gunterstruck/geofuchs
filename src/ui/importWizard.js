@@ -117,6 +117,12 @@ function hasComplianceOptIn() {
 
 function showComplianceToast() {
     if (state.customers.length === 0 && ownDataDialog && !ownDataDialog.open) ownDataDialog.showModal();
+    // Die Checkbox zusätzlich direkt am Ort hervorheben, statt nur per Toast.
+    document.querySelectorAll('.compliance-optin').forEach((el) => {
+        el.classList.remove('attention');
+        void el.offsetWidth; // Animation bei erneutem Klick neu starten
+        el.classList.add('attention');
+    });
     showToast('Bitte bestätigen Sie zuerst, dass Sie zur Verarbeitung der Daten berechtigt sind.', 'info', 6000);
 }
 
@@ -187,10 +193,6 @@ async function confirmImport() {
     }
     if (mapping.name && !mapping.plz && !(mapping.lat && mapping.lng)) {
         showToast('Ohne PLZ (oder Koordinaten) können Kunden nicht auf der Karte verortet werden.', 'error');
-        return;
-    }
-    if (mapping.name && !mapping.bezirk) {
-        showToast('Bitte die Spalte „Vertriebsbezirk" zuordnen – sie ist Pflicht.', 'error');
         return;
     }
 
