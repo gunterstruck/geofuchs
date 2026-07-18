@@ -94,6 +94,16 @@ describe('Onboarding-Trichter: ein Einstieg, sichtbare nächste Schritte', () =>
         expect(css).toContain('.first-steps-play');
     });
 
+    it('öffnet den echten Datei-Einstieg aus „Eigene Excel-Liste laden“', () => {
+        const steps = source('src/features/firstSteps.js');
+        const ui = source('src/ui/firstSteps.js');
+
+        expect(steps).toContain("action: 'own-data'");
+        expect(ui).toContain("button.dataset.action === 'own-data'");
+        expect(ui).toContain("document.getElementById('btn-own-data')");
+        expect(ui).toContain('ownDataButton.click()');
+    });
+
     it('bietet drei Zustände: „Später", Chip-Zeile und umkehrbares „Nicht mehr zeigen"', () => {
         const ui = source('src/ui/firstSteps.js');
         const html = source('index.html');

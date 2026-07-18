@@ -115,10 +115,10 @@ function render() {
         <ul class="first-steps-list">
             ${FIRST_STEPS.map((step) => `
                 <li class="${done.has(step.id) ? 'done' : ''}">
-                    ${step.showcase ? `<button type="button" class="first-steps-action" data-showcase="${step.showcase}" aria-label="${step.label} – Live-Demo starten">
+                    ${step.showcase || step.action ? `<button type="button" class="first-steps-action" data-showcase="${step.showcase || ''}" data-action="${step.action || ''}" aria-label="${step.label} – ${step.showcase ? 'Live-Demo starten' : 'öffnen'}">
                         <span class="first-steps-mark" aria-hidden="true">${done.has(step.id) ? '✓' : step.icon}</span>
                         <span class="first-steps-text"><b>${step.label}</b><small>${step.hint}</small></span>
-                        <span class="first-steps-play" aria-hidden="true">▶</span>
+                        <span class="first-steps-play" aria-hidden="true">${step.showcase ? '▶' : '›'}</span>
                     </button>` : `<div class="first-steps-static">
                         <span class="first-steps-mark" aria-hidden="true">${done.has(step.id) ? '✓' : step.icon}</span>
                         <span class="first-steps-text"><b>${step.label}</b><small>${step.hint}</small></span>
@@ -131,6 +131,12 @@ function render() {
         </div>`;
     container.querySelectorAll('.first-steps-action').forEach((button) => {
         button.addEventListener('click', () => {
+            if (button.dataset.action === 'own-data') {
+                const ownDataButton = document.getElementById('btn-own-data');
+                if (ownDataButton) ownDataButton.click();
+                else showToast('Der Datenimport ist in dieser Ansicht nicht verfügbar.', 'info', 4000);
+                return;
+            }
             if (!startShowcaseStory(button.dataset.showcase)) {
                 showToast('Diese Live-Demo ist in dieser Ansicht nicht verfügbar.', 'info', 4000);
             }
