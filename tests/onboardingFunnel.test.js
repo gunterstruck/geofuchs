@@ -51,13 +51,15 @@ describe('Onboarding-Trichter: Import ohne Vertriebsbezirk', () => {
 });
 
 describe('Onboarding-Trichter: ein Einstieg, sichtbare nächste Schritte', () => {
-    it('bietet den Showcase im Willkommens-Panel an statt als Auto-Dialog', () => {
+    it('macht Live-Demos zum primären Einstieg, ohne einen Auto-Dialog zu öffnen', () => {
         const html = source('index.html');
         const showcase = source('src/ui/showcase.js');
 
-        expect(html).toContain('id="btn-showcase-ob"');
-        // bewusst kein dritter gleichwertiger Primärknopf
-        expect(html).not.toContain('id="btn-showcase-ob" class="primary');
+        expect(html).toContain('id="btn-showcase-ob" class="primary ob-primary-action"');
+        expect(html).toContain('id="btn-own-data" class="ob-secondary-action"');
+        expect(html).not.toContain('id="btn-demo"');
+        expect(html).toContain('id="demo-preview-status"');
+        expect(html).toContain('id="btn-showcase-data"');
         expect(showcase).not.toContain('scheduleAutoOffer');
         expect(showcase).not.toContain('AUTO_OFFER_DELAY_MS');
     });

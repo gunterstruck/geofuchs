@@ -3,12 +3,15 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
     allShowcaseStoriesSeen,
+    canAutoLoadWelcomeDemo,
     canAutoOfferShowcase,
+    hasHandledWelcomeDemo,
     isShowcaseAutoSuppressed,
     markShowcaseCompleted,
     markShowcaseDismissed,
     markShowcaseImportCompleted,
     markShowcaseStorySeen,
+    markWelcomeDemoHandled,
     nextUnseenShowcaseStory,
     resetShowcaseAfterDataClear,
     seenShowcaseIds
@@ -88,6 +91,23 @@ describe('Showcase-Onboarding', () => {
         }
     });
 
+    it('blendet Beispieldaten nur beim ersten ungestörten Willkommen automatisch ein', () => {
+        expect(canAutoLoadWelcomeDemo()).toBe(true);
+        for (const blocker of [
+            { handled: true },
+            { hasCustomers: true },
+            { locked: true },
+            { userIntent: true },
+            { blockingDialogOpen: true },
+            { documentHidden: true }
+        ]) {
+            expect(canAutoLoadWelcomeDemo(blocker)).toBe(false);
+        }
+        expect(hasHandledWelcomeDemo()).toBe(false);
+        markWelcomeDemoHandled();
+        expect(hasHandledWelcomeDemo()).toBe(true);
+    });
+
     it('zeigt zuerst die Begrüßung und öffnet den Showcase nur noch auf Klick', () => {
         const stateSource = readFileSync(resolve(process.cwd(), 'src/core/state.js'), 'utf8');
         const mainSource = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8');
@@ -113,11 +133,16 @@ describe('Showcase-Onboarding', () => {
 
         // Showcase öffnet nur auf bewussten Klick: Info-Dialog + Willkommens-Panel.
         expect(showcase).toContain("document.getElementById('btn-showcase')");
-        expect(showcase).toContain("document.getElementById('btn-showcase-ob')");
+        expect(showcase).toContain("'btn-showcase-ob', 'btn-showcase-data'");
         expect(html).toContain('id="btn-showcase-ob"');
+        expect(html).toContain('id="btn-showcase-data"');
         expect(showcase).toContain("on('dataset:cleared', () => resetShowcaseAfterDataClear())");
         expect(showcase).toContain('showStoryCompletion(story)');
         expect(importWizard).toContain('markShowcaseImportCompleted()');
+        expect(importWizard).toContain("on('app:ready', scheduleWelcomeDemo)");
+        expect(importWizard).toContain('WELCOME_DEMO_DELAY_MS');
+        expect(importWizard).toContain("loadDemo({ source: 'welcome', confirmReplacement: false, announce: false })");
+        expect(importWizard).toContain('cancelWelcomeDemo({ handled: true })');
         expect(main).toContain("emit('app:ready')");
         expect(sidebar).toContain("emit('dataset:cleared')");
         expect(css).toContain('width: 340px');

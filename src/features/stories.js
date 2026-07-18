@@ -19,22 +19,23 @@ export const STORIES = [
     {
         id: 'excel-karte',
         icon: '🗺️',
-        title: 'Aus Excel wird eine Landkarte',
-        blurb: 'Kundenliste rein – Deutschlandkarte raus.',
+        title: 'Von der Liste zur Kundenkarte',
+        blurb: 'Kundenstapel verstehen und bis zum Detail aufzoomen.',
+        duration: 24,
         steps: [
-            { t: 'say', text: 'Schau: Deine Kundenliste landet mit einem Klick auf der Karte.', ms: 1900 },
+            { t: 'say', text: 'TourFuchs macht aus einer Kundenliste eine verständliche Deutschlandkarte.', sel: '#map', ms: 2200 },
             { t: 'run', key: 'excelToMap' },
-            { t: 'wait', ms: 1800 },
-            { t: 'say', text: 'Jeder Punkt ein Kunde, jede Farbe ein Vertriebsbezirk.', ms: 2200 },
-            { t: 'run', key: 'showOneCustomer' },
-            { t: 'say', text: 'Reinzoomen und einen Kunden antippen – Adresse, Kontakt und Umsatz auf einen Blick.', ms: 3200, pos: 'bottom' }
+            { t: 'say', text: 'Jeder Stapel sagt sofort, wie viele Kunden hier liegen. Antippen bedeutet: eine Ebene näher.', sel: '.customer-stack-card', ms: 3000 },
+            { t: 'run', key: 'openCustomerFromMap' },
+            { t: 'say', text: 'So entsteht der Zusammenhang ganz natürlich: Region, Kundenkarte, Details – Adresse, Kontakt und Umsatz auf einen Blick.', sel: '.leaflet-popup-content', ms: 3400, pos: 'bottom' }
         ]
     },
     {
         id: 'tour',
         icon: '🚗',
-        title: 'Deine Tour in 30 Sekunden',
+        title: 'Deine Tour, Schritt für Schritt',
         blurb: 'Startpunkt, Vorschläge, optimierte Route.',
+        duration: 42,
         needsData: true,
         mutatesTour: true,
         steps: [
@@ -48,12 +49,15 @@ export const STORIES = [
             { t: 'run', key: 'pickStart' },
             { t: 'say', text: 'TourFuchs schlägt Kunden in der Nähe vor – einfach hinzufügen.', ms: 2200 },
             { t: 'run', key: 'addTwoSuggestions' },
+            { t: 'say', text: 'Die Stopps stehen. Jetzt sortiert TourFuchs sie in eine sinnvolle Reihenfolge.', sel: '#btn-optimize', ms: 2300 },
             { t: 'click', sel: '#btn-optimize' },
             { t: 'say', text: 'Reihenfolge optimiert – kürzeste Strecke.', ms: 1800 },
+            { t: 'say', text: 'Ein Klick bringt die geplante Tour zurück auf die Karte.', sel: '#btn-route-focus', ms: 2200 },
             { t: 'click', sel: '#btn-route-focus' },
             { t: 'wait', ms: 1500 },
             { t: 'run', key: 'focusTourRoute' },
             { t: 'say', text: 'Die Route liegt auf der Karte – zuerst als Luftlinie.', ms: 2200, pos: 'bottom' },
+            { t: 'say', text: 'Für die Fahrt wechseln wir jetzt sichtbar auf die echte Straßenroute.', sel: '#btn-route-focus', ms: 2300 },
             { t: 'run', key: 'showRoadRoute' },
             { t: 'say', text: 'Ein Tipp – und statt Luftlinie siehst du die echte Straßenroute.', ms: 2800, pos: 'bottom' },
             { t: 'run', key: 'shareTourQr', desktopOnly: true },
@@ -66,6 +70,7 @@ export const STORIES = [
         icon: '📲',
         title: 'Aufs Handy – ohne Kabel, ohne Cloud',
         blurb: 'Tour per QR-Code an dein Smartphone.',
+        duration: 34,
         desktopOnly: true,   // Übergabe Desktop -> Handy; auf dem Handy selbst sinnlos
         needsData: true,
         mutatesTour: true,
@@ -94,6 +99,7 @@ export const STORIES = [
         icon: '🧪',
         title: 'Was wäre wenn? Gebiete umbauen – ohne Risiko',
         blurb: 'Testweise umverteilen, Wirkung sofort sehen.',
+        duration: 38,
         desktopOnly: true,   // Gebietsplanung/Cockpit gibt es nur auf dem Desktop
         needsData: true,
         patchConfirm: true,   // „Verwerfen" bestätigt sich in der Vorführung automatisch
@@ -115,8 +121,9 @@ export const STORIES = [
     {
         id: 'service-tag',
         icon: '🛠️',
-        title: 'Dein Service-Tag in 20 Sekunden',
+        title: 'Dein Service-Tag, verständlich geplant',
         blurb: 'Einsätze rein – erklärbarer Tagesplan raus.',
+        duration: 36,
         desktopOnly: true,   // Service-Fokus (Profi) gibt es nur auf dem Desktop
         needsData: true,
         mutatesTour: true,
@@ -141,6 +148,7 @@ export const STORIES = [
         icon: '🎯',
         title: 'Spontaner Termin? Sofort gebrieft',
         blurb: 'Passenden Kunden finden und mit Copilot vorbereitet starten.',
+        duration: 34,
         needsData: true,
         mutatesTour: true,
         steps: [
@@ -166,6 +174,7 @@ export const STORIES = [
         icon: '🔐',
         title: 'Deine Daten im Tresor',
         blurb: 'Verschlüsselt, PIN-geschützt, sicher aufs Handy.',
+        duration: 32,
         needsData: true,
         mutatesVault: true,   // Demo legt einen Tresor an – cleanup baut ihn wieder ab
         steps: [
@@ -186,6 +195,7 @@ export const STORIES = [
         icon: '📥',
         title: 'Verschlüsselte Daten aufs Handy holen',
         blurb: 'Datei wählen, Schlüssel scannen, fertig.',
+        duration: 26,
         mobileOnly: true,     // Gegenstück zur Desktop-QR-Story; nur am Handy sinnvoll
         needsData: true,
         steps: [
@@ -312,7 +322,8 @@ export function selectShowcaseTour(customers, { areaRadiusKm = 85, maxRouteKm = 
 }
 
 export const CRITICAL_SELECTORS = [
-    '#btn-demo',
+    '#btn-showcase-ob',
+    '#btn-showcase-data',
     '.mode-btn[data-mode="aussendienst"]',
     '.mode-btn[data-mode="gebietsplanung"]',
     '.mode-btn[data-mode="service"]',

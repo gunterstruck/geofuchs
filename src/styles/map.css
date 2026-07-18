@@ -203,10 +203,19 @@
 .customer-stack-card.mixed { border-color: #64748b; }
 .customer-stack-card.unassigned { border-color: #94a3b8; border-style: dashed; }
 .customer-stack-card.is-discovery { animation: customer-stack-discovery 1.05s ease-in-out 2; }
+body.demo-data-arriving .leaflet-marker-pane > * {
+    animation: demo-data-arrival 0.72s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+body.demo-data-arriving .leaflet-marker-pane > *:nth-child(3n + 2) { animation-delay: 90ms; }
+body.demo-data-arriving .leaflet-marker-pane > *:nth-child(3n) { animation-delay: 180ms; }
 @keyframes customer-stack-discovery {
     0%, 100% { transform: translateY(0) rotate(0); }
     35% { transform: translateY(-5px) rotate(-2deg) scale(1.06); }
     65% { transform: translateY(-3px) rotate(2deg) scale(1.06); }
+}
+@keyframes demo-data-arrival {
+    from { opacity: 0; filter: blur(2px); }
+    to { opacity: 1; filter: blur(0); }
 }
 
 .tour-marker-wrapper { background: transparent; }
@@ -526,6 +535,7 @@ button.contact-link {
     .customer-marker-symbol { transition: none; }
     .customer-marker-card.is-discovery,
     .customer-stack-card.is-discovery,
+    body.demo-data-arriving .leaflet-marker-pane > *,
     .customer-detail-popup .leaflet-popup-content-wrapper,
     .customer-detail-popup .leaflet-popup-tip { animation: none; }
 }

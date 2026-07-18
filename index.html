@@ -94,6 +94,15 @@
                 <button class="tab-button" data-tab="tour" data-modes="aussendienst service" role="tab">Tour</button>
             </nav>
 
+            <div id="demo-launcher" class="demo-launcher" hidden>
+                <div>
+                    <span>Interaktive Vorführung</span>
+                    <b>TourFuchs live erleben</b>
+                    <small>Wähle einen Ablauf – der Demo-Cursor übernimmt.</small>
+                </div>
+                <button type="button" id="btn-showcase-data" class="primary">▶ Live-Demos</button>
+            </div>
+
             <!-- Erste-Schritte-Checkliste: sichtbarer roter Faden nach dem ersten Import -->
             <div id="first-steps" class="first-steps" hidden></div>
 
@@ -107,17 +116,19 @@
                         <div class="ob-fox">🦊</div>
                         <h2>Willkommen bei TourFuchs!</h2>
                         <p class="ob-greeting">Schön, dass du da bist.</p>
-                        <p class="muted">Entdecke TourFuchs mit Beispieldaten oder starte direkt mit deinen eigenen Daten.</p>
+                        <p class="muted">Schau dir zuerst an, was möglich ist. Die Beispielkunden erscheinen gleich automatisch auf der Deutschlandkarte.</p>
                     </div>
 
-                    <button id="btn-demo" class="primary ob-primary-action">✨ App in 60 Sekunden erleben</button>
-                    <p class="muted small ob-action-sub">Beispieldaten – lokal, unverbindlich und jederzeit löschbar.</p>
+                    <button id="btn-showcase-ob" class="primary ob-primary-action">▶ Live-Demos starten</button>
+                    <p class="muted small ob-action-sub">Echte Klicks in der laufenden App – Schritt für Schritt erklärt.</p>
 
-                    <div class="ob-or"><span>oder</span></div>
-                    <button id="btn-own-data" class="primary ob-primary-action">📂 Eigene Daten laden</button>
+                    <button id="btn-own-data" class="ob-secondary-action">📂 Eigene Daten laden</button>
                     <p class="muted small ob-action-sub">Excel/CSV oder verschlüsselte TourFuchs-Datei.</p>
 
-                    <button id="btn-showcase-ob" class="linklike ob-showcase-link">🎬 Lieber zuschauen? Geführte Vorführung starten</button>
+                    <div id="demo-preview-status" class="ob-preview-status" role="status" aria-live="polite">
+                        <span class="ob-preview-pulse" aria-hidden="true"></span>
+                        <span><b>Die Karte startet bewusst ruhig.</b><small>Beispielkunden werden automatisch eingeblendet.</small></span>
+                    </div>
                 </div>
 
                 <!-- Datenübersicht + Verwaltung (nur mit geladenen Daten) -->
