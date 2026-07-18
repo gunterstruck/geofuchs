@@ -123,6 +123,14 @@ describe('Showcase-Stories: Guardrail', () => {
         expect(vault.steps.some((step) => step.t === 'say' && step.sel === '#recovery-code')).toBe(true);
     });
 
+    it('öffnet native Dialoge in Demos zuverlässig und erklärt einen Abbruch konkret', () => {
+        const handy = STORIES.find((story) => story.id === 'handy-qr');
+        expect(handy.steps.some((step) => step.key === 'shareTourQr')).toBe(true);
+        expect(showcaseSource).toContain("el.matches?.('dialog[open]')");
+        expect(showcaseSource).toContain('Hängengeblieben bei Schritt');
+        expect(showcaseSource).toContain('showStoryFailure(story, failure)');
+    });
+
     it('verbindet die Kundenauswahl mit einem sicheren Copilot-Briefing', () => {
         const briefing = STORIES.find((story) => story.id === 'chancen');
 

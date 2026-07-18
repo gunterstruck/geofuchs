@@ -5,12 +5,14 @@ import {
     allShowcaseStoriesSeen,
     canAutoLoadWelcomeDemo,
     canAutoOfferShowcase,
+    hasClearedDataset,
     hasHandledWelcomeDemo,
     isShowcaseAutoSuppressed,
     markShowcaseCompleted,
     markShowcaseDismissed,
     markShowcaseImportCompleted,
     markShowcaseStorySeen,
+    markDatasetCleared,
     markWelcomeDemoHandled,
     nextUnseenShowcaseStory,
     resetShowcaseAfterDataClear,
@@ -115,6 +117,12 @@ describe('Showcase-Onboarding', () => {
         expect(welcomeDemoDelayMs({ mobile: true })).toBe(7800);
     });
 
+    it('merkt ein bewusstes Datenlöschen für die spätere Demo-Wiederherstellung', () => {
+        expect(hasClearedDataset()).toBe(false);
+        markDatasetCleared();
+        expect(hasClearedDataset()).toBe(true);
+    });
+
     it('zeigt zuerst die Begrüßung und öffnet den Showcase nur noch auf Klick', () => {
         const stateSource = readFileSync(resolve(process.cwd(), 'src/core/state.js'), 'utf8');
         const mainSource = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8');
@@ -146,11 +154,15 @@ describe('Showcase-Onboarding', () => {
         expect(showcase).toContain("on('dataset:cleared', () => resetShowcaseAfterDataClear())");
         expect(showcase).toContain('showStoryCompletion(story)');
         expect(importWizard).toContain('markShowcaseImportCompleted()');
-        expect(importWizard).toContain("on('app:ready', scheduleWelcomeDemo)");
+        expect(importWizard).toContain("on('app:ready', () =>");
+        expect(importWizard).toContain('scheduleWelcomeDemo()');
         expect(importWizard).toContain('welcomeDemoDelayMs');
         expect(importWizard).toContain('insideMobilePreview');
         expect(importWizard).toContain("loadDemo({ source: 'welcome', confirmReplacement: false, announce: false })");
         expect(importWizard).toContain('cancelWelcomeDemo({ handled: true })');
+        expect(importWizard).toContain("on('dataset:cleared'");
+        expect(importWizard).toContain("loadDemo({ source: 'restore', confirmReplacement: false, announce: true })");
+        expect(html).toContain('id="btn-demo-restore"');
         expect(main).toContain("emit('app:ready')");
         expect(sidebar).toContain("emit('dataset:cleared')");
         expect(css).toContain('width: 340px');

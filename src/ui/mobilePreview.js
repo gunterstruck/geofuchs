@@ -4,7 +4,7 @@
  */
 
 import { state, on } from '../core/state.js';
-import { showTourView } from './sidebar.js';
+import { showDataView } from './sidebar.js';
 
 const PARAM = 'mobilePreview';
 const FOCUS_PARAM = 'mobileFocus';
@@ -26,8 +26,8 @@ export function canOfferMobilePreviewTeaser({
     return desktop && appReady && hasCustomers && !seen && !blocked;
 }
 
-export function shouldFocusPreviewTour({ requestedFocus = '', hasCustomers = false } = {}) {
-    return requestedFocus === 'tour' && hasCustomers;
+export function shouldFocusPreviewData({ requestedFocus = '' } = {}) {
+    return requestedFocus === 'daten';
 }
 
 function readSeen() {
@@ -39,7 +39,7 @@ function markSeen() {
 }
 
 function previewUrl(cacheBust = '') {
-    const params = new URLSearchParams({ [PARAM]: '1', [FOCUS_PARAM]: 'tour' });
+    const params = new URLSearchParams({ [PARAM]: '1', [FOCUS_PARAM]: 'daten' });
     if (cacheBust) params.set('t', cacheBust);
     return `${location.pathname}?${params}`;
 }
@@ -48,15 +48,15 @@ export function initMobilePreview() {
     const params = new URLSearchParams(location.search);
     const btn = document.getElementById('btn-mobile-preview');
 
-    // Innerhalb der Vorschau: keine Verschachtelung. Der Tour-Bereich öffnet
+    // Innerhalb der Vorschau: keine Verschachtelung. Der Daten-Bereich öffnet
     // sich nach dem Laden, ohne die gespeicherte Desktop-Ansicht zu verändern.
     if (params.has(PARAM)) {
         if (btn) btn.hidden = true;
         document.documentElement.classList.add('in-mobile-preview');
         on('app:ready', () => {
             const hasCustomers = state.customers.length > 0;
-            if (shouldFocusPreviewTour({ requestedFocus: params.get(FOCUS_PARAM), hasCustomers })) {
-                showTourView(false);
+            if (shouldFocusPreviewData({ requestedFocus: params.get(FOCUS_PARAM) })) {
+                showDataView(false);
             }
             window.parent.postMessage({ type: PREVIEW_READY_MESSAGE, hasCustomers }, location.origin);
         });

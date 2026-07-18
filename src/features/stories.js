@@ -88,8 +88,7 @@ export const STORIES = [
             { t: 'click', sel: '#btn-mobile-preview' },
             { t: 'wait', ms: 700 },
             { t: 'say', text: 'Und jetzt die geplante Tour aufs Handy geben …', sel: '#btn-tour-qr', ms: 2000 },
-            { t: 'click', sel: '#btn-tour-qr' },
-            { t: 'waitFor', sel: '#qr-share-dialog[open]', ms: 2000 },
+            { t: 'run', key: 'shareTourQr' },
             { t: 'wait', ms: 3200 },
             { t: 'run', key: 'closeQr' },
             { t: 'say', text: 'Mit der Handy-Kamera scannen – die Tour ist drüben. Kein Server, kein Kabel.', ms: 3200 }

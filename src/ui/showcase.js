@@ -34,6 +34,9 @@ import { loadDemo } from './importWizard.js';
 const ROUTING_CONSENT_KEY = 'gf_routing_consent';
 
 const isMobileView = () => window.matchMedia('(max-width: 768px)').matches;
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]
+));
 
 const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const insideMobilePreview = new URLSearchParams(location.search).has('mobilePreview');
@@ -92,7 +95,13 @@ function abortNow() {
 }
 
 // ---- Element-Auflösung ----
-function isVisible(el) { return el && el.offsetParent !== null; }
+function isVisible(el) {
+    if (!el) return false;
+    // Ein geöffnetes natives <dialog> liegt im Top-Layer und besitzt je nach
+    // Browser keinen offsetParent. Es ist trotzdem sichtbar.
+    if (el.matches?.('dialog[open]')) return true;
+    return el.offsetParent !== null || el.getClientRects().length > 0;
+}
 async function resolveEl(sel, timeout = 4000) {
     const start = Date.now();
     for (;;) {
@@ -444,11 +453,12 @@ const HELPERS = {
         expandSheetForDemo();
         await sleep(300);
         const btn = await resolveEl('#btn-tour-qr', 2500);
-        if (btn && !btn.disabled) {
-            await clickEl('#btn-tour-qr');
-            await resolveEl('#qr-share-dialog[open]', 3000);
-            await sleep(700);
+        if (!btn || btn.disabled) throw new Error('Die Tour ist noch nicht für die QR-Übergabe bereit.');
+        await clickEl('#btn-tour-qr');
+        if (!await resolveEl('#qr-share-dialog[open]', 4000)) {
+            throw new Error('Der QR-Code konnte nicht sichtbar geöffnet werden.');
         }
+        await sleep(700);
     },
     // ---- Tresor: PIN wirklich eingeben und Wiederherstellungscode zeigen ----
     async typePinDemo() {
@@ -748,7 +758,15 @@ async function play(story) {
         for (let i = 0; i < steps.length; i++) {
             guard();
             setProgress(i, steps.length);
-            await runStep(steps[i]);
+            try {
+                await runStep(steps[i]);
+            } catch (error) {
+                if (error && typeof error === 'object') {
+                    error.showcaseStep = i + 1;
+                    error.showcaseStepCount = steps.length;
+                }
+                throw error;
+            }
         }
         const remainingRuntime = Math.max(0, Number(story.minRuntimeMs || 0) - (Date.now() - startedAt));
         if (remainingRuntime > 0) await sleepExact(remainingRuntime);
@@ -767,7 +785,7 @@ async function play(story) {
         emit('showcase:story-completed', story.id);
         showStoryCompletion(story);
     }
-    else if (failure) showStoryFailure(story);
+    else if (failure) showStoryFailure(story, failure);
 }
 
 function currentVisibleStories() {
@@ -824,7 +842,10 @@ function showStoryCompletion(story) {
     showShowcaseDialog();
 }
 
-function showStoryFailure(story) {
+function showStoryFailure(story, failure) {
+    const step = Number(failure?.showcaseStep) || 0;
+    const total = Number(failure?.showcaseStepCount) || 0;
+    const reason = String(failure?.message || 'Der nächste Demo-Schritt war nicht erreichbar.');
     dialog.dataset.view = 'outcome';
     dialog.innerHTML = `
         <div class="sc-outcome-head sc-outcome-failed">
@@ -834,6 +855,7 @@ function showStoryFailure(story) {
         </div>
         <div class="sc-outcome-body">
             <p>Diese Vorführung konnte nicht vollständig beendet werden. TourFuchs hat den vorherigen Zustand wiederhergestellt.</p>
+            <p class="sc-failure-reason"><b>${step && total ? `Hängengeblieben bei Schritt ${step}/${total}:` : 'Grund:'}</b> ${escapeHtml(reason)}</p>
         </div>
         <div class="sc-outcome-actions">
             <button type="button" class="sc-finish">Beenden</button>

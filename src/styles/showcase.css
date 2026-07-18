@@ -227,6 +227,15 @@
     line-height: 1.5;
 }
 .sc-outcome-body > p { margin: 0; }
+.sc-outcome-body .sc-failure-reason {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-left: 3px solid #ef4444;
+    border-radius: 6px;
+    background: #fef2f2;
+    color: #7f1d1d;
+    font-size: 0.88rem;
+}
 .sc-next-story {
     display: grid;
     gap: 7px;
