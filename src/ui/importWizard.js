@@ -13,11 +13,11 @@ import {
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { saveDataset } from '../services/storage.js';
 import {
-    WELCOME_DEMO_DELAY_MS,
     canAutoLoadWelcomeDemo,
     hasHandledWelcomeDemo,
     markShowcaseImportCompleted,
-    markWelcomeDemoHandled
+    markWelcomeDemoHandled,
+    welcomeDemoDelayMs
 } from '../services/showcaseOnboarding.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { showToast } from './toast.js';
@@ -41,6 +41,7 @@ let lastFileBase = 'TourFuchs';
 let welcomeDemoTimer = null;
 let welcomeDemoUserIntent = false;
 let demoLoadPromise = null;
+const insideMobilePreview = new URLSearchParams(location.search).has('mobilePreview');
 
 // SheetJS (xlsx) ist groß – erst laden, wenn wirklich importiert/exportiert wird
 const excel = () => import('../services/excel.js');
@@ -387,7 +388,8 @@ function welcomeDemoBlockers() {
         locked: vaultEnabled(),
         userIntent: welcomeDemoUserIntent,
         blockingDialogOpen: Boolean(document.querySelector('dialog[open]')),
-        documentHidden: document.hidden
+        documentHidden: document.hidden,
+        insideMobilePreview
     };
 }
 
@@ -422,7 +424,7 @@ function scheduleWelcomeDemo() {
         } finally {
             setTimeout(() => document.body.classList.remove('demo-data-arriving'), 1800);
         }
-    }, WELCOME_DEMO_DELAY_MS);
+    }, welcomeDemoDelayMs({ mobile: window.matchMedia('(max-width: 768px)').matches }));
 }
 
 /** Lädt sichere Beispieldaten für Einstieg oder Live-Demo. */

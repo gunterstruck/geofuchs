@@ -30,12 +30,12 @@ describe('Erste-Schritte-Checkliste (Logik)', () => {
     it('leitet erledigte Schritte aus dem App-Zustand ab', () => {
         expect(deriveCompletedSteps()).toEqual([]);
         expect(deriveCompletedSteps({ customerCount: 5, fileName: 'Demo-Daten' }))
-            .toEqual(['daten']);
+            .toEqual([]);
         expect(deriveCompletedSteps({ customerCount: 5, fileName: 'Demo-Daten', tourStopCount: 2 }))
-            .toEqual(['daten', 'tour']);
+            .toEqual(['tour']);
         // Eigene Datei zählt nur mit geladenen Kunden und nicht für Demo-Daten
         expect(deriveCompletedSteps({ customerCount: 5, fileName: 'kunden.xlsx' }))
-            .toEqual(['daten', 'eigene']);
+            .toEqual(['eigene']);
         expect(deriveCompletedSteps({ customerCount: 0, fileName: 'kunden.xlsx' }))
             .toEqual([]);
     });

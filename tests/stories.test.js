@@ -25,7 +25,7 @@ describe('Showcase-Stories: Guardrail', () => {
             expect(ids.has(s.id)).toBe(false);
             ids.add(s.id);
             expect(s.title).toBeTruthy();
-            expect(s.duration).toBeGreaterThanOrEqual(20);
+            expect(s.duration).toBeGreaterThanOrEqual(15);
             expect(Array.isArray(s.steps) && s.steps.length > 0).toBe(true);
             for (const step of s.steps) {
                 expect(typeof step.t).toBe('string');
@@ -40,8 +40,10 @@ describe('Showcase-Stories: Guardrail', () => {
         expect(mapStory.steps.some((step) => step.sel === '.customer-stack-card')).toBe(true);
         expect(mapStory.steps.some((step) => step.key === 'openCustomerFromMap')).toBe(true);
         expect(mapStory.steps.at(-1)?.sel).toBe('.leaflet-popup-content');
+        expect(mapStory.minRuntimeMs).toBe(15000);
         expect(showcaseSource).toContain("await clickEl('.customer-stack-card')");
         expect(showcaseSource).toContain("await clickEl('.customer-marker-card')");
+        expect(showcaseSource).toContain("emit('showcase:story-completed', story.id)");
     });
 
     it('die Stories in fester Reihenfolge', () => {

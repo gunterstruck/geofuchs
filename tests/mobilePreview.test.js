@@ -10,7 +10,7 @@ describe('Mobile Außendienst & Tour am Desktop', () => {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn()
         }));
-        const { canOfferMobilePreviewTeaser } = await import('../src/ui/mobilePreview.js');
+        const { canOfferMobilePreviewTeaser, shouldFocusPreviewTour } = await import('../src/ui/mobilePreview.js');
 
         expect(canOfferMobilePreviewTeaser({
             desktop: true,
@@ -26,6 +26,8 @@ describe('Mobile Außendienst & Tour am Desktop', () => {
         ]) {
             expect(canOfferMobilePreviewTeaser(blocker)).toBe(false);
         }
+        expect(shouldFocusPreviewTour({ requestedFocus: 'tour', hasCustomers: false })).toBe(false);
+        expect(shouldFocusPreviewTour({ requestedFocus: 'tour', hasCustomers: true })).toBe(true);
     });
 
     it('öffnet die vorbereitete Tour-Vorschau ruhig und kehrt zum Einstieg zurück', () => {
@@ -35,6 +37,9 @@ describe('Mobile Außendienst & Tour am Desktop', () => {
         expect(source).toContain("[FOCUS_PARAM]: 'tour'");
         expect(source).toContain('AUTO_TEASER_PREVIEW_MS = 2600');
         expect(source).toContain("PREVIEW_READY_MESSAGE = 'tourfuchs:mobile-preview-ready'");
+        expect(source).toContain('type: PREVIEW_READY_MESSAGE, hasCustomers');
+        expect(source).toContain("on('demo:loaded', refreshOpenPreview)");
+        expect(source).toContain("on('data:imported', refreshOpenPreview)");
         expect(source).toContain("on('customers:changed'");
         expect(source).toContain("on('app:ready'");
         expect(source).toContain('showLocationHint()');

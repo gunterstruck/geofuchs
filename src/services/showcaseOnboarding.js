@@ -9,6 +9,11 @@ const KEYS = Object.freeze({
 // Lang genug, damit die Deutschlandkarte bewusst als ruhiger Ausgangspunkt
 // wahrgenommen wird – kurz genug, um nicht wie eine Ladezeit zu wirken.
 export const WELCOME_DEMO_DELAY_MS = 4600;
+export const WELCOME_DEMO_MOBILE_DELAY_MS = 7800;
+
+export function welcomeDemoDelayMs({ mobile = false } = {}) {
+    return mobile ? WELCOME_DEMO_MOBILE_DELAY_MS : WELCOME_DEMO_DELAY_MS;
+}
 
 function store(provided) {
     if (provided) return provided;
@@ -76,14 +81,16 @@ export function canAutoLoadWelcomeDemo({
     locked = false,
     userIntent = false,
     blockingDialogOpen = false,
-    documentHidden = false
+    documentHidden = false,
+    insideMobilePreview = false
 } = {}) {
     return !handled
         && !hasCustomers
         && !locked
         && !userIntent
         && !blockingDialogOpen
-        && !documentHidden;
+        && !documentHidden
+        && !insideMobilePreview;
 }
 
 export function isShowcaseAutoSuppressed(provided) {

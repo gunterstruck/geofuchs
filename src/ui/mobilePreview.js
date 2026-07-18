@@ -26,6 +26,10 @@ export function canOfferMobilePreviewTeaser({
     return desktop && appReady && hasCustomers && !seen && !blocked;
 }
 
+export function shouldFocusPreviewTour({ requestedFocus = '', hasCustomers = false } = {}) {
+    return requestedFocus === 'tour' && hasCustomers;
+}
+
 function readSeen() {
     try { return localStorage.getItem(TEASER_KEY) === '1'; } catch { return false; }
 }
@@ -50,8 +54,11 @@ export function initMobilePreview() {
         if (btn) btn.hidden = true;
         document.documentElement.classList.add('in-mobile-preview');
         on('app:ready', () => {
-            if (params.get(FOCUS_PARAM) === 'tour') showTourView(false);
-            window.parent.postMessage({ type: PREVIEW_READY_MESSAGE }, location.origin);
+            const hasCustomers = state.customers.length > 0;
+            if (shouldFocusPreviewTour({ requestedFocus: params.get(FOCUS_PARAM), hasCustomers })) {
+                showTourView(false);
+            }
+            window.parent.postMessage({ type: PREVIEW_READY_MESSAGE, hasCustomers }, location.origin);
         });
         return;
     }
@@ -69,6 +76,7 @@ export function initMobilePreview() {
     let teaserRunning = false;
     let teaserMayOpen = false;
     let previewReady = false;
+    let previewSyncRetries = 0;
     const teaserTimers = new Set();
 
     const queueTeaserStep = (fn, delay) => {
@@ -86,7 +94,13 @@ export function initMobilePreview() {
 
     const prepare = () => {
         previewReady = false;
+        previewSyncRetries = 0;
         iframe.src = previewUrl();
+    };
+    const refreshOpenPreview = () => {
+        if (overlay.hidden || iframe.src === 'about:blank') return;
+        previewReady = false;
+        iframe.src = previewUrl(String(Date.now()));
     };
     const open = ({ prepared = false, teaser = false } = {}) => {
         if (!prepared) prepare();
@@ -250,9 +264,15 @@ export function initMobilePreview() {
         if (event.origin !== location.origin
             || event.source !== iframe.contentWindow
             || event.data?.type !== PREVIEW_READY_MESSAGE) return;
+        if (state.customers.length > 0 && event.data.hasCustomers !== true && previewSyncRetries++ < 2) {
+            refreshOpenPreview();
+            return;
+        }
         previewReady = true;
         openTeaserPreview();
     });
+    on('demo:loaded', refreshOpenPreview);
+    on('data:imported', refreshOpenPreview);
     on('customers:changed', () => scheduleAutoTeaser());
     on('app:ready', () => {
         appReady = true;

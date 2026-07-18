@@ -81,7 +81,6 @@ export function resetFirstSteps(provided) {
  */
 export function deriveCompletedSteps({ customerCount = 0, fileName = null, tourStopCount = 0 } = {}) {
     const done = [];
-    if (customerCount > 0) done.push('daten');
     if (tourStopCount > 0) done.push('tour');
     if (customerCount > 0 && fileName && fileName !== 'Demo-Daten') done.push('eigene');
     return done;

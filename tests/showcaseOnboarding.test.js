@@ -14,7 +14,8 @@ import {
     markWelcomeDemoHandled,
     nextUnseenShowcaseStory,
     resetShowcaseAfterDataClear,
-    seenShowcaseIds
+    seenShowcaseIds,
+    welcomeDemoDelayMs
 } from '../src/services/showcaseOnboarding.js';
 
 const stories = [
@@ -99,13 +100,19 @@ describe('Showcase-Onboarding', () => {
             { locked: true },
             { userIntent: true },
             { blockingDialogOpen: true },
-            { documentHidden: true }
+            { documentHidden: true },
+            { insideMobilePreview: true }
         ]) {
             expect(canAutoLoadWelcomeDemo(blocker)).toBe(false);
         }
         expect(hasHandledWelcomeDemo()).toBe(false);
         markWelcomeDemoHandled();
         expect(hasHandledWelcomeDemo()).toBe(true);
+    });
+
+    it('gibt der mobilen Begrüßung mehr Lesezeit als dem Desktop', () => {
+        expect(welcomeDemoDelayMs({ mobile: false })).toBe(4600);
+        expect(welcomeDemoDelayMs({ mobile: true })).toBe(7800);
     });
 
     it('zeigt zuerst die Begrüßung und öffnet den Showcase nur noch auf Klick', () => {
@@ -140,7 +147,8 @@ describe('Showcase-Onboarding', () => {
         expect(showcase).toContain('showStoryCompletion(story)');
         expect(importWizard).toContain('markShowcaseImportCompleted()');
         expect(importWizard).toContain("on('app:ready', scheduleWelcomeDemo)");
-        expect(importWizard).toContain('WELCOME_DEMO_DELAY_MS');
+        expect(importWizard).toContain('welcomeDemoDelayMs');
+        expect(importWizard).toContain('insideMobilePreview');
         expect(importWizard).toContain("loadDemo({ source: 'welcome', confirmReplacement: false, announce: false })");
         expect(importWizard).toContain('cancelWelcomeDemo({ handled: true })');
         expect(main).toContain("emit('app:ready')");
