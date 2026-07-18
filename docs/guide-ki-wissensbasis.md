@@ -361,8 +361,11 @@ bereits angesehene Demos bleiben mit einem Haken markiert.
 ### 5.3 Verhalten nach "Daten löschen"
 
 Das Löschen setzt den Demo-Fortschritt (gesehene Demos, Import-Markierung)
-zurück. Es öffnet sich danach kein automatischer Dialog; die Demos bleiben über
-Willkommens-Panel und Info erreichbar.
+und die **"Erste Schritte"-Checkliste** vollständig zurück - inklusive einer
+früheren Abwahl über "Nicht mehr zeigen". Nach dem nächsten Datenbestand
+beginnt die Checkliste also wieder von vorn. Es öffnet sich nach dem Löschen
+kein automatischer Dialog; die Demos bleiben über Willkommens-Panel und Info
+erreichbar.
 
 ### 5.4 Demos später manuell öffnen
 
@@ -395,7 +398,9 @@ Die Karte kennt **drei Zustände**:
   `"Info & Impressum" -> "Erste Schritte anzeigen"`.
 
 Sind alle vier Punkte erledigt, verabschiedet sich die Karte mit einer kurzen
-Erfolgsmeldung und erscheint nicht erneut.
+Erfolgsmeldung und erscheint nicht erneut. Ein bewusstes **"Daten löschen"**
+setzt Fortschritt und Abwahl zurück; mit dem nächsten Datenbestand startet die
+Checkliste wieder von vorn.
 
 ---
 
@@ -2198,7 +2203,8 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 - automatisches 5-Sekunden-Angebot der Live-Demos entfernt; neue Klick-Einstiege
   (Willkommens-Panel "Lieber zuschauen?", Info) dokumentiert.
 - neue "Erste Schritte"-Checkliste mit drei Zuständen (ausgeklappt, Zeile,
-  umkehrbar abgewählt) inklusive Auto-Einklappen dokumentiert.
+  umkehrbar abgewählt) inklusive Auto-Einklappen dokumentiert; "Daten löschen"
+  setzt Fortschritt und Abwahl der Checkliste zurück.
 - Service-Fokus als dritter Profi-Arbeitsfokus ergänzt: Vertragsradar,
   operative Serviceeinsätze, Kundenauswahl (Jetzt/Woche/Vertragskunden/Alle)
   und erklärbarer Tagesvorschlag.

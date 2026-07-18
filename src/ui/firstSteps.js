@@ -20,6 +20,7 @@ import {
     dismissFirstSteps,
     firstStepsProgress,
     markFirstStepDone,
+    resetFirstSteps,
     setFirstStepsCollapsed,
     shouldAutoCollapseFirstSteps,
     shouldShowFirstSteps,
@@ -160,4 +161,13 @@ export function initFirstSteps() {
     on('customers:changed', render);
     on('tour:changed', render);
     on('app:ready', render);
+
+    // Bewusstes „Daten löschen" ist ein Neustart: Wie beim Demo-Fortschritt des
+    // Schaufensters beginnt auch die Erste-Schritte-Checkliste wieder von vorn –
+    // inklusive einer früheren Abwahl.
+    on('dataset:cleared', () => {
+        resetFirstSteps();
+        celebrated = false;
+        render();
+    });
 }

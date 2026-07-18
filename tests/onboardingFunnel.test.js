@@ -90,6 +90,14 @@ describe('Onboarding-Trichter: ein Einstieg, sichtbare nächste Schritte', () =>
         expect(css).toContain('.first-steps-chip');
     });
 
+    it('setzt die Erste-Schritte-Checkliste bei „Daten löschen" zurück', () => {
+        const ui = source('src/ui/firstSteps.js');
+        // Wie der Showcase-Fortschritt beginnt auch die Checkliste nach dem
+        // bewussten Datenlöschen von vorn (inklusive einer früheren Abwahl).
+        expect(ui).toContain("on('dataset:cleared'");
+        expect(ui).toContain('resetFirstSteps()');
+    });
+
     it('hebt die Compliance-Checkbox am Ort hervor, wenn sie fehlt', () => {
         const wizard = source('src/ui/importWizard.js');
         const css = source('src/styles/components.css');
