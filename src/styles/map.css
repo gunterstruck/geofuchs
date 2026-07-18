@@ -203,6 +203,42 @@
 .customer-stack-card.mixed { border-color: #64748b; }
 .customer-stack-card.unassigned { border-color: #94a3b8; border-style: dashed; }
 .customer-stack-card.is-discovery { animation: customer-stack-discovery 1.05s ease-in-out 2; }
+.customer-stack-discovery-label {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 11px);
+    width: max-content;
+    max-width: 180px;
+    padding: 6px 9px;
+    border: 1px solid rgba(13, 148, 136, 0.42);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.97);
+    color: #0f766e;
+    box-shadow: 0 5px 16px rgba(15, 23, 42, 0.2);
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1.15;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 4px) scale(0.96);
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+.customer-stack-discovery-label::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    width: 8px;
+    height: 8px;
+    border-right: 1px solid rgba(13, 148, 136, 0.42);
+    border-bottom: 1px solid rgba(13, 148, 136, 0.42);
+    background: #fff;
+    transform: translate(-50%, -4px) rotate(45deg);
+}
+.customer-stack-card.is-discovery .customer-stack-discovery-label {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+}
 body.demo-data-arriving .leaflet-marker-pane > * {
     animation: demo-data-arrival 0.72s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
@@ -538,5 +574,6 @@ button.contact-link {
     body.demo-data-arriving .leaflet-marker-pane > *,
     .customer-detail-popup .leaflet-popup-content-wrapper,
     .customer-detail-popup .leaflet-popup-tip { animation: none; }
+    .customer-stack-discovery-label { transition: none; }
 }
 body.popup-panning .leaflet-popup-content-wrapper { cursor: grabbing; }

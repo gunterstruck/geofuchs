@@ -78,6 +78,12 @@ function sleep(ms) {
         activeReject = () => { clearTimeout(timer); reject(new AbortError()); };
     });
 }
+function sleepExact(ms) {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => { activeReject = null; resolve(); }, ms);
+        activeReject = () => { clearTimeout(timer); reject(new AbortError()); };
+    });
+}
 function guard() { if (aborted) throw new AbortError(); }
 function abortNow() {
     if (!running) return;
@@ -288,12 +294,12 @@ const HELPERS = {
             if (await resolveEl('.customer-marker-card', 350)) break;
             if (!await resolveEl('.customer-stack-card', 900)) break;
             await clickEl('.customer-stack-card');
-            await sleep(900);
+            await sleep(1100);
         }
         if (await resolveEl('.customer-marker-card', 800)) {
             await clickEl('.customer-marker-card');
             await resolveEl('.leaflet-popup-content', 2200);
-            await sleep(650);
+            await sleep(1100);
             return;
         }
         await HELPERS.showOneCustomer();
@@ -735,6 +741,7 @@ async function play(story) {
     priorMode = state.ui.mode;
     applyDepth('profi', false);
     resetView();
+    const startedAt = Date.now();
     try {
         const isDesktop = window.matchMedia('(min-width: 769px)').matches;
         const steps = visibleStorySteps(story, { isDesktop });
@@ -743,6 +750,8 @@ async function play(story) {
             setProgress(i, steps.length);
             await runStep(steps[i]);
         }
+        const remainingRuntime = Math.max(0, Number(story.minRuntimeMs || 0) - (Date.now() - startedAt));
+        if (remainingRuntime > 0) await sleepExact(remainingRuntime);
         markShowcaseStorySeen(story.id);
         completed = true;
     } catch (err) {
@@ -754,7 +763,10 @@ async function play(story) {
         cleanup(story);
         running = false;
     }
-    if (completed) showStoryCompletion(story);
+    if (completed) {
+        emit('showcase:story-completed', story.id);
+        showStoryCompletion(story);
+    }
     else if (failure) showStoryFailure(story);
 }
 

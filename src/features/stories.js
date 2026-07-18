@@ -21,13 +21,14 @@ export const STORIES = [
         icon: '🗺️',
         title: 'Von der Liste zur Kundenkarte',
         blurb: 'Kundenstapel verstehen und bis zum Detail aufzoomen.',
-        duration: 24,
+        duration: 15,
+        minRuntimeMs: 15000,
         steps: [
-            { t: 'say', text: 'TourFuchs macht aus einer Kundenliste eine verständliche Deutschlandkarte.', sel: '#map', ms: 2200 },
+            { t: 'say', text: 'TourFuchs macht aus einer Kundenliste eine verständliche Deutschlandkarte.', sel: '#map', ms: 2400 },
             { t: 'run', key: 'excelToMap' },
-            { t: 'say', text: 'Jeder Stapel sagt sofort, wie viele Kunden hier liegen. Antippen bedeutet: eine Ebene näher.', sel: '.customer-stack-card', ms: 3000 },
+            { t: 'say', text: 'Jeder Stapel sagt sofort, wie viele Kunden hier liegen. Antippen bedeutet: eine Ebene näher.', sel: '.customer-stack-card', ms: 3200 },
             { t: 'run', key: 'openCustomerFromMap' },
-            { t: 'say', text: 'So entsteht der Zusammenhang ganz natürlich: Region, Kundenkarte, Details – Adresse, Kontakt und Umsatz auf einen Blick.', sel: '.leaflet-popup-content', ms: 3400, pos: 'bottom' }
+            { t: 'say', text: 'So entsteht der Zusammenhang ganz natürlich: Region, Kundenkarte, Details – Adresse, Kontakt und Umsatz auf einen Blick.', sel: '.leaflet-popup-content', ms: 3600, pos: 'bottom' }
         ]
     },
     {

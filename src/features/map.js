@@ -98,12 +98,21 @@ function dismissCustomerClusterHint() {
 function maybeOfferCustomerClusterHint() {
     if (!map || storedHintWasShown(CUSTOMER_CLUSTER_HINT_KEY)
         || document.querySelector('.sc-shield') || insideMobilePreview) return;
-    const target = map.getContainer().querySelector('.customer-stack-card');
+    const mapRect = map.getContainer().getBoundingClientRect();
+    const centerX = mapRect.left + mapRect.width / 2;
+    const centerY = mapRect.top + mapRect.height / 2;
+    const target = [...map.getContainer().querySelectorAll('.customer-stack-card')]
+        .sort((left, right) => {
+            const a = left.getBoundingClientRect();
+            const b = right.getBoundingClientRect();
+            return Math.hypot(a.left + a.width / 2 - centerX, a.top + a.height / 2 - centerY)
+                - Math.hypot(b.left + b.width / 2 - centerX, b.top + b.height / 2 - centerY);
+        })[0];
     if (!target) return;
     rememberHint(CUSTOMER_CLUSTER_HINT_KEY);
     clusterHintTarget = target;
     target.classList.add('is-discovery');
-    clusterHintTimer = window.setTimeout(dismissCustomerClusterHint, 3200);
+    clusterHintTimer = window.setTimeout(dismissCustomerClusterHint, 4600);
 }
 
 function scheduleCustomerClusterHint() {
@@ -390,6 +399,7 @@ function customerClusterIcon(cluster) {
         html: `<div class="customer-stack-card ${summary.kind}" style="--stack-color:${summary.color};--stack-accent:${summary.accent}" role="button" aria-label="${escapeHtml(title)}" title="${escapeHtml(title)}">
             <span class="customer-stack-accent"></span>
             <strong>${summary.count}</strong><small>Kunden</small>
+            <span class="customer-stack-discovery-label" aria-hidden="true">Tippe einen Kundenstapel an</span>
         </div>`,
         className: 'cluster-wrapper',
         iconSize: [48, 46],
@@ -1467,7 +1477,10 @@ function renderMarkers() {
             alt: `${customer.name} – Details öffnen`
         });
         marker.bindPopup(() => customerPopupHtml(customer), customerPopupOptions());
-        marker.on('click', () => animateCustomerMarkerOpen(marker));
+        marker.on('click', () => {
+            animateCustomerMarkerOpen(marker);
+            emit('customer:detail-opened', customer.id);
+        });
         customerMarkers.push({ marker, customer });
         markers.push(marker);
     }

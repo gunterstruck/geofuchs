@@ -86,6 +86,9 @@ describe('Onboarding-Trichter: ein Einstieg, sichtbare nächste Schritte', () =>
         expect(steps).toContain("showcase: 'handy-qr'");
         expect(ui).toContain('data-showcase');
         expect(ui).toContain('startShowcaseStory(button.dataset.showcase)');
+        expect(ui).toContain("on('customer:detail-opened'");
+        expect(ui).toContain("on('showcase:story-completed'");
+        expect(source('src/features/map.js')).toContain("emit('customer:detail-opened', customer.id)");
         expect(showcase).toContain('export function startShowcaseStory(storyId)');
         expect(css).toContain('.first-steps-action');
         expect(css).toContain('.first-steps-play');

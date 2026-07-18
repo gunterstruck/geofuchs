@@ -158,6 +158,10 @@ export function noteTourSharedToPhone() {
     if (markFirstStepDone('handy')) render();
 }
 
+function completeFirstStep(id) {
+    if (markFirstStepDone(id)) render();
+}
+
 export function initFirstSteps() {
     container = document.getElementById('first-steps');
     if (!container) return;
@@ -175,6 +179,11 @@ export function initFirstSteps() {
     on('customers:changed', render);
     on('tour:changed', render);
     on('app:ready', render);
+    on('customer:detail-opened', () => completeFirstStep('daten'));
+    on('showcase:story-completed', (storyId) => {
+        const stepByStory = { 'excel-karte': 'daten', tour: 'tour', 'handy-qr': 'handy' };
+        if (stepByStory[storyId]) completeFirstStep(stepByStory[storyId]);
+    });
 
     // Bewusstes „Daten löschen" ist ein Neustart: Wie beim Demo-Fortschritt des
     // Schaufensters beginnt auch die Erste-Schritte-Checkliste wieder von vorn –

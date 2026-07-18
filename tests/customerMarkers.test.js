@@ -75,11 +75,14 @@ describe('Lebendige Kunden-Kacheln', () => {
         const css = readFileSync(resolve(process.cwd(), 'src/styles/map.css'), 'utf8');
         expect(map).toContain('customer-marker-symbol');
         expect(map).toContain('customer-stack-card');
+        expect(map).toContain('customer-stack-discovery-label');
+        expect(map).toContain('Tippe einen Kundenstapel an');
         expect(map).toContain('territory-stack-card');
         expect(map).toContain('Kundenkarte antippen und Details entdecken');
         expect(map).toContain("className: 'customer-detail-popup'");
         expect(css).toContain('.customer-marker-mode-label .customer-marker-card');
         expect(css).toContain('@keyframes customer-popup-unfold');
+        expect(css).toContain('.customer-stack-card.is-discovery .customer-stack-discovery-label');
         expect(css).toContain('@media (prefers-reduced-motion: reduce)');
     });
 });
