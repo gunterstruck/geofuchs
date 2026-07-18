@@ -1108,10 +1108,10 @@ function renderLabels() {
     const positions = revenueWeightedCentroids(polygonsByValue);
     const labelMode = territoryLabelMode(map.getZoom(), { mobile: isMobileMap() });
     const labelSize = labelMode === 'chip'
-        ? { width: 84, height: 30 }
+        ? { width: 78, height: 46 }
         : labelMode === 'compact'
-            ? { width: 112, height: 42 }
-            : { width: 158, height: 58 };
+            ? { width: 96, height: 60 }
+            : { width: 116, height: 74 };
     const mapSize = map.getSize();
     const candidates = [...positions].map(([val, center]) => {
         const point = map.latLngToContainerPoint(center);
@@ -1143,6 +1143,13 @@ function renderLabels() {
         const hasRevenue = revenueValues.has(val);
         const rev = hasRevenue ? formatRevenueShort(revenue) : '';
         const dimension = attr === 'channel' ? 'Vertriebshauptgruppe' : (state.dims[attr]?.label || 'Gebiet');
+        const compactDimension = attr === 'bezirk'
+            ? 'Bezirk'
+            : attr === 'gruppe'
+                ? 'Gruppe'
+                : attr === 'channel'
+                    ? 'Hauptgruppe'
+                    : dimension;
         const title = `${dimension} ${val}: ${count} Kunden${hasRevenue ? ` · ${formatRevenueFull(revenue)} Volumen` : ''}`;
         const displayValue = labelMode === 'detail' ? val : compactTerritoryLabel(val);
         const metrics = labelMode === 'detail'
@@ -1155,6 +1162,7 @@ function renderLabels() {
                 className: 'territory-label-wrapper',
                 html: `<div class="territory-stack-card territory-stack-card--${labelMode}${val === UNASSIGNED ? ' unassigned' : ''}" style="--territory-color:${col}" title="${escapeHtml(title)}">
                     <span class="tl-accent"></span>
+                    <span class="tl-dimension">${escapeHtml(compactDimension)}</span>
                     <strong>${escapeHtml(displayValue)}</strong>
                     ${metrics}
                 </div>`,
