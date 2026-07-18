@@ -223,6 +223,14 @@ TourFuchs:
 | Mobile Außendienst & Tour als Vorschau | Ja, mit einmaligem ruhigem Hinweis | Nein |
 | Verschlüsselte Daten empfangen | Ja | Ja, mobil besonders sinnvoll |
 
+**Tablets:** Es gibt bewusst keine eigene Tablet-Ansicht und keine
+Tablet-Vorschau am Desktop. Tablets nutzen die vorhandenen responsiven
+Layouts: Ab etwa 800 Pixel Fensterbreite (praktisch alle Tablets, hochkant wie
+quer) erscheint das **vollständige Desktop-Layout** inklusive Gebietsplanung
+und Service-Fokus; nur sehr schmale Ansichten (768 Pixel und weniger, z. B.
+Smartphones oder geteilte Bildschirme) verhalten sich wie das Smartphone mit
+Karte, Tour und Bottom Sheet.
+
 ### 3.3 Basis gegen Profi
 
 **"Basis"** ist der ruhige Standard. Es zeigt die Kernaufgaben ohne technische
@@ -431,6 +439,7 @@ Die Vorführung:
 | **"Deine Tour in 30 Sekunden"** | Ja | Ja | ins Ruhrgebiet zoomen, Start und Kunden wählen, optimieren, Luftlinie und Straßenroute |
 | **"Aufs Handy - ohne Kabel, ohne Cloud"** | Ja | Nein | Desktop-Tour per QR ans Smartphone übergeben |
 | **"Was wäre wenn? Gebiete umbauen - ohne Risiko"** | Ja | Nein | Simulation ohne dauerhafte Änderung |
+| **"Dein Service-Tag in 20 Sekunden"** | Ja | Nein | Service-Fokus öffnen und einen erklärbaren Tagesvorschlag erleben |
 | **"Spontaner Termin? Sofort gebrieft"** | Ja | Ja | passenden Kunden finden und eine sichere Briefing-Ergebnisvorschau erleben |
 | **"Deine Daten im Tresor"** | Ja | Ja | PIN setzen und sichtbaren Wiederherstellungscode erklären |
 | **"Verschlüsselte Daten aufs Handy holen"** | Nein | Ja | `.tfsafe`-Datei wählen und getrennten Schlüssel scannen |
@@ -2210,6 +2219,12 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
   und erklärbarer Tagesvorschlag.
 - Klickpfad-Bibliothek, Schnellreferenz, FAQ, Glossar und Prüfungsfragen an das
   neue Onboarding- und Importverhalten angepasst.
+- neue Live-Demo "Dein Service-Tag in 20 Sekunden" (Desktop) ergänzt; nach
+  jeder Live-Demo kehren Ansichtstiefe und Arbeitsfokus zum vorherigen Stand
+  zurück.
+- Tablet-Verhalten als bewusste Entscheidung dokumentiert: keine eigene
+  Tablet-Ansicht, ab ca. 800 px volles Desktop-Layout, darunter
+  Smartphone-Verhalten.
 - interne Korrektur der Umsatz-Einheitenerkennung (t€/k€ nur noch als
   eigenständige Einheit) - Nutzerhinweis: Gesamtsumme im Importergebnis prüfen.
 
@@ -2273,5 +2288,6 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 | Live-Demos | nur auf Klick: Willkommens-Panel "Lieber zuschauen?" oder Info |
 | Erste Schritte | 4-Punkte-Checkliste; klappt beim Arbeiten zur Zeile ein; Abwahl über Info umkehrbar |
 | Service-Fokus | Profi; Verträge + Einsätze getrennt, Join nur über Kundennummer; erklärbarer Tagesvorschlag |
+| Tablet | keine eigene Ansicht: ab ca. 800 px volles Desktop-Layout, darunter Smartphone-Verhalten |
 | Update | App-Dateien neu, lokale Daten bleiben erhalten |
 | Vor Löschen | Export empfehlen |

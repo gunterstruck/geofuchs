@@ -113,6 +113,29 @@ export const STORIES = [
         ]
     },
     {
+        id: 'service-tag',
+        icon: '🛠️',
+        title: 'Dein Service-Tag in 20 Sekunden',
+        blurb: 'Einsätze rein – erklärbarer Tagesplan raus.',
+        desktopOnly: true,   // Service-Fokus (Profi) gibt es nur auf dem Desktop
+        needsData: true,
+        mutatesTour: true,
+        steps: [
+            { t: 'run', key: 'ensureDemo' },
+            { t: 'say', text: 'TourFuchs kann auch Service: Verträge und Einsatzaufträge – getrennt importiert, exakt über die Kundennummer verknüpft.', ms: 3000 },
+            { t: 'run', key: 'gotoService' },
+            { t: 'say', text: 'Im Service-Fokus zählen nur Vertragskunden und offene Einsätze – die Zähler zeigen den Handlungsbedarf.', sel: '#service-customer-scope', ms: 3000 },
+            { t: 'run', key: 'gotoServiceTour' },
+            { t: 'run', key: 'pickBezirkAll' },
+            { t: 'run', key: 'pickServiceStart' },
+            { t: 'say', text: 'Startpunkt steht. Jetzt plant TourFuchs den Tag – lokal auf deinem Gerät, ohne Cloud.', sel: '#btn-service-day-preview', ms: 2600 },
+            { t: 'run', key: 'buildServiceDay' },
+            { t: 'say', text: 'Fertig: Stopps mit Uhrzeiten, Fahrzeiten, Rückkehr und Auslastung.', sel: '#service-day-preview', ms: 2800 },
+            { t: 'say', text: 'Und jeder Stopp erklärt sich selbst – Priorität, SLA, Zeitfenster. Keine Blackbox.', sel: '#service-day-preview', ms: 3000 },
+            { t: 'say', text: 'Ein Klick auf „Übernehmen" macht daraus die fixe Tagestour – inklusive Tagesplan-Druck und Kalender.', ms: 3200 }
+        ]
+    },
+    {
         id: 'chancen',
         icon: '🎯',
         title: 'Spontaner Termin? Sofort gebrieft',
@@ -291,6 +314,11 @@ export const CRITICAL_SELECTORS = [
     '#btn-demo',
     '.mode-btn[data-mode="aussendienst"]',
     '.mode-btn[data-mode="gebietsplanung"]',
+    '.mode-btn[data-mode="service"]',
+    '#service-customer-scope',
+    '#service-day-planner',
+    '#btn-service-day-preview',
+    '#service-day-preview',
     '.tab-button[data-tab="tour"]',
     '.tab-button[data-tab="gebiete"]',
     '#tour-scope',

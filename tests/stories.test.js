@@ -35,12 +35,12 @@ describe('Showcase-Stories: Guardrail', () => {
     });
 
     it('die Stories in fester Reihenfolge', () => {
-        expect(STORIES.map((s) => s.id)).toEqual(['excel-karte', 'tour', 'handy-qr', 'simulation', 'chancen', 'tresor', 'empfang']);
+        expect(STORIES.map((s) => s.id)).toEqual(['excel-karte', 'tour', 'handy-qr', 'simulation', 'service-tag', 'chancen', 'tresor', 'empfang']);
     });
 
     it('am Desktop entfällt die mobile-only Empfangs-Story', () => {
         const ids = visibleStories({ isDesktop: true }).map((s) => s.id);
-        expect(ids).toEqual(['excel-karte', 'tour', 'handy-qr', 'simulation', 'chancen', 'tresor']);
+        expect(ids).toEqual(['excel-karte', 'tour', 'handy-qr', 'simulation', 'service-tag', 'chancen', 'tresor']);
         expect(ids).not.toContain('empfang');
     });
 
@@ -49,6 +49,15 @@ describe('Showcase-Stories: Guardrail', () => {
         expect(ids).toEqual(['excel-karte', 'tour', 'chancen', 'tresor', 'empfang']);
         expect(ids).not.toContain('handy-qr');
         expect(ids).not.toContain('simulation');
+        expect(ids).not.toContain('service-tag');
+    });
+
+    it('die Service-Demo nutzt nur existierende Engine-Helfer', () => {
+        const serviceStory = STORIES.find((story) => story.id === 'service-tag');
+        const runKeys = serviceStory.steps.filter((step) => step.t === 'run').map((step) => step.key);
+        for (const key of runKeys) {
+            expect(showcaseSource, `Helfer fehlt: ${key}`).toContain(`async ${key}(`);
+        }
     });
 
     it('die Tour-Demo zeigt die QR-Übergabe nur am Desktop', () => {
