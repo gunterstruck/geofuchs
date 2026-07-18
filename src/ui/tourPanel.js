@@ -16,6 +16,7 @@ import { combinePlanStart, todayInputValue } from '../features/dayPlanner.js';
 import { encodeTourPayload, MAX_QR_STOPS } from '../features/tourShare.js';
 import { initTourQr, openShareDialog } from './tourQr.js';
 import { noteTourSharedToPhone } from './firstSteps.js';
+import { zanoboMachineUrl } from '../services/zanobo.js';
 import { copyText, tourText } from '../features/handoff.js';
 import { visitStatus, STATUS_COLORS, STATUS_LABELS, markVisitedToday, lastVisit, agoText } from '../features/visits.js';
 import { loadTours, saveTours } from '../services/storage.js';
@@ -953,8 +954,9 @@ function renderStops() {
             const planned = plannedEntries.get(c.id);
             const linkedVisits = (state.tour.serviceVisitByCustomer?.[c.id] || []).map((id) => visitsById.get(id)).filter(Boolean);
             const serviceReason = linkedVisits.map((visit) => visit.reason).filter(Boolean).join(' + ');
+            const zanoboUrl = zanoboMachineUrl(linkedVisits.find((visit) => String(visit.assetId ?? '').trim())?.assetId);
             const servicePlanLine = planned
-                ? `<span class="service-stop-plan">🛠️ ${escapeHtml(formatPlanTime(planned.start))}–${escapeHtml(formatPlanTime(planned.end))}${serviceReason ? ` · ${escapeHtml(serviceReason)}` : ''}</span>`
+                ? `<span class="service-stop-plan">🛠️ ${escapeHtml(formatPlanTime(planned.start))}–${escapeHtml(formatPlanTime(planned.end))}${serviceReason ? ` · ${escapeHtml(serviceReason)}` : ''}${zanoboUrl ? ` · <a class="zanobo-link" href="${escapeHtml(zanoboUrl)}" target="_blank" rel="noopener noreferrer" title="Zanobo vergleicht das Betriebsgeräusch mit der Referenz der Anlage – Orientierung, keine Diagnose.">🔊 Anhören</a>` : ''}</span>`
                 : '';
             return `
             <div class="stop-row${autoLastStopIsDestination && i === stops.length - 1 ? ' final-row' : ''}${done ? ' stop-visited' : ''}">

@@ -132,7 +132,8 @@ export const STORIES = [
             { t: 'run', key: 'buildServiceDay' },
             { t: 'say', text: 'Fertig: Stopps mit Uhrzeiten, Fahrzeiten, Rückkehr und Auslastung.', sel: '#service-day-preview', ms: 2800 },
             { t: 'say', text: 'Und jeder Stopp erklärt sich selbst – Priorität, SLA, Zeitfenster. Keine Blackbox.', sel: '#service-day-preview', ms: 3000 },
-            { t: 'say', text: 'Ein Klick auf „Übernehmen" macht daraus die fixe Tagestour – inklusive Tagesplan-Druck und Kalender.', ms: 3200 }
+            { t: 'say', text: 'Ein Klick auf „Übernehmen" macht daraus die fixe Tagestour – inklusive Tagesplan-Druck und Kalender.', ms: 3200 },
+            { t: 'say', text: 'Und am Einsatzort? Ein Tipp öffnet Zanobo: Dein Smartphone vergleicht das Betriebsgeräusch der Anlage mit ihrer Referenz – lokal, ohne Cloud. Orientierung, keine Diagnose.', ms: 3800 }
         ]
     },
     {
