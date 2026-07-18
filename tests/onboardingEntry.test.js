@@ -7,15 +7,26 @@ const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
 const document = new JSDOM(html).window.document;
 
 describe('Ruhiger Daten-Einstieg', () => {
-    it('zeigt im ersten Blick genau die zwei gleichwertigen Hauptaktionen', () => {
+    it('führt im ersten Blick über Live-Demos und hält den eigenen Import sekundär bereit', () => {
         const onboarding = document.getElementById('onboarding');
         const actionIds = [...onboarding.querySelectorAll('.ob-primary-action')]
             .map((button) => button.id);
 
-        expect(actionIds).toEqual(['btn-demo', 'btn-own-data']);
+        expect(actionIds).toEqual(['btn-showcase-ob']);
+        expect(onboarding.querySelector('#btn-demo')).toBeNull();
+        expect(onboarding.querySelector('#btn-own-data')?.classList.contains('ob-secondary-action')).toBe(true);
+        expect(onboarding.querySelector('#demo-preview-status')).not.toBeNull();
         expect(onboarding.querySelector('#btn-upload')).toBeNull();
         expect(onboarding.querySelector('#btn-safe-receive-ob')).toBeNull();
         expect(onboarding.querySelector('[data-compliance-optin]')).toBeNull();
+    });
+
+    it('hält die Live-Demos nach dem automatischen Einblenden der Daten prominent', () => {
+        const loaded = document.getElementById('data-loaded');
+        const launcher = document.getElementById('demo-launcher');
+        expect(launcher.querySelector('#btn-showcase-data')).not.toBeNull();
+        expect(launcher.compareDocumentPosition(document.getElementById('first-steps')) & 4).toBeTruthy();
+        expect(loaded.querySelector('.demo-launcher')).toBeNull();
     });
 
     it('trennt Excel-Import und verschlüsselten Umzug erst in der zweiten Ebene', () => {

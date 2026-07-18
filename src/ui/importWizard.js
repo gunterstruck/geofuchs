@@ -8,11 +8,17 @@
 import { geocodeByPlz } from '../services/geocode.js';
 import {
     state, setCustomers, replaceCustomers, setServiceContracts, clearServiceContracts,
-    setServiceVisits, clearServiceVisits, emit, datasetSnapshot, setTerritory
+    setServiceVisits, clearServiceVisits, emit, on, datasetSnapshot, setTerritory
 } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { saveDataset } from '../services/storage.js';
-import { markShowcaseImportCompleted } from '../services/showcaseOnboarding.js';
+import {
+    WELCOME_DEMO_DELAY_MS,
+    canAutoLoadWelcomeDemo,
+    hasHandledWelcomeDemo,
+    markShowcaseImportCompleted,
+    markWelcomeDemoHandled
+} from '../services/showcaseOnboarding.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { showToast } from './toast.js';
 import { fitToCustomers } from '../features/map.js';
@@ -32,6 +38,9 @@ let ownDataDialog = null;
 let parsed = null; // { headers, rows, fileName }
 let lastErrors = [];
 let lastFileBase = 'TourFuchs';
+let welcomeDemoTimer = null;
+let welcomeDemoUserIntent = false;
+let demoLoadPromise = null;
 
 // SheetJS (xlsx) ist groß – erst laden, wenn wirklich importiert/exportiert wird
 const excel = () => import('../services/excel.js');
@@ -44,7 +53,11 @@ export function initImportWizard() {
     dialog = document.getElementById('import-dialog');
     ownDataDialog = document.getElementById('own-data-dialog');
 
-    document.getElementById('btn-own-data')?.addEventListener('click', () => ownDataDialog?.showModal());
+    document.getElementById('btn-own-data')?.addEventListener('click', () => {
+        cancelWelcomeDemo({ handled: true });
+        ownDataDialog?.showModal();
+    });
+    document.getElementById('btn-showcase-ob')?.addEventListener('click', () => cancelWelcomeDemo());
     ownDataDialog?.querySelector('.dialog-close')?.addEventListener('click', () => ownDataDialog.close());
 
     const fileInput = document.getElementById('file-input');
@@ -69,7 +82,6 @@ export function initImportWizard() {
     const downloadTemplate = async () => (await excel()).downloadTemplate();
     document.getElementById('btn-template').addEventListener('click', downloadTemplate);
     document.getElementById('btn-template-2')?.addEventListener('click', downloadTemplate);
-    document.getElementById('btn-demo').addEventListener('click', loadDemo);
 
     resultDialog = document.getElementById('import-result-dialog');
     resultDialog.querySelector('.dialog-close').addEventListener('click', () => resultDialog.close());
@@ -109,6 +121,8 @@ export function initImportWizard() {
 
     dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
     document.getElementById('mapping-confirm').addEventListener('click', confirmImport);
+
+    on('app:ready', scheduleWelcomeDemo);
 }
 
 function hasComplianceOptIn() {
@@ -345,18 +359,93 @@ function showImportResult({ customerCount, contactCount = 0, areaCount, skipped,
     resultDialog.showModal();
 }
 
-async function loadDemo() {
+function previewStatus({ title, detail, stateName = '' }) {
+    const status = document.getElementById('demo-preview-status');
+    if (!status) return;
+    status.classList.toggle('is-loading', stateName === 'loading');
+    status.classList.toggle('is-paused', stateName === 'paused');
+    const copy = status.querySelector('span:last-child');
+    if (copy) copy.innerHTML = `<b>${escapeHtml(title)}</b><small>${escapeHtml(detail)}</small>`;
+}
+
+function cancelWelcomeDemo({ handled = false } = {}) {
+    welcomeDemoUserIntent = true;
+    if (welcomeDemoTimer) clearTimeout(welcomeDemoTimer);
+    welcomeDemoTimer = null;
+    if (handled) markWelcomeDemoHandled();
+    previewStatus({
+        title: 'Automatische Beispieldaten pausiert.',
+        detail: 'Dein gewählter Einstieg hat jetzt Vorrang.',
+        stateName: 'paused'
+    });
+}
+
+function welcomeDemoBlockers() {
+    return {
+        handled: hasHandledWelcomeDemo(),
+        hasCustomers: state.customers.length > 0,
+        locked: vaultEnabled(),
+        userIntent: welcomeDemoUserIntent,
+        blockingDialogOpen: Boolean(document.querySelector('dialog[open]')),
+        documentHidden: document.hidden
+    };
+}
+
+function scheduleWelcomeDemo() {
+    if (!canAutoLoadWelcomeDemo(welcomeDemoBlockers())) return;
+    previewStatus({
+        title: 'Die Deutschlandkarte ist bereit.',
+        detail: 'Beispielkunden erscheinen gleich automatisch.'
+    });
+    welcomeDemoTimer = setTimeout(async () => {
+        welcomeDemoTimer = null;
+        if (!canAutoLoadWelcomeDemo(welcomeDemoBlockers())) return;
+        previewStatus({
+            title: 'Beispielkunden kommen auf die Karte …',
+            detail: 'Lokal erzeugt, unverbindlich und jederzeit ersetzbar.',
+            stateName: 'loading'
+        });
+        document.body.classList.add('demo-data-arriving');
+        try {
+            const loaded = await loadDemo({ source: 'welcome', confirmReplacement: false, announce: false });
+            if (loaded) {
+                emit('demo:auto-loaded');
+                showToast('Beispielkunden sind da. Starte jetzt eine Live-Demo oder erkunde die Karte selbst.', 'success', 5200);
+            }
+        } catch (error) {
+            console.warn('Automatische Beispieldaten konnten nicht geladen werden:', error);
+            previewStatus({
+                title: 'Die Karte bleibt startklar.',
+                detail: 'Eine Live-Demo lädt die Beispieldaten bei Bedarf.',
+                stateName: 'paused'
+            });
+        } finally {
+            setTimeout(() => document.body.classList.remove('demo-data-arriving'), 1800);
+        }
+    }, WELCOME_DEMO_DELAY_MS);
+}
+
+/** Lädt sichere Beispieldaten für Einstieg oder Live-Demo. */
+export function loadDemo({ source = 'manual', confirmReplacement = true, announce = true } = {}) {
+    if (demoLoadPromise) return demoLoadPromise;
+    if (source === 'welcome' && state.customers.length > 0) return Promise.resolve(false);
+    demoLoadPromise = performDemoLoad({ confirmReplacement, announce })
+        .finally(() => { demoLoadPromise = null; });
+    return demoLoadPromise;
+}
+
+async function performDemoLoad({ confirmReplacement, announce }) {
     // Beispieldaten sind nicht schützenswert: ein evtl. aktiver Tresor wird
     // deaktiviert, damit die Demo unverschlüsselt und ohne PIN-Sperre läuft.
     const { demoCustomers } = await excel();
     const customers = await demoCustomers();
     const disablesVault = vaultEnabled();
-    if (!confirmDatasetReplacement({
+    if (confirmReplacement && !confirmDatasetReplacement({
         incomingCount: customers.length,
         sourceLabel: 'Die Beispieldaten',
         disablesVault,
         replacesContracts: true
-    })) return;
+    })) return false;
     if (disablesVault) removeVaultMeta();
     clearServiceContracts({ dirty: false });
     clearServiceVisits({ dirty: false });
@@ -371,8 +460,12 @@ async function loadDemo() {
         DEMO: createDemoServiceVisitSourceMeta(serviceVisits, demoNow)
     });
     await saveDataset(datasetSnapshot());
+    markWelcomeDemoHandled();
     emit('demo:loaded');
-    showToast('Demo geladen – tippe auf einen Pin oder plane eine Tour. Eigene Daten? Lade jederzeit deine Excel-Liste.', 'success', 6000);
+    if (announce) {
+        showToast('Demo geladen – tippe auf einen Kundenstapel oder starte eine Live-Demo. Eigene Daten kannst du jederzeit laden.', 'success', 6000);
+    }
+    return true;
 }
 
 function removeDemoContracts() {

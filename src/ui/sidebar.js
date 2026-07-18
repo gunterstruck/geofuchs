@@ -1082,6 +1082,7 @@ function persistSettings() {
 function renderDataStatus() {
     const onboarding = document.getElementById('onboarding');
     const loaded = document.getElementById('data-loaded');
+    const demoLauncher = document.getElementById('demo-launcher');
     const el = document.getElementById('data-status');
     const sidebar = document.getElementById('sidebar');
     const empty = state.customers.length === 0;
@@ -1094,10 +1095,12 @@ function renderDataStatus() {
     if (empty) {
         if (onboarding) onboarding.style.display = '';
         if (loaded) loaded.style.display = 'none';
+        if (demoLauncher) demoLauncher.hidden = true;
         return;
     }
     if (onboarding) onboarding.style.display = 'none';
     if (loaded) loaded.style.display = 'block';
+    if (demoLauncher) demoLauncher.hidden = false;
     const total = state.customers.length;
     const located = state.customers.filter((c) => c.lat !== null).length;
     const exact = state.customers.filter((c) => c.geo === 'exakt').length;

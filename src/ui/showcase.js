@@ -29,6 +29,7 @@ import { flyToCustomer, fitToCustomers, fitTourRoute, focusMapArea, closeMapPopu
 import { showMapView, captureSheetForDemo, expandSheetForDemo, restoreSheetAfterDemo, applyDepth, applyMode } from './sidebar.js';
 import { showKeyStepForDemo } from './safeTransfer.js';
 import { openCustomerBriefing as openBriefingDialog } from './customerBriefing.js';
+import { loadDemo } from './importWizard.js';
 
 const ROUTING_CONSENT_KEY = 'gf_routing_consent';
 
@@ -190,10 +191,11 @@ async function selectValue(sel, value) {
 async function say(text, sel, pos) {
     bubbleEl.textContent = text;
     bubbleEl.hidden = false;
-    // vorläufig platzieren, um Maße zu kennen
+    bubbleEl.classList.remove('sc-show');
+    // Vorläufig platzieren, um Maße zu kennen. Die Blase erscheint erst,
+    // nachdem der Cursor sichtbar zum erklärten Element gewandert ist.
     bubbleEl.style.left = '-9999px';
     bubbleEl.style.top = '0px';
-    bubbleEl.classList.add('sc-show');
     await sleep(10);
     const bw = bubbleEl.offsetWidth;
     const bh = bubbleEl.offsetHeight;
@@ -202,6 +204,8 @@ async function say(text, sel, pos) {
         moveOverlaysInto(layerFor(anchor));
         anchor.scrollIntoView({ block: 'center', behavior: prefersReduced ? 'auto' : 'smooth' });
         await sleep(prefersReduced ? 40 : 240);
+        const target = centerOf(anchor);
+        await moveTo(target.x, target.y);
     }
     let x;
     let y;
@@ -218,6 +222,7 @@ async function say(text, sel, pos) {
     }
     bubbleEl.style.left = `${x}px`;
     bubbleEl.style.top = `${Math.max(58, y)}px`;
+    bubbleEl.classList.add('sc-show');
 }
 function hideBubble() {
     if (!bubbleEl) return;
@@ -260,15 +265,38 @@ async function waitForCustomers(timeout = 6000) {
 const HELPERS = {
     async ensureDemo() {
         if (state.customers.length > 0) return;
-        await clickEl('#btn-demo');
+        await loadDemo({ source: 'showcase', confirmReplacement: true, announce: false });
         await waitForCustomers();
-        await sleep(900);
+        await sleep(1100);
     },
     async excelToMap() {
         if (state.customers.length === 0) {
-            await clickEl('#btn-demo');
+            await loadDemo({ source: 'showcase', confirmReplacement: true, announce: false });
             await waitForCustomers();
         }
+        showMapView();
+        fitToCustomers();
+        await sleep(1400);
+    },
+    async openCustomerFromMap() {
+        showMapView();
+        await sleep(500);
+        // Die echte Cluster-Interaktion sichtbar wiederholen, bis aus dem
+        // Kundenstapel eine einzelne Kundenkarte wird. So erklärt sich die
+        // Zoom-Logik durch die Mausbewegung statt durch einen Sprung.
+        for (let depth = 0; depth < 4; depth++) {
+            if (await resolveEl('.customer-marker-card', 350)) break;
+            if (!await resolveEl('.customer-stack-card', 900)) break;
+            await clickEl('.customer-stack-card');
+            await sleep(900);
+        }
+        if (await resolveEl('.customer-marker-card', 800)) {
+            await clickEl('.customer-marker-card');
+            await resolveEl('.leaflet-popup-content', 2200);
+            await sleep(650);
+            return;
+        }
+        await HELPERS.showOneCustomer();
     },
     async focusDemoTourArea() {
         showcaseTourPlan = selectShowcaseTour(scopedWithCoords());
@@ -561,15 +589,21 @@ const HELPERS = {
 
 // ---- Schritt-Ausführung ----
 async function runStep(step) {
+    if (step.t !== 'say') hideBubble();
     switch (step.t) {
         case 'say': await say(step.text, step.sel, step.pos); await sleep(step.ms ?? 1800); break;
-        case 'move': await moveToEl(step.sel); break;
-        case 'click': await clickEl(step.sel); break;
-        case 'type': await typeInto(step.sel, step.text); break;
-        case 'select': await selectValue(step.sel, step.value); break;
+        case 'move': if (!await moveToEl(step.sel)) throw new Error('Demo-Ziel nicht sichtbar.'); break;
+        case 'click': if (!await clickEl(step.sel)) throw new Error('Demo-Aktion nicht erreichbar.'); break;
+        case 'type': if (!await typeInto(step.sel, step.text)) throw new Error('Demo-Eingabe nicht erreichbar.'); break;
+        case 'select': if (!await selectValue(step.sel, step.value)) throw new Error('Demo-Auswahl nicht erreichbar.'); break;
         case 'wait': await sleep(step.ms ?? 800); break;
-        case 'waitFor': await resolveEl(step.sel, step.ms ?? 4000); break;
-        case 'run': if (HELPERS[step.key]) await HELPERS[step.key](); break;
+        case 'waitFor': if (!await resolveEl(step.sel, step.ms ?? 4000)) throw new Error('Demo-Ergebnis nicht sichtbar.'); break;
+        case 'run': {
+            const helper = HELPERS[step.key];
+            if (!helper) throw new Error('Demo-Schritt ist nicht definiert.');
+            await helper();
+            break;
+        }
         default: break;
     }
 }
@@ -580,7 +614,7 @@ function showChrome(story) {
     shieldEl.className = 'sc-shield';
     toolbarEl = document.createElement('div');
     toolbarEl.className = 'sc-toolbar';
-    toolbarEl.innerHTML = `<span>🦊 <b>Vorführung läuft</b></span>
+    toolbarEl.innerHTML = `<span class="sc-story-label">${story.icon} <b>${story.title}</b></span>
         <span class="sc-progress"></span>
         <button type="button" class="sc-cancel">Beenden</button>`;
     document.body.append(shieldEl, toolbarEl);
@@ -804,7 +838,7 @@ function buildPanel() {
     const tiles = currentVisibleStories().map((s) => `
         <button type="button" class="sc-tile" data-story="${s.id}">
             <span class="sc-tile-icon">${s.icon}</span>
-            <span class="sc-tile-body"><b>${s.title}</b><span>${s.blurb}</span></span>
+            <span class="sc-tile-body"><b>${s.title}</b><span>${s.blurb}</span><small>ca. ${s.duration || 25} Sek.</small></span>
             ${seen.has(s.id) ? '<span class="sc-tile-seen" title="schon gesehen">✓</span>' : '<span class="sc-tile-play">▶</span>'}
         </button>`).join('');
     dialog.dataset.view = 'intro';
@@ -812,7 +846,7 @@ function buildPanel() {
         <div class="sc-panel-head">
             <div class="sc-panel-fox">🦊</div>
             <h2>Soll ich dir kurz zeigen, was ich kann?</h2>
-            <p>Wähl eine Geschichte – ich führe sie live vor, ganz von allein. Dauert je ~20 Sekunden.</p>
+            <p>Wähle einen Ablauf – der Cursor zeigt jeden Schritt direkt in der echten App.</p>
         </div>
         <div class="sc-tiles">${tiles}</div>
         <div class="sc-panel-foot">
@@ -854,7 +888,9 @@ export function initShowcase() {
         document.getElementById('info-dialog')?.close();
         openPanel();
     });
-    document.getElementById('btn-showcase-ob')?.addEventListener('click', () => openPanel());
+    ['btn-showcase-ob', 'btn-showcase-data'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('click', () => openPanel());
+    });
 
     // ESC bricht eine laufende Vorführung ab (statt nur den Dialog zu schließen)
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && running) { e.preventDefault(); abortNow(); } }, true);

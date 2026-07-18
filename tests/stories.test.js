@@ -25,6 +25,7 @@ describe('Showcase-Stories: Guardrail', () => {
             expect(ids.has(s.id)).toBe(false);
             ids.add(s.id);
             expect(s.title).toBeTruthy();
+            expect(s.duration).toBeGreaterThanOrEqual(20);
             expect(Array.isArray(s.steps) && s.steps.length > 0).toBe(true);
             for (const step of s.steps) {
                 expect(typeof step.t).toBe('string');
@@ -32,6 +33,15 @@ describe('Showcase-Stories: Guardrail', () => {
                 if (step.t === 'say') expect(step.text).toBeTruthy();
             }
         }
+    });
+
+    it('führt die Karten-Demo sichtbar vom Kundenstapel bis zum Popup', () => {
+        const mapStory = STORIES.find((story) => story.id === 'excel-karte');
+        expect(mapStory.steps.some((step) => step.sel === '.customer-stack-card')).toBe(true);
+        expect(mapStory.steps.some((step) => step.key === 'openCustomerFromMap')).toBe(true);
+        expect(mapStory.steps.at(-1)?.sel).toBe('.leaflet-popup-content');
+        expect(showcaseSource).toContain("await clickEl('.customer-stack-card')");
+        expect(showcaseSource).toContain("await clickEl('.customer-marker-card')");
     });
 
     it('die Stories in fester Reihenfolge', () => {

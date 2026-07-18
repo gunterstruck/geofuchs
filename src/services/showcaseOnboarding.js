@@ -2,8 +2,13 @@ const KEYS = Object.freeze({
     seen: 'tf_showcase_seen',
     dismissed: 'tf_showcase_dismissed',
     imported: 'tf_showcase_imported',
-    completed: 'tf_showcase_completed'
+    completed: 'tf_showcase_completed',
+    welcomeDemoHandled: 'tf_welcome_demo_handled'
 });
+
+// Lang genug, damit die Deutschlandkarte bewusst als ruhiger Ausgangspunkt
+// wahrgenommen wird – kurz genug, um nicht wie eine Ladezeit zu wirken.
+export const WELCOME_DEMO_DELAY_MS = 4600;
 
 function store(provided) {
     if (provided) return provided;
@@ -54,6 +59,31 @@ export function resetShowcaseAfterDataClear(provided) {
 
 export function markShowcaseCompleted(provided) {
     writeFlag(KEYS.completed, provided);
+}
+
+export function hasHandledWelcomeDemo(provided) {
+    return readFlag(KEYS.welcomeDemoHandled, provided);
+}
+
+export function markWelcomeDemoHandled(provided) {
+    writeFlag(KEYS.welcomeDemoHandled, provided);
+}
+
+/** Nur der allererste freie Einstieg darf Beispieldaten selbst einblenden. */
+export function canAutoLoadWelcomeDemo({
+    handled = false,
+    hasCustomers = false,
+    locked = false,
+    userIntent = false,
+    blockingDialogOpen = false,
+    documentHidden = false
+} = {}) {
+    return !handled
+        && !hasCustomers
+        && !locked
+        && !userIntent
+        && !blockingDialogOpen
+        && !documentHidden;
 }
 
 export function isShowcaseAutoSuppressed(provided) {

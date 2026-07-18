@@ -90,6 +90,12 @@
     font-weight: 600;
 }
 .sc-toolbar b { color: var(--color-primary-dark, #0f766e); }
+.sc-story-label {
+    max-width: min(46vw, 360px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .sc-toolbar .sc-cancel {
     min-height: 32px;
     padding: 5px 13px;
@@ -166,6 +172,7 @@
 .sc-tile-body { flex: 1; min-width: 0; }
 .sc-tile-body b { display: block; font-size: 0.98rem; }
 .sc-tile-body span { color: var(--color-text-muted, #64748b); font-size: 0.85rem; }
+.sc-tile-body small { display: block; margin-top: 2px; color: var(--color-primary-dark, #0f766e); font-size: 0.7rem; font-weight: 700; }
 .sc-tile-seen { color: var(--color-primary, #0d9488); font-weight: 800; font-size: 1.1rem; flex-shrink: 0; }
 .sc-tile-play { color: var(--color-text-muted, #94a3b8); font-size: 1.2rem; flex-shrink: 0; }
 .sc-panel-foot {
