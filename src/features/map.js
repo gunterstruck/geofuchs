@@ -1108,10 +1108,10 @@ function renderLabels() {
     const positions = revenueWeightedCentroids(polygonsByValue);
     const labelMode = territoryLabelMode(map.getZoom(), { mobile: isMobileMap() });
     const labelSize = labelMode === 'chip'
-        ? { width: 78, height: 46 }
+        ? { width: 86, height: 56 }
         : labelMode === 'compact'
-            ? { width: 96, height: 60 }
-            : { width: 116, height: 74 };
+            ? { width: 100, height: 70 }
+            : { width: 120, height: 82 };
     const mapSize = map.getSize();
     const candidates = [...positions].map(([val, center]) => {
         const point = map.latLngToContainerPoint(center);
@@ -1152,9 +1152,13 @@ function renderLabels() {
                     : dimension;
         const title = `${dimension} ${val}: ${count} Kunden${hasRevenue ? ` · ${formatRevenueFull(revenue)} Volumen` : ''}`;
         const displayValue = labelMode === 'detail' ? val : compactTerritoryLabel(val);
-        const metrics = labelMode === 'detail'
-            ? `<span class="tl-metrics"><b>${count} Kunden</b>${rev ? `<span>${rev}</span>` : ''}</span>`
-            : `<span class="tl-count">${count}${labelMode === 'compact' ? ' Kunden' : ' Kd.'}</span>`;
+        // Umsatz ab Vertriebsbezirk aufwärts in jeder Stufe zeigen (kompakt in
+        // T€/€), Kundenzahl bleibt die primäre Orientierung darüber.
+        const countLabel = labelMode === 'chip' ? `${count} Kd.` : `${count} Kunden`;
+        const metrics = `<span class="tl-metrics">
+                    <span class="tl-count">${countLabel}</span>
+                    ${rev ? `<span class="tl-rev">${escapeHtml(rev)}</span>` : ''}
+                </span>`;
         L.marker(center, {
             interactive: false,
             keyboard: false,

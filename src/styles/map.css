@@ -100,15 +100,15 @@
     position: absolute;
     left: 50%;
     bottom: calc(50% + 9px);
-    margin-left: -63px;
+    margin-left: -50px;
     z-index: 2;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
     gap: 3px;
-    width: 126px;
+    width: 100px;
     height: auto;
-    min-height: 58px;
+    min-height: 92px;
     padding: 9px 9px 8px;
     border: 1px solid rgba(15, 23, 42, 0.14);
     border-radius: 12px;
@@ -153,7 +153,7 @@
 .customer-marker-mode-label .customer-marker-copy b,
 .customer-marker-mode-detail .customer-marker-copy b {
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     white-space: normal;
@@ -171,9 +171,9 @@
 }
 /* Detailstufe: etwas größer, die Adresse darf zweizeilig werden. */
 .customer-marker-mode-detail .customer-marker-card {
-    width: 142px;
-    margin-left: -71px;
-    min-height: 64px;
+    width: 112px;
+    margin-left: -56px;
+    min-height: 104px;
 }
 .customer-marker-mode-detail .customer-marker-copy b { font-size: 0.82rem; }
 .customer-marker-mode-detail .customer-marker-copy small {
@@ -411,26 +411,30 @@ body.demo-data-arriving .leaflet-marker-pane > *:nth-child(3n) { animation-delay
     margin-top: 4px;
     padding-top: 4px;
     border-top: 1px solid #e2e8f0;
-    color: #475569;
-    font-size: 0.56rem;
-    line-height: 1.1;
+    line-height: 1.12;
     white-space: nowrap;
 }
-.territory-stack-card .tl-metrics b { color: #0f172a; }
 .territory-stack-card .tl-count {
-    margin-top: 3px;
     color: #475569;
     font-size: 0.58rem;
     font-weight: 700;
-    line-height: 1.1;
-    white-space: nowrap;
 }
-.territory-stack-card--chip { width: 78px; min-height: 46px; padding: 9px 7px 6px; }
+/* Umsatzsumme des Gebiets – bewusst hervorgehoben (grün, tabellarische Ziffern). */
+.territory-stack-card .tl-rev {
+    color: var(--color-primary-dark, #0f766e);
+    font-size: 0.64rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+.territory-stack-card--chip { width: 86px; min-height: 56px; padding: 9px 7px 6px; }
 .territory-stack-card--chip .tl-dimension { display: none; }
 .territory-stack-card--chip > strong { margin-top: 0; font-size: 0.74rem; }
-.territory-stack-card--chip .tl-count { font-size: 0.54rem; }
-.territory-stack-card--compact { width: 96px; min-height: 60px; }
-.territory-stack-card--detail { width: 116px; min-height: 74px; }
+.territory-stack-card--chip .tl-count { font-size: 0.53rem; }
+.territory-stack-card--chip .tl-rev { font-size: 0.58rem; }
+.territory-stack-card--compact { width: 100px; min-height: 70px; }
+.territory-stack-card--detail { width: 120px; min-height: 82px; }
+.territory-stack-card--detail .tl-count { font-size: 0.6rem; }
+.territory-stack-card--detail .tl-rev { font-size: 0.7rem; }
 .territory-stack-card.unassigned { border-style: dashed; }
 
 /* Popup-Inhalte */
@@ -636,9 +640,9 @@ button.contact-link {
         background: rgba(13, 148, 136, 0.001);
     }
     .customer-marker-card { position: relative; z-index: 1; }
-    /* Mobil etwas breitere Kacheln für Lesbarkeit und Treffsicherheit. */
-    .customer-marker-mode-label .customer-marker-card { width: 140px; margin-left: -70px; }
-    .customer-marker-mode-detail .customer-marker-card { width: 158px; margin-left: -79px; }
+    /* Mobil etwas größere Kacheln für Lesbarkeit und Treffsicherheit – hochkant. */
+    .customer-marker-mode-label .customer-marker-card { width: 112px; margin-left: -56px; min-height: 100px; }
+    .customer-marker-mode-detail .customer-marker-card { width: 126px; margin-left: -63px; min-height: 112px; }
     .leaflet-popup-content {
         margin: 10px 12px;
         max-height: min(52dvh, 380px);
