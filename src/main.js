@@ -13,7 +13,7 @@ import { loadDataset, saveDataset, loadSettings, hasStoredDataset } from './serv
 import { isEnabled as vaultEnabled, isLocked as vaultLocked, removeVaultMeta } from './services/vault.js';
 import { enrichPlacesByPlz, geocodeByPlz } from './services/geocode.js';
 import { initMap } from './features/map.js';
-import { initSidebar, applyMode, autoRevealIfEmpty, showDataView } from './ui/sidebar.js';
+import { initSidebar, applyMode, autoRevealIfEmpty, showDataView, showMapView } from './ui/sidebar.js';
 import { initImportWizard } from './ui/importWizard.js';
 import { initTourPanel } from './ui/tourPanel.js';
 import { openReceivedFromUrl } from './ui/tourQr.js';
@@ -156,10 +156,16 @@ async function restorePersistedState() {
     }
     if (mobileStartup) {
         state.ui.mode = 'aussendienst';
-        state.ui.activeTab = 'daten';
+        // Mit Daten startet das Handy direkt auf der Karte (Blatt eingeklappt),
+        // damit die Kunden sofort sichtbar sind. Nur ohne Daten öffnet sich das
+        // Datenblatt als geführter Einstieg.
+        state.ui.activeTab = state.customers.length > 0 ? 'karte' : 'daten';
     }
     applyMode(state.ui.mode, false);
-    if (mobileStartup) showDataView(false);
+    if (mobileStartup) {
+        if (state.customers.length > 0) showMapView(false);
+        else showDataView(false);
+    }
 }
 
 // Kundendaten nach inhaltlichen Änderungen (Besuch, Rhythmus, Gebiete) speichern – gedrosselt
