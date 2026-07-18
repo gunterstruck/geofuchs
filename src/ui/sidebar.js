@@ -498,7 +498,7 @@ const MODE_CONFIG = {
         label: 'Außendienst',
         primaryTab: 'tour',
         // Karte startet mit Kundenmarkern statt Gebietsflächen
-        areaColorModes: ['auto', 'bezirk', 'gruppe', 'luecken'],
+        areaColorModes: ['auto', 'channel', 'bezirk', 'gruppe', 'luecken'],
         defaultColorMode: 'rep',
         hint: 'Alltag: Kundenkarte, Tour planen, Kunden in der Nähe, Übergabe an Maps.'
     },
@@ -512,7 +512,7 @@ const MODE_CONFIG = {
     service: {
         label: 'Service',
         primaryTab: 'einsaetze',
-        markerColorModes: ['auto', 'bezirk', 'gruppe', 'luecken'],
+        markerColorModes: ['auto', 'channel', 'bezirk', 'gruppe', 'luecken'],
         defaultColorMode: 'rep',
         hint: 'Experten-Modus: aktuelle Einsätze planen und Verträge getrennt im Blick behalten.'
     }
@@ -956,8 +956,9 @@ function renderLegend() {
     const mode = state.colorMode;
 
     const hints = {
-        auto: 'Zoom bestimmt den Detailgrad: weit → Vertriebsgruppen, mittel/nah → Vertriebsbezirke mit Umsatz.',
-        rep: 'Kunden als Punkte eingefärbt; diese Ansicht ist für den Außendienst gedacht.',
+        auto: 'Zoom bestimmt den Detailgrad: weit → Vertriebshauptgruppen, dann Vertriebsgruppen, mittel/nah → Vertriebsbezirke.',
+        rep: 'Ruhige grüne Kundenkarten; fällige Besuche werden nur als kleine Ausnahme hervorgehoben.',
+        channel: 'Gebiete nach Vertriebshauptgruppe bzw. Channel, mit Kundenanzahl und Volumen.',
         bezirk: 'Gebiete flächig nach Vertriebsbezirk eingefärbt, mit Name und Umsatzsumme.',
         gruppe: 'Gebiete flächig nach Vertriebsgruppe eingefärbt, mit Name und Umsatzsumme.',
         status: 'Kunden als Punkte, eingefärbt nach Besuchsstatus.',
@@ -978,11 +979,11 @@ function renderLegend() {
             ['#f59e0b', 'zugeordnet, aber leer'],
             ['#16a34a', 'abgedeckt']
         ].map(([c, l]) => `<span class="legend-item"><span class="dot" style="background:${c}"></span>${l}</span>`).join('');
-    } else if (mode === 'bezirk' || mode === 'gruppe') {
+    } else if (mode === 'channel' || mode === 'bezirk' || mode === 'gruppe') {
         const dim = state.dims[mode];
         el.innerHTML = dim?.active
             ? legendFromMap([...dim.values.entries()].slice(0, 14))
-            : `<span class="muted small">Keine Spalte „${mode === 'bezirk' ? 'Vertriebsbezirk' : 'Vertriebsgruppe'}" in den Daten.</span>`;
+            : `<span class="muted small">Keine Spalte „${mode === 'channel' ? 'Vertriebshauptgruppe / Channel' : mode === 'bezirk' ? 'Vertriebsbezirk' : 'Vertriebsgruppe'}" in den Daten.</span>`;
     } else if (mode === 'rep') {
         el.innerHTML = legendFromMap([...state.reps.entries()].slice(0, 14));
     } else {

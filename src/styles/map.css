@@ -114,8 +114,11 @@
 .customer-marker-card.is-opening { z-index: 1000; transform: translateY(-2px) scale(1.06); }
 .customer-marker-card.approx .customer-marker-symbol { outline: 1px dashed #fff; outline-offset: -3px; opacity: 0.92; }
 .customer-marker-card.in-tour { outline: 3px solid #0d9488; outline-offset: 2px; }
-.customer-marker-card.overdue {
-    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #dc2626, 0 1px 4px rgba(0, 0, 0, 0.45);
+.customer-marker-card.visit-due {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #f59e0b, 0 1px 4px rgba(0, 0, 0, 0.36);
+}
+.customer-marker-card.visit-overdue {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #dc2626, 0 1px 4px rgba(0, 0, 0, 0.42);
 }
 .customer-marker-card.is-discovery { animation: customer-card-discovery 1.4s ease-in-out 2; }
 @keyframes customer-card-discovery {
@@ -151,19 +154,59 @@
 }
 
 .cluster-wrapper { background: transparent; }
-.cluster-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #0d9488;
-    color: #fff;
-    font-weight: 700;
+.customer-stack-card {
+    --stack-color: #0d9488;
+    --stack-accent: #0d9488;
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-rows: 6px 1fr auto;
+    width: 44px;
+    height: 40px;
+    overflow: visible;
+    border: 2px solid var(--stack-color);
+    border-radius: 8px;
+    background: #fff;
+    color: #0f172a;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.26);
+    cursor: pointer;
+    transform-origin: 50% 100%;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.customer-stack-card::before,
+.customer-stack-card::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 3px -5px -4px 5px;
+    border: 1px solid color-mix(in srgb, var(--stack-color) 55%, white);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.94);
+}
+.customer-stack-card::after { inset: 6px -8px -7px 8px; z-index: -2; opacity: 0.78; }
+.customer-stack-accent {
+    display: block;
+    margin: -1px -1px 0;
+    border-radius: 5px 5px 1px 1px;
+    background: var(--stack-accent);
+}
+.customer-stack-card strong {
+    align-self: end;
+    padding: 1px 5px 0;
     font-size: 0.82rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 3px solid rgba(255, 255, 255, 0.85);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+.customer-stack-card small { padding: 1px 5px 4px; color: #475569; font-size: 0.58rem; font-weight: 700; line-height: 1; }
+.customer-stack-card:hover,
+.customer-stack-card:focus { transform: translateY(-2px) scale(1.05); box-shadow: 0 7px 16px rgba(15, 23, 42, 0.3); }
+.customer-stack-card.mixed { border-color: #64748b; }
+.customer-stack-card.unassigned { border-color: #94a3b8; border-style: dashed; }
+.customer-stack-card.is-discovery { animation: customer-stack-discovery 1.05s ease-in-out 2; }
+@keyframes customer-stack-discovery {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    35% { transform: translateY(-5px) rotate(-2deg) scale(1.06); }
+    65% { transform: translateY(-3px) rotate(2deg) scale(1.06); }
 }
 
 .tour-marker-wrapper { background: transparent; }
@@ -185,25 +228,65 @@
 .tour-marker.dest { width: 28px; height: 28px; font-size: 0.95rem; }
 .tour-marker.auto-dest { font-size: 0.78rem; }
 
-/* Gebiets-Labels (Bezirk / Gruppe + Umsatz) */
+/* Organisationskarten (Hauptgruppe / Gruppe / Bezirk + Kunden + Volumen) */
 .territory-label-wrapper { background: transparent; pointer-events: none; }
-.territory-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    white-space: nowrap;
+.territory-stack-card {
+    --territory-color: #0d9488;
+    position: relative;
+    display: grid;
+    grid-template-rows: 6px auto auto auto;
+    width: max-content;
+    min-width: 132px;
+    max-width: 190px;
+    overflow: visible;
     transform: translate(-50%, -50%);
-    background: rgba(255, 255, 255, 0.92);
-    border: 2px solid #0d9488;
-    border-radius: 99px;
-    padding: 3px 10px;
-    font-size: 0.8rem;
-    font-weight: 700;
+    border: 2px solid var(--territory-color);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.94);
     color: #0f172a;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 5px 14px rgba(15, 23, 42, 0.22);
+    backdrop-filter: blur(3px);
 }
-.territory-label .tl-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.territory-label .tl-rev { font-weight: 600; color: #0f766e; font-size: 0.74rem; }
+.territory-stack-card::before,
+.territory-stack-card::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 5px -5px -5px 5px;
+    border: 1px solid rgba(100, 116, 139, 0.25);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.8);
+}
+.territory-stack-card::after { inset: 9px -9px -9px 9px; opacity: 0.7; }
+.territory-stack-card .tl-accent { background: var(--territory-color); }
+.territory-stack-card .tl-kicker {
+    padding: 5px 9px 1px;
+    color: #64748b;
+    font-size: 0.57rem;
+    font-weight: 800;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+}
+.territory-stack-card > strong {
+    overflow: hidden;
+    padding: 0 9px 4px;
+    font-size: 0.78rem;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.territory-stack-card .tl-metrics {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 5px 9px 6px;
+    border-top: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 0.62rem;
+    white-space: nowrap;
+}
+.territory-stack-card .tl-metrics b { color: #0f172a; }
+.territory-stack-card.unassigned { border-style: dashed; }
 
 /* Popup-Inhalte */
 .leaflet-popup-content-wrapper,
@@ -442,6 +525,7 @@ button.contact-link {
     .customer-marker-card,
     .customer-marker-symbol { transition: none; }
     .customer-marker-card.is-discovery,
+    .customer-stack-card.is-discovery,
     .customer-detail-popup .leaflet-popup-content-wrapper,
     .customer-detail-popup .leaflet-popup-tip { animation: none; }
 }

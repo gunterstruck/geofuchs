@@ -13,6 +13,24 @@ import {
     isDemoCustomer
 } from '../core/demoSafety.js';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Ruhige, aber glaubwürdige Besuchslage für die Demo: exakt jeder zwanzigste
+ * Kunde ist fällig oder überfällig. Die übrigen 95 % liegen im Rhythmus.
+ */
+export function demoVisitSchedule(index, rhythmusWochen, now = new Date()) {
+    const rhythmDays = Math.max(1, Number(rhythmusWochen) || 6) * 7;
+    const overdue = index > 0 && index % 40 === 0;
+    const due = index % 40 === 20;
+    const daysAgo = overdue ? rhythmDays + 5 : due ? rhythmDays - 3 : Math.min(14, rhythmDays - 10);
+    const date = new Date(now.getTime() - Math.max(1, daysAgo) * DAY_MS);
+    return {
+        status: overdue ? 'ueberfaellig' : due ? 'faellig' : 'ok',
+        besuche: [date.toISOString().slice(0, 10)]
+    };
+}
+
 /** Interne Felder mit deutschen Labels und Erkennungs-Synonymen */
 export const FIELDS = [
     { key: 'nummer',  label: 'Kundennummer',           required: false, synonyms: ['kundennummer', 'kundennr', 'kunden-nr', 'nummer', 'nr', 'debitor', 'debitorennummer', 'kdnr', 'kd-nr', 'id'] },
@@ -622,8 +640,6 @@ export function createDemoCustomers(centroids, places) {
     const branchen = ['Autohaus', 'Bäckerei', 'Metallbau', 'Getränke', 'MedTech', 'Baustoffe', 'Elektro', 'Logistik', 'Hotel', 'Feinkost', 'Werkzeuge', 'Maschinenbau', 'Sanitär', 'Druckerei', 'Gartenbau', 'Fliesen', 'Dachdecker', 'Kfz-Service', 'Textil', 'Optik'];
     const umsatzChoices = [24000, 33000, 48000, 61000, 79000, 104000, 138000, 176000, 224000, 295000, 360000];
     const rhythmChoices = [4, 6, 6, 8, 12];
-    const daysAgoChoices = [7, 20, 45, 70, 110, null];
-
     const PER_BEZIRK = 150;
     const out = [];
     let i = 0;
@@ -636,13 +652,8 @@ export function createDemoCustomers(centroids, places) {
             // Die frühere Namens- und Straßenwahl verbrauchte vier Zufallswerte.
             // Weiterziehen erhält die bewährte geografische Demo-Verteilung.
             rnd(); rnd(); rnd(); rnd();
-            const daysAgo = daysAgoChoices[i % daysAgoChoices.length];
-            let besuche = [];
-            if (daysAgo !== null) {
-                const d = new Date();
-                d.setDate(d.getDate() - daysAgo);
-                besuche = [d.toISOString().slice(0, 10)];
-            }
+            const rhythmusWochen = rhythmChoices[i % rhythmChoices.length];
+            const { besuche } = demoVisitSchedule(i, rhythmusWochen);
             out.push({
                 id: `demo-${i}`,
                 nummer: String(20000 + i),
@@ -655,7 +666,7 @@ export function createDemoCustomers(centroids, places) {
                 gruppe: anchor.gruppe,
                 bezirk: anchor.name,
                 umsatz: pick(umsatzChoices),
-                rhythmusWochen: rhythmChoices[i % rhythmChoices.length],
+                rhythmusWochen,
                 besuche,
                 lat: null, lng: null, geo: 'none'
             });
