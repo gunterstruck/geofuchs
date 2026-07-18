@@ -13,7 +13,13 @@ export const FIRST_STEPS = [
     { id: 'daten',  icon: '📍', label: 'Kunden auf der Karte verstehen', hint: 'Live-Demo: vom Kundenstapel bis zum Detail', showcase: 'excel-karte' },
     { id: 'tour',   icon: '🧭', label: 'Erste Tour planen', hint: 'Live-Demo starten: Start wählen und Stopps hinzufügen', showcase: 'tour' },
     { id: 'handy',  icon: '📱', label: 'Tour aufs Handy holen', hint: 'Live-Demo starten: QR-Code anzeigen und scannen', showcase: 'handy-qr' },
-    { id: 'eigene', icon: '📊', label: 'Eigene Excel-Liste laden', hint: 'Ersetzt die Beispieldaten jederzeit' }
+    {
+        id: 'eigene',
+        icon: '📊',
+        label: 'Eigene Excel-Liste laden',
+        hint: 'Excel/CSV auswählen oder Vorlage herunterladen',
+        action: 'own-data'
+    }
 ];
 
 const STORE_KEY = 'tf_first_steps';
