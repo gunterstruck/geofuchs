@@ -41,6 +41,7 @@ export const CONFIG = {
         // >= bezirk -> Vertriebsbezirke als Flächen, darunter -> Vertriebsgruppen
         lodCustomerZoom: 9,
         lodBezirkZoom: 7,
+        lodGroupZoom: 6,
         // Automatische Gebietsebene in der Basisansicht. Die Reihenfolge folgt
         // der visuellen Detailtiefe; eine kleine Hysterese verhindert Flattern
         // direkt an einer Zoomgrenze.

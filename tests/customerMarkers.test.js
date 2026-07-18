@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
+    DEFAULT_CUSTOMER_COLOR,
     canOfferCustomerMarkerHint,
+    customerClusterSummary,
     customerMarkerLabel,
     customerMarkerMode,
     customerMarkerModeClass
@@ -37,10 +39,43 @@ describe('Lebendige Kunden-Kacheln', () => {
         expect(canOfferCustomerMarkerHint({ zoom: 12, hasCustomers: true, insidePreview: true })).toBe(false);
     });
 
+    it('hält Kundenstapel operativ grün und nutzt Gebietsfarben nur im Planungskontext', () => {
+        const customers = [{ bezirk: 'Nord' }, { bezirk: 'Nord' }];
+        expect(customerClusterSummary(customers)).toMatchObject({
+            count: 2,
+            color: DEFAULT_CUSTOMER_COLOR,
+            kind: 'neutral',
+            context: '2 Kunden in diesem Bereich'
+        });
+        expect(customerClusterSummary(customers, {
+            planning: true,
+            colorFor: () => '#2563eb'
+        })).toMatchObject({ color: '#2563eb', accent: '#2563eb', kind: 'assigned' });
+    });
+
+    it('macht gemischte und unzugeordnete Planungsstapel explizit', () => {
+        const mixed = customerClusterSummary([{ gruppe: 'Nord' }, { gruppe: 'Süd' }], {
+            planning: true,
+            attr: 'gruppe',
+            dimensionLabel: 'Vertriebsgruppen',
+            colorFor: (value) => value === 'Nord' ? '#2563eb' : '#dc2626'
+        });
+        expect(mixed.kind).toBe('mixed');
+        expect(mixed.accent).toContain('linear-gradient');
+        expect(mixed.context).toBe('2 Kunden · mehrere Vertriebsgruppen');
+
+        expect(customerClusterSummary([{ bezirk: '' }], {
+            planning: true,
+            colorFor: () => '#94a3b8'
+        }).kind).toBe('unassigned');
+    });
+
     it('verdrahtet Klemmbrett, Namensstufe, Hinweis und Popup-Animation', () => {
         const map = readFileSync(resolve(process.cwd(), 'src/features/map.js'), 'utf8');
         const css = readFileSync(resolve(process.cwd(), 'src/styles/map.css'), 'utf8');
         expect(map).toContain('customer-marker-symbol');
+        expect(map).toContain('customer-stack-card');
+        expect(map).toContain('territory-stack-card');
         expect(map).toContain('Kundenkarte antippen und Details entdecken');
         expect(map).toContain("className: 'customer-detail-popup'");
         expect(css).toContain('.customer-marker-mode-label .customer-marker-card');

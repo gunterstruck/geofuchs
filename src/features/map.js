@@ -22,7 +22,15 @@ import { automaticLevelActive, automaticLevelForZoom } from './mapLevel.js';
 import { isPlanningRelevantServiceContract, normalizeCustomerNumber } from './serviceContracts.js';
 import { serviceVisitsForCustomer, isOpenServiceVisit, serviceVisitWindow } from './serviceVisits.js';
 import { modeTourCustomers, modeVisibleCustomers } from './customerScope.js';
-import { CUSTOMER_MARKER_MODES, canOfferCustomerMarkerHint, customerMarkerLabel, customerMarkerMode, customerMarkerModeClass } from './customerMarkers.js';
+import {
+    CUSTOMER_MARKER_MODES,
+    DEFAULT_CUSTOMER_COLOR,
+    canOfferCustomerMarkerHint,
+    customerClusterSummary,
+    customerMarkerLabel,
+    customerMarkerMode,
+    customerMarkerModeClass
+} from './customerMarkers.js';
 import { openRegionEditor } from '../ui/regionEditor.js';
 import { openCustomerBriefing } from '../ui/customerBriefing.js';
 
@@ -45,12 +53,15 @@ let customerMarkers = [];
 let markerHintOfferTimer = 0;
 let markerHintDismissTimer = 0;
 let markerHintTarget = null;
+let clusterHintTimer = 0;
+let clusterHintTarget = null;
 let popupFitFrame = 0;
 let levelLoadSequence = 0;
 let loadingLevel = null;
 const ROUTE_HUE_START = 0;      // rot
 const ROUTE_HUE_END = 276;      // lila
 const CUSTOMER_MARKER_HINT_KEY = 'tf_customer_marker_hint_seen';
+const CUSTOMER_CLUSTER_HINT_KEY = 'tf_customer_cluster_hint_seen';
 const insideMobilePreview = new URLSearchParams(location.search).has('mobilePreview');
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
@@ -67,6 +78,37 @@ function markerHintWasShown() {
 
 function rememberMarkerHint() {
     try { localStorage.setItem(CUSTOMER_MARKER_HINT_KEY, '1'); } catch { /* Speicherung ist optional */ }
+}
+
+function storedHintWasShown(key) {
+    try { return localStorage.getItem(key) === '1'; } catch { return false; }
+}
+
+function rememberHint(key) {
+    try { localStorage.setItem(key, '1'); } catch { /* Speicherung ist optional */ }
+}
+
+function dismissCustomerClusterHint() {
+    clearTimeout(clusterHintTimer);
+    clusterHintTimer = 0;
+    clusterHintTarget?.classList.remove('is-discovery');
+    clusterHintTarget = null;
+}
+
+function maybeOfferCustomerClusterHint() {
+    if (!map || storedHintWasShown(CUSTOMER_CLUSTER_HINT_KEY)
+        || document.querySelector('.sc-shield') || insideMobilePreview) return;
+    const target = map.getContainer().querySelector('.customer-stack-card');
+    if (!target) return;
+    rememberHint(CUSTOMER_CLUSTER_HINT_KEY);
+    clusterHintTarget = target;
+    target.classList.add('is-discovery');
+    clusterHintTimer = window.setTimeout(dismissCustomerClusterHint, 3200);
+}
+
+function scheduleCustomerClusterHint() {
+    clearTimeout(clusterHintTimer);
+    clusterHintTimer = window.setTimeout(maybeOfferCustomerClusterHint, 320);
 }
 
 function dismissCustomerMarkerHint() {
@@ -328,6 +370,33 @@ function makePopupPanMap(popupEl) {
     wrapper.addEventListener('pointercancel', end);
 }
 
+function customerClusterIcon(cluster) {
+    const customers = cluster.getAllChildMarkers()
+        .map((marker) => getCustomer(marker.options.customerId))
+        .filter(Boolean);
+    const planning = state.ui.mode === 'gebietsplanung';
+    const attr = planning && currentView.paint && currentView.paint !== 'luecken'
+        ? currentView.paint
+        : firstActiveAttr(['bezirk', 'gruppe', 'channel']);
+    const summary = customerClusterSummary(customers, {
+        planning,
+        attr,
+        dimensionLabel: state.dims[attr]?.label || 'Vertriebsgebiete',
+        unassigned: UNASSIGNED,
+        colorFor: (value) => attrColor(attr, value)
+    });
+    const title = `${summary.context} – antippen zum Hineinzoomen`;
+    return L.divIcon({
+        html: `<div class="customer-stack-card ${summary.kind}" style="--stack-color:${summary.color};--stack-accent:${summary.accent}" role="button" aria-label="${escapeHtml(title)}" title="${escapeHtml(title)}">
+            <span class="customer-stack-accent"></span>
+            <strong>${summary.count}</strong><small>Kunden</small>
+        </div>`,
+        className: 'cluster-wrapper',
+        iconSize: [48, 46],
+        iconAnchor: [24, 23]
+    });
+}
+
 export function initMap(containerId) {
     map = L.map(containerId, {
         attributionControl: true,
@@ -346,16 +415,17 @@ export function initMap(containerId) {
     applyBasemap();
 
     clusterGroup = L.markerClusterGroup({
-        maxClusterRadius: isMobileMap() ? 54 : 44,
+        maxClusterRadius: (zoom) => {
+            if (zoom <= 6) return isMobileMap() ? 84 : 92;
+            if (zoom <= 7) return isMobileMap() ? 70 : 76;
+            if (zoom <= 8) return isMobileMap() ? 60 : 58;
+            return isMobileMap() ? 54 : 44;
+        },
         spiderfyOnMaxZoom: true,
         spiderfyDistanceMultiplier: isMobileMap() ? 1.85 : 1.2,
         showCoverageOnHover: false,
         spiderLegPolylineOptions: { weight: 2, color: '#0f766e', opacity: 0.65 },
-        iconCreateFunction: (cluster) => L.divIcon({
-            html: `<div class="cluster-icon">${cluster.getChildCount()}</div>`,
-            className: 'cluster-wrapper',
-            iconSize: [36, 36]
-        })
+        iconCreateFunction: customerClusterIcon
     });
     map.addLayer(clusterGroup);
     syncCustomerMarkerMode();
@@ -369,10 +439,12 @@ export function initMap(containerId) {
         const levelChanged = syncEffectiveLevel();
         if (!levelChanged && state.colorMode === 'auto') applyView();
         scheduleCustomerMarkerHint();
+        scheduleCustomerClusterHint();
     });
     map.on('movestart zoomstart', () => {
         closeActiveRegionTooltip();
         dismissCustomerMarkerHint();
+        dismissCustomerClusterHint();
     });
     map.getContainer().addEventListener('pointerleave', closeActiveRegionTooltip);
     // Für den „In der Nähe"-Begleiter: nach jeder Karten-Bewegung neu berechnen.
@@ -601,6 +673,10 @@ function resolveView() {
         const p = firstActiveAttr(['gruppe', 'bezirk']);
         return { paint: p, markers: false, labels: true, markerBy: 'bezirk' };
     }
+    if (mode === 'channel') {
+        const p = firstActiveAttr(['channel', 'gruppe', 'bezirk']);
+        return { paint: p, markers: false, labels: true, markerBy: 'bezirk' };
+    }
     // auto: Detailgrad nach Zoomstufe
     if (!aggregatable()) return { paint: null, markers: true, labels: false, markerBy: 'bezirk' };
     if (z >= CONFIG.map.lodCustomerZoom) {
@@ -611,7 +687,11 @@ function resolveView() {
         const p = firstActiveAttr(['bezirk', 'gruppe']);
         return { paint: p, markers: false, labels: true, markerBy: 'bezirk' };
     }
-    const p = firstActiveAttr(['gruppe', 'bezirk']);
+    if (z >= CONFIG.map.lodGroupZoom) {
+        const p = firstActiveAttr(['gruppe', 'channel', 'bezirk']);
+        return { paint: p, markers: false, labels: true, markerBy: 'bezirk' };
+    }
+    const p = firstActiveAttr(['channel', 'gruppe', 'bezirk']);
     return { paint: p, markers: false, labels: true, markerBy: 'bezirk' };
 }
 
@@ -947,11 +1027,13 @@ function renderLabels() {
     const attr = currentView.paint;
     const valueOf = (c) => attr === 'vb' ? (c.vb || UNASSIGNED) : (String(c[attr] ?? '').trim() || UNASSIGNED);
     const revByVal = new Map();
+    const countByVal = new Map();
     const revenueValues = new Set();
     // Filter steuern die sichtbaren Flächen, nicht die fachliche Gesamtsumme
     // eines Vertriebsbezirks oder einer Vertriebsgruppe.
     for (const c of state.customers) {
         const v = valueOf(c);
+        countByVal.set(v, (countByVal.get(v) ?? 0) + 1);
         if (c.umsatz === null || c.umsatz === undefined || c.umsatz === '') continue;
         const revenue = Number(c.umsatz);
         if (!Number.isFinite(revenue)) continue;
@@ -1000,23 +1082,23 @@ function renderLabels() {
     const positions = revenueWeightedCentroids(polygonsByValue);
 
     for (const [val, center] of positions) {
-        if (val === UNASSIGNED) continue;
         const col = attrColor(attr, val);
         const hasRevenue = revenueValues.has(val);
         const revenue = revByVal.get(val) || 0;
         const rev = hasRevenue ? formatRevenueShort(revenue) : '';
-        const dimension = state.dims[attr]?.label || 'Gebiet';
-        const revenueTitle = hasRevenue
-            ? `Gesamtumsatz ${dimension} ${val}: ${formatRevenueFull(revenue)}`
-            : '';
+        const count = countByVal.get(val) || 0;
+        const dimension = attr === 'channel' ? 'Vertriebshauptgruppe' : (state.dims[attr]?.label || 'Gebiet');
+        const title = `${dimension} ${val}: ${count} Kunden${hasRevenue ? ` · ${formatRevenueFull(revenue)} Volumen` : ''}`;
         L.marker(center, {
             interactive: false,
             keyboard: false,
             icon: L.divIcon({
                 className: 'territory-label-wrapper',
-                html: `<div class="territory-label" style="border-color:${col}"${revenueTitle ? ` title="${escapeHtml(revenueTitle)}"` : ''}>
-                    <span class="tl-dot" style="background:${col}"></span>${escapeHtml(val)}
-                    ${rev ? `<span class="tl-rev">Σ ${rev}</span>` : ''}
+                html: `<div class="territory-stack-card${val === UNASSIGNED ? ' unassigned' : ''}" style="--territory-color:${col}" title="${escapeHtml(title)}">
+                    <span class="tl-accent"></span>
+                    <span class="tl-kicker">${escapeHtml(dimension)}</span>
+                    <strong>${escapeHtml(val)}</strong>
+                    <span class="tl-metrics"><b>${count} Kunden</b>${rev ? `<span>${rev} Volumen</span>` : ''}</span>
                 </div>`,
                 iconSize: null
             })
@@ -1120,6 +1202,7 @@ function regionPopupHtml(feature) {
 function markerColor(customer) {
     const by = currentView.markerBy;
     if (by === 'status') return STATUS_COLORS[visitStatus(customer)];
+    if (state.ui.mode === 'aussendienst' && state.colorMode === 'rep') return DEFAULT_CUSTOMER_COLOR;
     if (by && by !== 'vb') return attrColor(by, customer[by] || UNASSIGNED);
     return repColor(customer.vb);
 }
@@ -1127,21 +1210,22 @@ function markerColor(customer) {
 function customerIcon(customer) {
     const color = markerColor(customer);
     const inTour = state.tour.stops.includes(customer.id);
-    const overdue = state.ui.mode !== 'service'
-        && currentView.markerBy !== 'status'
-        && visitStatus(customer) === 'ueberfaellig';
+    const status = visitStatus(customer);
+    const visitAccent = state.ui.mode !== 'service' && currentView.markerBy !== 'status'
+        ? (status === 'faellig' ? ' visit-due' : status === 'ueberfaellig' ? ' visit-overdue' : '')
+        : '';
     const place = [customer.plz, customer.ort].map((value) => String(value ?? '').trim()).filter(Boolean).join(' ');
     const openVisits = state.ui.mode === 'service'
         ? serviceVisitsForCustomer(state.serviceVisits, customer, { scope: 'open' }).length
         : 0;
     const context = openVisits
         ? `${openVisits} offene${openVisits === 1 ? 'r Einsatz' : ' Einsätze'}`
-        : (customer.rhythmusWochen ? STATUS_LABELS[visitStatus(customer)] : '');
+        : (customer.rhythmusWochen ? STATUS_LABELS[status] : '');
     const detail = [place, context].filter(Boolean).join(' · ');
     const label = customerMarkerLabel(customer.name, { demo: isDemoCustomer(customer) });
     return L.divIcon({
         className: 'customer-marker-wrapper',
-        html: `<div class="customer-marker-card${customer.geo === 'plz' ? ' approx' : ''}${inTour ? ' in-tour' : ''}${overdue ? ' overdue' : ''}" style="--marker-color:${color}" aria-hidden="true">
+        html: `<div class="customer-marker-card${customer.geo === 'plz' ? ' approx' : ''}${inTour ? ' in-tour' : ''}${visitAccent}" style="--marker-color:${color}" aria-hidden="true">
             <span class="customer-marker-symbol"></span>
             <span class="customer-marker-copy">
                 <b>${escapeHtml(label)}</b>
@@ -1378,6 +1462,7 @@ function renderMarkers() {
         if (state.ui.opportunityOnly && !isOpportunity(customer)) continue;
         const marker = L.marker([customer.lat, customer.lng], {
             icon: customerIcon(customer),
+            customerId: customer.id,
             title: `${customer.name} – Details öffnen`,
             alt: `${customer.name} – Details öffnen`
         });
@@ -1388,6 +1473,7 @@ function renderMarkers() {
     }
     clusterGroup.addLayers(markers);
     scheduleCustomerMarkerHint();
+    scheduleCustomerClusterHint();
 }
 
 // ---- Tour-Anzeige ----

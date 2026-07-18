@@ -1,4 +1,5 @@
 export const CUSTOMER_MARKER_MODES = Object.freeze(['dot', 'card', 'label', 'detail']);
+export const DEFAULT_CUSTOMER_COLOR = '#0d9488';
 
 /**
  * Progressive Offenlegung auf der Karte: Erst Orientierung, dann ein klar
@@ -38,4 +39,61 @@ export function canOfferCustomerMarkerHint({
         && !showcaseRunning
         && !insidePreview
         && customerMarkerMode(zoom, { mobile }) !== 'dot';
+}
+
+/**
+ * Fasst die fachliche Aussage eines Karten-Clusters zusammen. Im operativen
+ * Außendienst bleibt der Stapel bewusst grün. Nur in der Gebietsplanung trägt
+ * er die Farbe der sichtbaren Organisationsebene.
+ */
+export function customerClusterSummary(customers, {
+    planning = false,
+    attr = 'bezirk',
+    dimensionLabel = 'Vertriebsbezirk',
+    unassigned = 'Ohne Zuordnung',
+    colorFor = () => DEFAULT_CUSTOMER_COLOR
+} = {}) {
+    const list = Array.isArray(customers) ? customers : [];
+    const count = list.length;
+    if (!planning || !attr) {
+        return {
+            count,
+            color: DEFAULT_CUSTOMER_COLOR,
+            accent: DEFAULT_CUSTOMER_COLOR,
+            kind: 'neutral',
+            context: `${count} Kunden in diesem Bereich`
+        };
+    }
+
+    const values = new Map();
+    list.forEach((customer) => {
+        const value = String(customer?.[attr] ?? '').trim() || unassigned;
+        values.set(value, (values.get(value) ?? 0) + 1);
+    });
+    const sorted = [...values.entries()].sort((a, b) => b[1] - a[1]);
+    if (sorted.length === 1) {
+        const value = sorted[0][0];
+        const color = colorFor(value);
+        return {
+            count,
+            color,
+            accent: color,
+            kind: value === unassigned ? 'unassigned' : 'assigned',
+            context: `${count} Kunden · ${value}`
+        };
+    }
+
+    let offset = 0;
+    const stops = sorted.map(([value, amount]) => {
+        const start = offset;
+        offset += count ? (amount / count) * 100 : 0;
+        return `${colorFor(value)} ${start.toFixed(1)}% ${offset.toFixed(1)}%`;
+    });
+    return {
+        count,
+        color: DEFAULT_CUSTOMER_COLOR,
+        accent: `linear-gradient(90deg, ${stops.join(', ')})`,
+        kind: 'mixed',
+        context: `${count} Kunden · mehrere ${dimensionLabel}`
+    };
 }

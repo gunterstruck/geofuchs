@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createDemoCustomers } from '../src/services/excel.js';
+import { visitStatus } from '../src/features/visits.js';
 import { enrichPlacesByPlz } from '../src/services/geocode.js';
 import { normalizeSearchText, searchCustomers } from '../src/ui/search.js';
 
@@ -24,6 +25,9 @@ describe('Kunden- und Ortssuche', () => {
         expect(customers.every((customer) => customer.strasse === '')).toBe(true);
         expect(customers.every((customer) => customer.email.endsWith('@example.com'))).toBe(true);
         expect(customers.every((customer) => customer.demo === true)).toBe(true);
+        const exceptions = customers.filter((customer) => ['faellig', 'ueberfaellig'].includes(visitStatus(customer)));
+        expect(exceptions).toHaveLength(112);
+        expect(exceptions.length / customers.length).toBeLessThanOrEqual(0.05);
     });
 
     it('ergänzt ältere Demodaten, ohne vorhandene Ortsnamen zu überschreiben', async () => {
