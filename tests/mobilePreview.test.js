@@ -65,6 +65,20 @@ describe('Mobile Außendienst & Tour am Desktop', () => {
         expect(sidebar).toMatch(/on\('demo:loaded', \(\) => \{[\s\S]*if \(isMobileUi\(\)\) showMapView\(\);/);
     });
 
+    it('lässt den Desktop-Datenbereich unverändert und gruppiert nur mobil per JS', () => {
+        const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+        const sidebar = readFileSync(resolve(process.cwd(), 'src/ui/sidebar.js'), 'utf8');
+
+        // Desktop-kanonische Reihenfolge steht direkt im HTML (eine Spalte),
+        // der Sichere Umzug bleibt im Tresor – keine Gruppen-Labels im Markup.
+        expect(html).toContain('id="data-primary-actions"');
+        expect(html).toContain('id="safe-transfer-actions"');
+        expect(html).not.toContain('class="data-section-label"');
+        // Nur mobil hängt JS dieselben Knöpfe in Gruppen um.
+        expect(sidebar).toContain('export function applyDataPanelLayout');
+        expect(sidebar).toMatch(/mobileQuery\.addEventListener\('change'[\s\S]*applyDataPanelLayout\(\)/);
+    });
+
     it('macht Beispieldaten mobil über ein weit geöffnetes, scrollbares Datenblatt erreichbar', () => {
         const sidebar = readFileSync(resolve(process.cwd(), 'src/ui/sidebar.js'), 'utf8');
         const responsiveCss = readFileSync(resolve(process.cwd(), 'src/styles/responsive.css'), 'utf8');

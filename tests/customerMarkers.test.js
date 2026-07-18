@@ -89,7 +89,7 @@ describe('Lebendige Kunden-Kacheln', () => {
         expect(map).toContain('territory-stack-card');
         expect(map).toContain('tl-dimension');
         expect(map).toContain("? 'Bezirk'");
-        expect(map).toContain('{ width: 100, height: 70 }');
+        expect(map).toContain('{ width: 94, height: 84 }');
         // Umsatz je Gebiet ab Vertriebsbezirk aufwärts in jeder Labelstufe.
         expect(map).toContain('class="tl-rev"');
         expect(css).toContain('.territory-stack-card .tl-rev');
@@ -106,7 +106,7 @@ describe('Lebendige Kunden-Kacheln', () => {
         expect(css).toMatch(/\.customer-marker-mode-label \.customer-marker-card,\s*\.customer-marker-mode-detail \.customer-marker-card \{\s*position: absolute;/);
         expect(css).toContain('@keyframes customer-popup-unfold');
         expect(css).toContain('.customer-stack-card.is-discovery .customer-stack-discovery-label');
-        expect(css).toMatch(/\.territory-stack-card--compact\s*\{\s*width:\s*100px;\s*min-height:\s*70px;/);
+        expect(css).toMatch(/\.territory-stack-card--compact\s*\{\s*width:\s*94px;\s*min-height:\s*84px;/);
         expect(css).not.toContain('text-overflow: ellipsis;\n    white-space: nowrap;\n}\n.territory-stack-card .tl-metrics');
         expect(css).toContain('@media (prefers-reduced-motion: reduce)');
     });

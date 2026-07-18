@@ -114,29 +114,45 @@ export function exactGeocodeCandidates(customers) {
     return (customers || []).filter((c) => !isDemoCustomer(c) && c.geo !== 'exakt' && c.strasse && (c.plz || c.ort));
 }
 
+/**
+ * Kandidaten nach identischer Adresse gruppieren. Nominatim erlaubt nur ~1
+ * Anfrage/Sekunde (öffentliche OSM-Policy) – Parallelisieren würde die IP
+ * sperren. Die sichere Beschleunigung: jede eindeutige Adresse nur EINMAL
+ * anfragen und das Ergebnis auf alle Kunden mit derselben Adresse anwenden.
+ */
+export function groupExactGeocodeCandidates(customers) {
+    const groups = new Map(); // addressKey -> { sample, customers: [] }
+    for (const c of exactGeocodeCandidates(customers)) {
+        const key = addressKey(c);
+        let group = groups.get(key);
+        if (!group) { group = { key, sample: c, customers: [] }; groups.set(key, group); }
+        group.customers.push(c);
+    }
+    return [...groups.values()];
+}
+
 export function geocodeExact(customers, onProgress) {
-    const queue = exactGeocodeCandidates(customers);
+    const groups = groupExactGeocodeCandidates(customers);
     let cancelled = false;
-    const handle = { cancel: () => { cancelled = true; }, total: queue.length };
+    const handle = { cancel: () => { cancelled = true; }, total: groups.length };
 
     handle.run = (async () => {
-        if (queue.length === 0) return { updated: 0, failed: 0, cancelled: false };
+        if (groups.length === 0) return { updated: 0, failed: 0, cancelled: false };
         const cache = await loadGeocodeCache();
         let updated = 0;
         let failed = 0;
         let requestsMade = 0;
 
-        for (let i = 0; i < queue.length; i++) {
+        for (let i = 0; i < groups.length; i++) {
             if (cancelled) break;
-            const c = queue[i];
-            const key = addressKey(c);
+            const group = groups[i];
 
-            let result = cache[key];
+            let result = cache[group.key];
             if (result === undefined) {
                 if (requestsMade > 0) await sleep(CONFIG.nominatim.delayMs);
                 requestsMade++;
                 try {
-                    const addressParams = nominatimAddressParams(c);
+                    const addressParams = nominatimAddressParams(group.sample);
                     const params = new URLSearchParams({
                         format: 'jsonv2',
                         countrycodes: 'de',
@@ -152,22 +168,25 @@ export function geocodeExact(customers, onProgress) {
                     clearTimeout(timer);
                     const json = response.ok ? await response.json() : [];
                     result = json[0] ? { lat: parseFloat(json[0].lat), lng: parseFloat(json[0].lon) } : null;
-                    cache[key] = result;
+                    cache[group.key] = result;
                     if (i % 10 === 0) await saveGeocodeCache(cache);
                 } catch {
                     result = undefined; // Netzfehler: nicht als "nicht gefunden" cachen
                 }
             }
 
+            // Ein Ergebnis gilt für alle Kunden mit exakt dieser Adresse.
             if (result) {
-                c.lat = result.lat;
-                c.lng = result.lng;
-                c.geo = 'exakt';
-                updated++;
+                for (const c of group.customers) {
+                    c.lat = result.lat;
+                    c.lng = result.lng;
+                    c.geo = 'exakt';
+                }
+                updated += group.customers.length;
             } else {
-                failed++;
+                failed += group.customers.length;
             }
-            onProgress?.(i + 1, queue.length);
+            onProgress?.(i + 1, groups.length);
         }
 
         await saveGeocodeCache(cache);

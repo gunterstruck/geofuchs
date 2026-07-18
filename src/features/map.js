@@ -1108,10 +1108,10 @@ function renderLabels() {
     const positions = revenueWeightedCentroids(polygonsByValue);
     const labelMode = territoryLabelMode(map.getZoom(), { mobile: isMobileMap() });
     const labelSize = labelMode === 'chip'
-        ? { width: 86, height: 56 }
+        ? { width: 80, height: 64 }
         : labelMode === 'compact'
-            ? { width: 100, height: 70 }
-            : { width: 120, height: 82 };
+            ? { width: 94, height: 84 }
+            : { width: 108, height: 100 };
     const mapSize = map.getSize();
     const candidates = [...positions].map(([val, center]) => {
         const point = map.latLngToContainerPoint(center);

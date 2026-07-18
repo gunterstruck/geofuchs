@@ -245,7 +245,9 @@
     text-transform: uppercase;
     color: var(--color-text-muted, #64748b);
 }
-#data-actions > .data-section-label:first-child { margin-top: 4px; }
+#data-actions > .data-group:first-child .data-section-label { margin-top: 4px; }
+.data-group .button-column { margin-top: 6px; }
+.data-group-note { margin: 6px 0 0; }
 /* Löschen bewusst abgesetzt am Fuß des Daten-Tabs. */
 .data-danger-zone { margin-top: 16px; }
 .button-row { display: flex; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
