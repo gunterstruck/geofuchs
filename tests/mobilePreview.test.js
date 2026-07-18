@@ -42,6 +42,19 @@ describe('Mobile Außendienst & Tour am Desktop', () => {
         expect(sidebar).toContain('window.innerHeight * (2 / 3)');
     });
 
+    it('macht Beispieldaten mobil über ein weit geöffnetes, scrollbares Datenblatt erreichbar', () => {
+        const sidebar = readFileSync(resolve(process.cwd(), 'src/ui/sidebar.js'), 'utf8');
+        const responsiveCss = readFileSync(resolve(process.cwd(), 'src/styles/responsive.css'), 'utf8');
+
+        expect(sidebar).toContain("const MOBILE_DATA_TABS = new Set(['karte', 'daten', 'tour'])");
+        expect(sidebar).toContain("else if (isMobileUi() && btn.dataset.tab === 'daten')");
+        expect(sidebar).toContain('setSheetHeight(Math.round(sheetMaxHeight() * 0.88), true)');
+        expect(responsiveCss).toContain('.mobile-topnav .depth-switch { grid-template-columns: repeat(2, minmax(0, 1fr)); }');
+        expect(responsiveCss).toContain('.mobile-topnav .tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }');
+        expect(responsiveCss).toContain('touch-action: pan-y;');
+        expect(responsiveCss).toContain('-webkit-overflow-scrolling: touch;');
+    });
+
     it('benennt den mobilen Nutzen und blendet den Einstieg mobil aus', () => {
         const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
         const css = readFileSync(resolve(process.cwd(), 'src/styles/components.css'), 'utf8');

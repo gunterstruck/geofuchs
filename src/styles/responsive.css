@@ -150,7 +150,6 @@
     .mobile-topnav .tabs {
         pointer-events: auto;
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 3px;
         margin: 0 10px 5px;
         padding: 2px;
@@ -161,6 +160,8 @@
         border-radius: var(--radius-pill);
         box-shadow: var(--shadow-1);
     }
+    .mobile-topnav .depth-switch { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .mobile-topnav .tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .mobile-topnav .mobile-map-tab { display: block; }
 
     /* Segmente in beiden Reihen gleich: inaktiv gedämpft, aktiv grün gefüllt.
@@ -308,6 +309,10 @@
 
     .tab-panel.active {
         min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        touch-action: pan-y;
+        -webkit-overflow-scrolling: touch;
     }
 
     .sidebar:not(.onboarding) #tab-team,

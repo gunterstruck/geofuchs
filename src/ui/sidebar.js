@@ -34,7 +34,7 @@ let autoRevealTimer = null;
 let demoSheetSnapshot = null;
 
 const mobileQuery = window.matchMedia('(max-width: 768px)');
-const MOBILE_DATA_TABS = new Set(['karte', 'tour']);
+const MOBILE_DATA_TABS = new Set(['karte', 'daten', 'tour']);
 const MOBILE_EMPTY_TABS = new Set(['karte', 'daten']);
 const SIDEBAR_WIDTH_KEY = 'gf_sidebar_width';
 const SIDEBAR_POS_KEY = 'gf_sidebar_position';
@@ -580,7 +580,7 @@ function activateTab(tab) {
 
     if (isMobileUi()) {
         if (tab === 'karte') state.ui.sidebarOpen = false;
-        else if (tab === 'tour') state.ui.sidebarOpen = true;
+        else state.ui.sidebarOpen = true;
         applySidebar();
     }
 }
@@ -810,6 +810,10 @@ export function initSidebar() {
             // Handy: „Tour" öffnet das Blatt auf 2/3 der Bildschirmhöhe.
             if (isMobileUi() && btn.dataset.tab === 'tour') {
                 setSheetHeight(Math.round(window.innerHeight * (2 / 3)), true);
+            } else if (isMobileUi() && btn.dataset.tab === 'daten') {
+                // Kundendaten brauchen mehr Lesefläche als die kompakte Tour.
+                // Das Panel bleibt dennoch per Griff frei in der Höhe verstellbar.
+                setSheetHeight(Math.round(sheetMaxHeight() * 0.88), true);
             }
             persistSettings();
         });
@@ -1082,7 +1086,6 @@ function persistSettings() {
 function renderDataStatus() {
     const onboarding = document.getElementById('onboarding');
     const loaded = document.getElementById('data-loaded');
-    const demoLauncher = document.getElementById('demo-launcher');
     const el = document.getElementById('data-status');
     const sidebar = document.getElementById('sidebar');
     const empty = state.customers.length === 0;
@@ -1095,12 +1098,10 @@ function renderDataStatus() {
     if (empty) {
         if (onboarding) onboarding.style.display = '';
         if (loaded) loaded.style.display = 'none';
-        if (demoLauncher) demoLauncher.hidden = true;
         return;
     }
     if (onboarding) onboarding.style.display = 'none';
     if (loaded) loaded.style.display = 'block';
-    if (demoLauncher) demoLauncher.hidden = false;
     const total = state.customers.length;
     const located = state.customers.filter((c) => c.lat !== null).length;
     const exact = state.customers.filter((c) => c.geo === 'exakt').length;
