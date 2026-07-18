@@ -468,7 +468,7 @@ Die Vorführung:
 | **"Deine Tour in 30 Sekunden"** | Ja | Ja | ins Ruhrgebiet zoomen, Start und Kunden wählen, optimieren, Luftlinie und Straßenroute |
 | **"Aufs Handy - ohne Kabel, ohne Cloud"** | Ja | Nein | Desktop-Tour per QR ans Smartphone übergeben |
 | **"Was wäre wenn? Gebiete umbauen - ohne Risiko"** | Ja | Nein | Simulation ohne dauerhafte Änderung |
-| **"Dein Service-Tag in 20 Sekunden"** | Ja | Nein | Service-Fokus öffnen und einen erklärbaren Tagesvorschlag erleben |
+| **"Dein Service-Tag in 20 Sekunden"** | Ja | Nein | Service-Fokus öffnen, erklärbaren Tagesvorschlag erleben, Ausblick auf den akustischen Maschinen-Check (Zanobo) |
 | **"Spontaner Termin? Sofort gebrieft"** | Ja | Ja | passenden Kunden finden und eine sichere Briefing-Ergebnisvorschau erleben |
 | **"Deine Daten im Tresor"** | Ja | Ja | PIN setzen und sichtbaren Wiederherstellungscode erklären |
 | **"Verschlüsselte Daten aufs Handy holen"** | Nein | Ja | `.tfsafe`-Datei wählen und getrennten Schlüssel scannen |
@@ -1128,6 +1128,25 @@ Tagesplan-Druck und Kalender-Export übernehmen die fixierten Zeiten.
 Demo-Daten enthalten passende Demo-Verträge und 20 Demo-Einsatzaufträge, damit
 der Service-Fokus ohne eigene Dateien erlebbar ist.
 
+**Zanobo-Brücke (akustischer Maschinen-Check):** Einsätze mit **Anlagen-ID**
+verlinken direkt zur Schwester-App **Zanobo** (Standard:
+`zanobo.vercel.app`, eigene Instanz im Einsätze-Tab einstellbar). Zanobo
+vergleicht das Betriebsgeräusch einer Maschine lokal im Browser mit einer
+Referenzaufnahme - ein **Vergleichs- und Orientierungsinstrument, kein
+Diagnosewerkzeug**. Der Guide übernimmt dieses Wording immer.
+
+- Der Link erscheint überall dort, wo ein Einsatz mit Anlagen-ID sichtbar
+  ist: Einsatzkarte im Service-Cockpit, Tour-Stopp mit Service-Zeitplan,
+  Tagesplan-Druck und Kalender-Termin (.ics).
+- Konvention: **Anlagen-ID in TourFuchs = Maschinen-ID in Zanobo** (dieselbe
+  ID wie am Zanobo-NFC-Tag an der Maschine).
+- Datenschutz: Der Deep-Link nutzt Zanobos Route `#/m/<Anlagen-ID>` - die ID
+  steckt im URL-Fragment und wird beim Öffnen **nicht an den Server
+  übertragen** (gleiche Mechanik wie beim Tour-QR).
+- Beide Apps teilen dieselbe Architektur: lokal im Browser, ohne Cloud und
+  ohne Konto. Es findet keine Datenübertragung zwischen TourFuchs und Zanobo
+  statt; die Brücke ist ein reiner Link.
+
 ---
 
 ## 11. Tour vom Desktop aufs Smartphone übergeben
@@ -1569,6 +1588,8 @@ Vor diesen Aktionen immer Wirkung nennen und bei Bedarf Export empfehlen:
 | Verträge importieren | `Service -> Verträge -> Vertragsdatei laden` |
 | Einsätze importieren | `Service -> Einsätze -> Einsatzdatei laden` |
 | Service-Tagesvorschlag | `Service -> Tour -> Bezirk + Start -> Tagesvorschlag prüfen -> "Übernehmen"` |
+| Maschine anhören (Zanobo) | `Service -> Einsätze -> Einsatzkarte -> "Maschine anhören (Zanobo)"` (bei Anlagen-ID) |
+| Zanobo-Instanz ändern | `Service -> Einsätze -> Datenquelle -> Feld "Zanobo-Instanz"` |
 | Eigene Liste laden | `Daten -> "Eigene Daten laden" -> "Excel- oder CSV-Liste" -> Berechtigung -> "Excel-/CSV-Datei auswählen"` |
 | Spalten prüfen | `"Spalten zuordnen" -> Zuordnungen und Beispiele prüfen -> "Importieren"` |
 | Fehlerliste | `"Import abgeschlossen" -> "Fehlerliste (.xlsx)"` |
@@ -2258,6 +2279,10 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
   allen Geräten, Rollenverteilung Desktop (planen) gegen Smartphone
   (durchführen), ausdrücklich keine Cloud-Synchronisation (Übergabe per QR
   und `.tfsafe`).
+- Zanobo-Brücke ergänzt: Link-out je Anlagen-ID aus Einsatzkarte, Tour-Stopp,
+  Tagesplan-Druck und Kalender; Instanz im Einsätze-Tab einstellbar; ID bleibt
+  im URL-Fragment; verbindliches Wording "Vergleich/Orientierung, keine
+  Diagnose"; die Service-Live-Demo erwähnt den Maschinen-Check als Abschluss.
 - interne Korrektur der Umsatz-Einheitenerkennung (t€/k€ nur noch als
   eigenständige Einheit) - Nutzerhinweis: Gesamtsumme im Importergebnis prüfen.
 
@@ -2322,6 +2347,7 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 | Live-Demos | nur auf Klick: Willkommens-Panel "Lieber zuschauen?" oder Info |
 | Erste Schritte | 4-Punkte-Checkliste; klappt beim Arbeiten zur Zeile ein; Abwahl über Info umkehrbar |
 | Service-Fokus | Profi; Verträge + Einsätze getrennt, Join nur über Kundennummer; erklärbarer Tagesvorschlag |
+| Zanobo | Link-out je Anlagen-ID (`#/m/<id>`, Fragment bleibt lokal); Vergleich statt Diagnose; Standard zanobo.vercel.app |
 | Tablet | keine eigene Ansicht: ab ca. 800 px volles Desktop-Layout, darunter Smartphone-Verhalten |
 | Update | App-Dateien neu, lokale Daten bleiben erhalten |
 | Vor Löschen | Export empfehlen |

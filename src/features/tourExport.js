@@ -7,6 +7,7 @@
 import { CONFIG } from '../core/config.js';
 import { DEMO_DATA_LABEL, hasDemoCustomers, isDemoCustomer } from '../core/demoSafety.js';
 import { distanceKm } from '../services/geocode.js';
+import { zanoboMachineUrl } from '../services/zanobo.js';
 import { formatDateDe, lastVisit, agoText } from './visits.js';
 
 export const DEFAULT_VISIT_MINUTES = 45; // Standard-Besuchsdauer (im UI einstellbar)
@@ -93,12 +94,17 @@ export function printDayPlan(start, stops, {
         const contact = [c.ansprechpartner, c.telefon].filter(Boolean).join(' · ');
         const last = lastVisit(c);
         const visits = visitsForRow(r, serviceVisits);
-        const serviceDetails = visits.map((visit) => [
-            visit.workOrderId,
-            visit.reason,
-            visit.priority && `Priorität ${visit.priority}`,
-            visit.assignedTo
-        ].filter(Boolean).map(escapeHtml).join(' · ')).join('<br>');
+        const serviceDetails = visits.map((visit) => {
+            const zanobo = zanoboMachineUrl(visit.assetId);
+            return [
+                visit.workOrderId,
+                visit.reason,
+                visit.priority && `Priorität ${visit.priority}`,
+                visit.assignedTo
+            ].filter(Boolean).map(escapeHtml)
+                .concat(zanobo ? [`<a href="${escapeHtml(zanobo)}">🔊 Zanobo</a>`] : [])
+                .join(' · ');
+        }).join('<br>');
         return `<tr>
             <td class="num">${i + 1}</td>
             <td class="time">${hhmm(r.arrival)}${r.planned ? `–${hhmm(r.end)}` : ''}<br><span class="muted">${r.driveMin} min · ${Math.round(r.km)} km</span></td>
@@ -179,7 +185,8 @@ export function downloadIcs(start, stops, {
             visit.reason && `Anlass: ${visit.reason}`,
             visit.priority && `Priorität: ${visit.priority}`,
             visit.assignedTo && `Verantwortlich: ${visit.assignedTo}`,
-            visit.sourceUrl && `Quelle: ${visit.sourceUrl}`
+            visit.sourceUrl && `Quelle: ${visit.sourceUrl}`,
+            zanoboMachineUrl(visit.assetId) && `Maschine anhören (Zanobo): ${zanoboMachineUrl(visit.assetId)}`
         ]).filter(Boolean);
         const desc = [
             demo && DEMO_DATA_LABEL,

@@ -199,6 +199,10 @@
                         <button id="btn-service-visit-issues" type="button" hidden>⬇ Letzte Hinweise</button>
                         <button id="btn-service-visit-clear" class="danger" type="button">Einsatzdaten löschen</button>
                     </div>
+                    <label class="zanobo-base-row" for="zanobo-base-url">🔊 Zanobo-Instanz (akustischer Maschinen-Check)
+                        <input id="zanobo-base-url" type="url" inputmode="url" placeholder="https://zanobo.vercel.app" autocomplete="off">
+                    </label>
+                    <p class="muted small">Einsätze mit Anlagen-ID verlinken direkt zur Maschine in Zanobo („#/m/&lt;Anlagen-ID&gt;" – die ID bleibt im URL-Fragment und wird nicht an den Server übertragen). Zanobo vergleicht Betriebsgeräusche mit einer Referenz: Orientierung, keine Diagnose. Feld leer = öffentliche Instanz.</p>
                 </details>
 
                 <div id="service-visit-kpis" class="service-visit-kpis" aria-live="polite"></div>

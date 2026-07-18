@@ -21,6 +21,7 @@ import {
     serviceVisitReplacementRisks
 } from '../features/serviceVisits.js';
 import { normalizeCustomerNumber, isPlanningRelevantServiceContract } from '../features/serviceContracts.js';
+import { ZANOBO_DEFAULT_BASE, setZanoboBaseUrl, zanoboBaseUrl, zanoboMachineUrl } from '../services/zanobo.js';
 import { flyToCustomer } from '../features/map.js';
 
 const el = (id) => document.getElementById(id);
@@ -187,6 +188,7 @@ function visitCardHtml(visit, index) {
         <div class="service-visit-actions">
             <button type="button" data-service-visit-action="map" data-service-visit-id="${escapeHtml(visit.id)}"${customer?.lat === null || !customer ? ' disabled' : ''}>Auf Karte</button>
             ${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Original öffnen</a>` : ''}
+            ${zanoboMachineUrl(visit.assetId) ? `<a class="zanobo-link" href="${escapeHtml(zanoboMachineUrl(visit.assetId))}" target="_blank" rel="noopener noreferrer" title="Zanobo vergleicht das Betriebsgeräusch mit der Referenz der Anlage – Orientierung, keine Diagnose.">🔊 Maschine anhören (Zanobo)</a>` : ''}
         </div>
     </article>`;
 }
@@ -471,6 +473,21 @@ export function initServiceVisitPlanner() {
     el('service-visit-import-dialog')?.querySelector('.dialog-close')?.addEventListener('click', () => el('service-visit-import-dialog')?.close?.());
     el('service-visit-assignee')?.addEventListener('change', renderList);
     el('service-visit-search')?.addEventListener('input', renderList);
+    // Zanobo-Instanz: leer = öffentliche Instanz; eigene URL für Firmen-Hosting.
+    const zanoboInput = el('zanobo-base-url');
+    if (zanoboInput) {
+        const stored = zanoboBaseUrl();
+        zanoboInput.value = stored === ZANOBO_DEFAULT_BASE ? '' : stored;
+        zanoboInput.addEventListener('change', () => {
+            const saved = setZanoboBaseUrl(zanoboInput.value);
+            if (saved === null) {
+                emit('toast', { type: 'error', text: 'Bitte eine vollständige http(s)-Adresse für Zanobo eintragen – oder das Feld leeren für die öffentliche Instanz.' });
+                return;
+            }
+            zanoboInput.value = saved === ZANOBO_DEFAULT_BASE ? '' : saved;
+            renderList();
+        });
+    }
     el('btn-plan-service-day')?.addEventListener('click', openTourPlanning);
     el('service-visit-kpis')?.addEventListener('click', (event) => {
         const button = event.target.closest('[data-service-visit-scope]');
