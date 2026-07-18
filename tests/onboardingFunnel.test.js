@@ -74,6 +74,21 @@ describe('Onboarding-Trichter: ein Einstieg, sichtbare nächste Schritte', () =>
         expect(css).toContain('.first-steps-list');
     });
 
+    it('startet Live-Demos direkt aus den passenden Erste-Schritte-Einträgen', () => {
+        const steps = source('src/features/firstSteps.js');
+        const ui = source('src/ui/firstSteps.js');
+        const showcase = source('src/ui/showcase.js');
+        const css = source('src/styles/components.css');
+
+        expect(steps).toContain("showcase: 'tour'");
+        expect(steps).toContain("showcase: 'handy-qr'");
+        expect(ui).toContain('data-showcase');
+        expect(ui).toContain('startShowcaseStory(button.dataset.showcase)');
+        expect(showcase).toContain('export function startShowcaseStory(storyId)');
+        expect(css).toContain('.first-steps-action');
+        expect(css).toContain('.first-steps-play');
+    });
+
     it('bietet drei Zustände: „Später", Chip-Zeile und umkehrbares „Nicht mehr zeigen"', () => {
         const ui = source('src/ui/firstSteps.js');
         const html = source('index.html');
