@@ -40,3 +40,69 @@ export function revenueWeightedCentroids(polygonsByValue) {
     }
     return out;
 }
+
+/** Progressive Informationsdichte für Organisationskarten. */
+export function territoryLabelMode(zoom, { mobile = false } = {}) {
+    const value = Number(zoom) || 0;
+    if (value < (mobile ? 8 : 7)) return 'chip';
+    if (value < (mobile ? 10 : 9)) return 'compact';
+    return 'detail';
+}
+
+/** Bewusstes Kartenbudget: auf kleinen/entfernten Ansichten weniger Objekte. */
+export function territoryLabelBudget(mode, { mobile = false } = {}) {
+    const budgets = mobile
+        ? { chip: 18, compact: 12, detail: 8 }
+        : { chip: 36, compact: 24, detail: 14 };
+    return budgets[mode] || budgets.detail;
+}
+
+/** Entfernt redundante Organisationspräfixe in kleinen Kartenstufen. */
+export function compactTerritoryLabel(value) {
+    const label = String(value ?? '').trim();
+    return label.replace(/^(?:vertriebshauptgruppe|vertriebsgruppe|vertriebsbezirk|channel|gruppe|bezirk)\s+/i, '') || label;
+}
+
+function overlaps(a, b, gap) {
+    return a.left < b.right + gap
+        && a.right + gap > b.left
+        && a.top < b.bottom + gap
+        && a.bottom + gap > b.top;
+}
+
+/**
+ * Wählt nach fachlicher Priorität eine kollisionsfreie Teilmenge von Labels.
+ * Koordinaten und Abmessungen sind Bildschirm-Pixel, damit die Entscheidung
+ * unabhängig von Landkreis-/PLZ-Geometrien stabil bleibt.
+ */
+export function selectNonOverlappingLabels(candidates, {
+    viewportWidth,
+    viewportHeight,
+    maxItems = Infinity,
+    gap = 8,
+    margin = 6
+} = {}) {
+    const width = Number(viewportWidth) || 0;
+    const height = Number(viewportHeight) || 0;
+    if (!Array.isArray(candidates) || width <= 0 || height <= 0 || maxItems <= 0) return [];
+
+    const placed = [];
+    const rects = [];
+    const sorted = [...candidates].sort((a, b) => (Number(b.priority) || 0) - (Number(a.priority) || 0));
+    for (const candidate of sorted) {
+        const itemWidth = Math.max(1, Number(candidate.width) || 1);
+        const itemHeight = Math.max(1, Number(candidate.height) || 1);
+        const rect = {
+            left: Number(candidate.x) - itemWidth / 2,
+            right: Number(candidate.x) + itemWidth / 2,
+            top: Number(candidate.y) - itemHeight / 2,
+            bottom: Number(candidate.y) + itemHeight / 2
+        };
+        if (rect.right < margin || rect.left > width - margin || rect.bottom < margin || rect.top > height - margin) continue;
+        if (rects.some((other) => overlaps(rect, other, gap))) continue;
+        placed.push(candidate);
+        rects.push(rect);
+        if (placed.length >= maxItems) break;
+    }
+    return placed;
+}

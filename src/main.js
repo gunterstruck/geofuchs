@@ -41,7 +41,8 @@ async function restorePersistedState() {
     const savedFixedLevel = settings?.fixedLevel ?? settings?.level;
     if (savedFixedLevel && savedFixedLevel in CONFIG.levels) state.fixedLevel = savedFixedLevel;
     // Alte Einstellungen besaßen noch keinen bewussten Auto-/Fixiert-Schalter.
-    // Sie starten deshalb im neuen, einfachen Standard: automatisch nach Zoom.
+    // Sie starten automatisch; eine konkrete Auswahl bleibt danach in Basis
+    // und Profi gleichermaßen fixiert.
     state.levelMode = settings?.levelMode === 'fixed' ? 'fixed' : 'auto';
     emit('level:control-changed');
     if (settings?.radiusKm) state.tour.radiusKm = settings.radiusKm;
