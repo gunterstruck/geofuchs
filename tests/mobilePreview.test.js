@@ -10,7 +10,7 @@ describe('Mobile Außendienst & Tour am Desktop', () => {
             addEventListener: vi.fn(),
             removeEventListener: vi.fn()
         }));
-        const { canOfferMobilePreviewTeaser, shouldFocusPreviewTour } = await import('../src/ui/mobilePreview.js');
+        const { canOfferMobilePreviewTeaser, shouldFocusPreviewData } = await import('../src/ui/mobilePreview.js');
 
         expect(canOfferMobilePreviewTeaser({
             desktop: true,
@@ -26,15 +26,15 @@ describe('Mobile Außendienst & Tour am Desktop', () => {
         ]) {
             expect(canOfferMobilePreviewTeaser(blocker)).toBe(false);
         }
-        expect(shouldFocusPreviewTour({ requestedFocus: 'tour', hasCustomers: false })).toBe(false);
-        expect(shouldFocusPreviewTour({ requestedFocus: 'tour', hasCustomers: true })).toBe(true);
+        expect(shouldFocusPreviewData({ requestedFocus: 'tour' })).toBe(false);
+        expect(shouldFocusPreviewData({ requestedFocus: 'daten' })).toBe(true);
     });
 
     it('öffnet die vorbereitete Tour-Vorschau ruhig und kehrt zum Einstieg zurück', () => {
         const source = readFileSync(resolve(process.cwd(), 'src/ui/mobilePreview.js'), 'utf8');
         const sidebar = readFileSync(resolve(process.cwd(), 'src/ui/sidebar.js'), 'utf8');
 
-        expect(source).toContain("[FOCUS_PARAM]: 'tour'");
+        expect(source).toContain("[FOCUS_PARAM]: 'daten'");
         expect(source).toContain('AUTO_TEASER_PREVIEW_MS = 2600');
         expect(source).toContain("PREVIEW_READY_MESSAGE = 'tourfuchs:mobile-preview-ready'");
         expect(source).toContain('type: PREVIEW_READY_MESSAGE, hasCustomers');
@@ -43,8 +43,17 @@ describe('Mobile Außendienst & Tour am Desktop', () => {
         expect(source).toContain("on('customers:changed'");
         expect(source).toContain("on('app:ready'");
         expect(source).toContain('showLocationHint()');
-        expect(sidebar).toContain('export function showTourView(persist = false)');
-        expect(sidebar).toContain('window.innerHeight * (2 / 3)');
+        expect(sidebar).toContain('export function showDataView(persist = false)');
+        expect(sidebar).toContain('sheetMaxHeight() * 0.88');
+    });
+
+    it('startet mobil bewusst in Basis und im Daten-Tab', () => {
+        const main = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8');
+        const sidebar = readFileSync(resolve(process.cwd(), 'src/ui/sidebar.js'), 'utf8');
+
+        expect(main).toContain("state.ui.activeTab = 'daten'");
+        expect(main).toContain('if (mobileStartup) showDataView(false)');
+        expect(sidebar).toContain("if (isMobileUi()) depth = 'basis'");
     });
 
     it('macht Beispieldaten mobil über ein weit geöffnetes, scrollbares Datenblatt erreichbar', () => {

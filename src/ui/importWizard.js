@@ -14,7 +14,9 @@ import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { saveDataset } from '../services/storage.js';
 import {
     canAutoLoadWelcomeDemo,
+    hasClearedDataset,
     hasHandledWelcomeDemo,
+    markDatasetCleared,
     markShowcaseImportCompleted,
     markWelcomeDemoHandled,
     welcomeDemoDelayMs
@@ -59,6 +61,7 @@ export function initImportWizard() {
         ownDataDialog?.showModal();
     });
     document.getElementById('btn-showcase-ob')?.addEventListener('click', () => cancelWelcomeDemo());
+    document.getElementById('btn-demo-restore')?.addEventListener('click', restoreDemoAfterClear);
     ownDataDialog?.querySelector('.dialog-close')?.addEventListener('click', () => ownDataDialog.close());
 
     const fileInput = document.getElementById('file-input');
@@ -123,7 +126,40 @@ export function initImportWizard() {
     dialog.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
     document.getElementById('mapping-confirm').addEventListener('click', confirmImport);
 
-    on('app:ready', scheduleWelcomeDemo);
+    on('app:ready', () => {
+        syncDemoRestoreOffer();
+        scheduleWelcomeDemo();
+    });
+    on('customers:changed', syncDemoRestoreOffer);
+    on('dataset:cleared', () => {
+        markDatasetCleared();
+        syncDemoRestoreOffer();
+        previewStatus({
+            title: 'Daten gelöscht.',
+            detail: 'Du kannst die Beispieldaten jederzeit wieder laden.',
+            stateName: 'paused'
+        });
+    });
+}
+
+function syncDemoRestoreOffer() {
+    const visible = state.customers.length === 0 && hasClearedDataset();
+    const button = document.getElementById('btn-demo-restore');
+    const sub = document.getElementById('demo-restore-sub');
+    if (button) button.hidden = !visible;
+    if (sub) sub.hidden = !visible;
+}
+
+async function restoreDemoAfterClear() {
+    const button = document.getElementById('btn-demo-restore');
+    cancelWelcomeDemo({ handled: true });
+    if (button) button.disabled = true;
+    try {
+        await loadDemo({ source: 'restore', confirmReplacement: false, announce: true });
+    } finally {
+        if (button) button.disabled = false;
+        syncDemoRestoreOffer();
+    }
 }
 
 function hasComplianceOptIn() {

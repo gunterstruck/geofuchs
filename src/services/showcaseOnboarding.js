@@ -3,7 +3,8 @@ const KEYS = Object.freeze({
     dismissed: 'tf_showcase_dismissed',
     imported: 'tf_showcase_imported',
     completed: 'tf_showcase_completed',
-    welcomeDemoHandled: 'tf_welcome_demo_handled'
+    welcomeDemoHandled: 'tf_welcome_demo_handled',
+    datasetCleared: 'tf_dataset_cleared'
 });
 
 // Lang genug, damit die Deutschlandkarte bewusst als ruhiger Ausgangspunkt
@@ -72,6 +73,14 @@ export function hasHandledWelcomeDemo(provided) {
 
 export function markWelcomeDemoHandled(provided) {
     writeFlag(KEYS.welcomeDemoHandled, provided);
+}
+
+export function hasClearedDataset(provided) {
+    return readFlag(KEYS.datasetCleared, provided);
+}
+
+export function markDatasetCleared(provided) {
+    writeFlag(KEYS.datasetCleared, provided);
 }
 
 /** Nur der allererste freie Einstieg darf Beispieldaten selbst einblenden. */

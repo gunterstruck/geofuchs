@@ -13,7 +13,7 @@ import { loadDataset, saveDataset, loadSettings, hasStoredDataset } from './serv
 import { isEnabled as vaultEnabled, isLocked as vaultLocked, removeVaultMeta } from './services/vault.js';
 import { enrichPlacesByPlz, geocodeByPlz } from './services/geocode.js';
 import { initMap } from './features/map.js';
-import { initSidebar, applyMode, autoRevealIfEmpty } from './ui/sidebar.js';
+import { initSidebar, applyMode, autoRevealIfEmpty, showDataView } from './ui/sidebar.js';
 import { initImportWizard } from './ui/importWizard.js';
 import { initTourPanel } from './ui/tourPanel.js';
 import { openReceivedFromUrl } from './ui/tourQr.js';
@@ -148,11 +148,17 @@ async function restorePersistedState() {
     }
 
     // Fokus-Modus wiederherstellen (Farbmodus wurde bereits oben gesetzt -> nicht überschreiben)
-    if (typeof settings?.activeTab === 'string') state.ui.activeTab = settings.activeTab;
-    if (['aussendienst', 'gebietsplanung', 'service'].includes(settings?.mode)) {
+    const mobileStartup = window.matchMedia('(max-width: 900px)').matches;
+    if (!mobileStartup && typeof settings?.activeTab === 'string') state.ui.activeTab = settings.activeTab;
+    if (!mobileStartup && ['aussendienst', 'gebietsplanung', 'service'].includes(settings?.mode)) {
         state.ui.mode = settings.mode;
     }
+    if (mobileStartup) {
+        state.ui.mode = 'aussendienst';
+        state.ui.activeTab = 'daten';
+    }
     applyMode(state.ui.mode, false);
+    if (mobileStartup) showDataView(false);
 }
 
 // Kundendaten nach inhaltlichen Änderungen (Besuch, Rhythmus, Gebiete) speichern – gedrosselt

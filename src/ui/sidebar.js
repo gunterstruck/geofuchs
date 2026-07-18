@@ -599,6 +599,13 @@ export function showTourView(persist = false) {
     if (persist) persistSettings();
 }
 
+/** Mobil mit ruhiger Basisansicht und weit geöffnetem Datenblatt starten. */
+export function showDataView(persist = false) {
+    activateTab('daten');
+    if (isMobileUi()) setSheetHeight(Math.round(sheetMaxHeight() * 0.88), persist);
+    if (persist) persistSettings();
+}
+
 function hasTourRouteForMap() {
     return state.ui.mode === 'aussendienst'
         && !!state.tour.start
@@ -674,6 +681,9 @@ function initDepth() {
         try { legacy = localStorage.getItem('gf_tour_expert'); } catch (e) { /* egal */ }
         depth = legacy === '1' ? 'profi' : 'basis';
     }
+    // Das Smartphone ist der schnelle Außendienst-Einstieg: bei jedem neuen
+    // Öffnen bewusst ruhig in Basis starten. Profi bleibt danach anwählbar.
+    if (isMobileUi()) depth = 'basis';
     applyDepth(depth, false);
     document.querySelectorAll('#depth-switch .seg').forEach((btn) =>
         btn.addEventListener('click', () => applyDepth(btn.dataset.depth)));
@@ -925,15 +935,12 @@ export function initSidebar() {
     restoreOptionalFilterSections();
     initTeamFilters();
 
-    // Nach dem Demo-Laden: direkt in den Außendienst-Modus (Karte + Tour).
-    // Mobil das Menü schließen, damit die bunten Pins auf der Karte den Aha-Moment liefern.
+    // Nach dem Demo-Laden: direkt in den Außendienst-Modus. Desktop zeigt den
+    // Tour-Einstieg; mobil bleibt das weit geöffnete Datenblatt bewusst sichtbar.
     on('demo:loaded', () => {
         clearTimeout(autoRevealTimer);
         applyMode('aussendienst', true);
-        if (window.innerWidth < 768) {
-            state.ui.sidebarOpen = false;
-            applySidebar();
-        }
+        if (isMobileUi()) showDataView(false);
     });
 
     on('customers:changed', () => {

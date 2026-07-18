@@ -15,6 +15,8 @@ describe('Ruhiger Daten-Einstieg', () => {
         expect(actionIds).toEqual(['btn-showcase-ob']);
         expect(onboarding.querySelector('#btn-demo')).toBeNull();
         expect(onboarding.querySelector('#btn-own-data')?.classList.contains('ob-secondary-action')).toBe(true);
+        expect(onboarding.querySelector('#btn-demo-restore')?.hidden).toBe(true);
+        expect(onboarding.querySelector('#demo-restore-sub')?.hidden).toBe(true);
         expect(onboarding.querySelector('#demo-preview-status')).not.toBeNull();
         expect(onboarding.querySelector('#btn-upload')).toBeNull();
         expect(onboarding.querySelector('#btn-safe-receive-ob')).toBeNull();
@@ -44,5 +46,6 @@ describe('Ruhiger Daten-Einstieg', () => {
         expect(source).toContain("document.getElementById('btn-own-data')");
         expect(source).toContain('ownDataDialog?.showModal()');
         expect(source).toContain('if (ownDataDialog?.open) ownDataDialog.close();');
+        expect(source).toContain("document.getElementById('btn-demo-restore')");
     });
 });
