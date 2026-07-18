@@ -95,6 +95,12 @@ describe('Lebendige Kunden-Kacheln', () => {
         expect(map).toContain('localStorage.removeItem(CUSTOMER_CLUSTER_HINT_KEY)');
         expect(map).toContain("className: 'customer-detail-popup'");
         expect(css).toContain('.customer-marker-mode-label .customer-marker-card');
+        // Label-/Detailstufe ist eine hochkant „Tablet"-Kachel mit Pin-Spitze auf
+        // der Adresse – kein flacher Zeilen-Streifen mehr.
+        expect(map).toContain('customer-marker-accent');
+        expect(css).toContain('.customer-marker-accent { display: none; }');
+        expect(css).toContain('.customer-marker-mode-detail .customer-marker-card::after');
+        expect(css).toMatch(/\.customer-marker-mode-label \.customer-marker-card,\s*\.customer-marker-mode-detail \.customer-marker-card \{\s*position: absolute;/);
         expect(css).toContain('@keyframes customer-popup-unfold');
         expect(css).toContain('.customer-stack-card.is-discovery .customer-stack-discovery-label');
         expect(css).toMatch(/\.territory-stack-card--compact\s*\{\s*width:\s*96px;\s*min-height:\s*60px;/);

@@ -585,11 +585,12 @@ function activateTab(tab) {
     }
 }
 
-/** Mobil direkt zur Kartenansicht wechseln, z. B. nach "Route anzeigen". */
-export function showMapView() {
+/** Mobil direkt zur Kartenansicht wechseln, z. B. nach "Route anzeigen".
+ *  `activateTab('karte')` klappt das Blatt zugleich ganz nach unten ein. */
+export function showMapView(persist = true) {
     if (!isMobileUi()) return;
     activateTab('karte');
-    persistSettings();
+    if (persist) persistSettings();
 }
 
 /** Mobil gezielt mit geöffnetem Tour-Sheet starten, optional ohne Persistenz. */
@@ -936,11 +937,13 @@ export function initSidebar() {
     initTeamFilters();
 
     // Nach dem Demo-Laden: direkt in den Außendienst-Modus. Desktop zeigt den
-    // Tour-Einstieg; mobil bleibt das weit geöffnete Datenblatt bewusst sichtbar.
+    // Tour-Einstieg; mobil springt die Ansicht auf die Karte und klappt das
+    // Blatt ganz nach unten ein – so erscheinen die neuen Kunden sofort auf der
+    // Karte, statt hinter einem weit geöffneten Datenblatt zu verschwinden.
     on('demo:loaded', () => {
         clearTimeout(autoRevealTimer);
         applyMode('aussendienst', true);
-        if (isMobileUi()) showDataView(false);
+        if (isMobileUi()) showMapView();
     });
 
     on('customers:changed', () => {

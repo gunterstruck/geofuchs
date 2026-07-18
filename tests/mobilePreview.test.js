@@ -47,13 +47,22 @@ describe('Mobile Außendienst & Tour am Desktop', () => {
         expect(sidebar).toContain('sheetMaxHeight() * 0.88');
     });
 
-    it('startet mobil bewusst in Basis und im Daten-Tab', () => {
+    it('startet mobil in Basis – mit Daten auf der Karte, ohne Daten im Daten-Tab', () => {
         const main = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8');
         const sidebar = readFileSync(resolve(process.cwd(), 'src/ui/sidebar.js'), 'utf8');
 
-        expect(main).toContain("state.ui.activeTab = 'daten'");
-        expect(main).toContain('if (mobileStartup) showDataView(false)');
+        expect(main).toContain("state.ui.activeTab = state.customers.length > 0 ? 'karte' : 'daten'");
+        expect(main).toContain('if (state.customers.length > 0) showMapView(false)');
+        expect(main).toContain('else showDataView(false)');
         expect(sidebar).toContain("if (isMobileUi()) depth = 'basis'");
+    });
+
+    it('zeigt nach dem Laden von Beispieldaten mobil die Karte mit eingeklapptem Blatt', () => {
+        const sidebar = readFileSync(resolve(process.cwd(), 'src/ui/sidebar.js'), 'utf8');
+
+        // demo:loaded schaltet mobil auf die Karte (statt das Datenblatt weit zu öffnen),
+        // damit die neuen Kunden sofort sichtbar sind und die Sidebar unten einklappt.
+        expect(sidebar).toMatch(/on\('demo:loaded', \(\) => \{[\s\S]*if \(isMobileUi\(\)\) showMapView\(\);/);
     });
 
     it('macht Beispieldaten mobil über ein weit geöffnetes, scrollbares Datenblatt erreichbar', () => {

@@ -1292,6 +1292,7 @@ function customerIcon(customer) {
     return L.divIcon({
         className: 'customer-marker-wrapper',
         html: `<div class="customer-marker-card${customer.geo === 'plz' ? ' approx' : ''}${inTour ? ' in-tour' : ''}${visitAccent}" style="--marker-color:${color}" aria-hidden="true">
+            <span class="customer-marker-accent"></span>
             <span class="customer-marker-symbol"></span>
             <span class="customer-marker-copy">
                 <b>${escapeHtml(label)}</b>
