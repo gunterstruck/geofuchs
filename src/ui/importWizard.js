@@ -19,6 +19,7 @@ import {
     markDatasetCleared,
     markShowcaseImportCompleted,
     markWelcomeDemoHandled,
+    resetWelcomeDemoAfterDataClear,
     welcomeDemoDelayMs
 } from '../services/showcaseOnboarding.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
@@ -128,15 +129,27 @@ export function initImportWizard() {
 
     on('app:ready', () => {
         syncDemoRestoreOffer();
+        // Migration für bereits leere Installationen: Frühere Versionen
+        // merkten das Löschen, ließen das Willkommen aber dauerhaft erledigt.
+        if (state.customers.length === 0 && hasClearedDataset()) {
+            resetWelcomeDemoAfterDataClear();
+        }
         scheduleWelcomeDemo();
     });
     on('customers:changed', syncDemoRestoreOffer);
     on('dataset:cleared', () => {
+        // Nicht in derselben Sitzung sofort wieder Daten einladen. Nach einem
+        // echten PWA-Neustart ist die Nutzerabsicht frisch und das Intro darf
+        // erneut von der leeren Deutschlandkarte aus beginnen.
+        welcomeDemoUserIntent = true;
+        if (welcomeDemoTimer) clearTimeout(welcomeDemoTimer);
+        welcomeDemoTimer = null;
         markDatasetCleared();
+        resetWelcomeDemoAfterDataClear();
         syncDemoRestoreOffer();
         previewStatus({
             title: 'Daten gelöscht.',
-            detail: 'Du kannst die Beispieldaten jederzeit wieder laden.',
+            detail: 'Jetzt neu laden oder beim nächsten Start das Intro noch einmal erleben.',
             stateName: 'paused'
         });
     });

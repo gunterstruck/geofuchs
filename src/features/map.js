@@ -88,6 +88,15 @@ function rememberHint(key) {
     try { localStorage.setItem(key, '1'); } catch { /* Speicherung ist optional */ }
 }
 
+function resetCustomerDiscoveryHints() {
+    dismissCustomerMarkerHint();
+    dismissCustomerClusterHint();
+    try {
+        localStorage.removeItem(CUSTOMER_MARKER_HINT_KEY);
+        localStorage.removeItem(CUSTOMER_CLUSTER_HINT_KEY);
+    } catch { /* Speicherung ist optional */ }
+}
+
 function dismissCustomerClusterHint() {
     clearTimeout(clusterHintTimer);
     clusterHintTimer = 0;
@@ -528,6 +537,7 @@ export function initMap(containerId) {
     });
 
     on('customers:changed', refreshAll);
+    on('dataset:cleared', resetCustomerDiscoveryHints);
     on('filters:changed', refreshAll);
     on('mode:changed', refreshAll);
     on('tab:changed', refreshAll);

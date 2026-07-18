@@ -16,6 +16,7 @@ import {
     markWelcomeDemoHandled,
     nextUnseenShowcaseStory,
     resetShowcaseAfterDataClear,
+    resetWelcomeDemoAfterDataClear,
     seenShowcaseIds,
     welcomeDemoDelayMs
 } from '../src/services/showcaseOnboarding.js';
@@ -65,10 +66,13 @@ describe('Showcase-Onboarding', () => {
         markShowcaseImportCompleted();
         markShowcaseCompleted();
         markShowcaseStorySeen('eins');
+        markWelcomeDemoHandled();
         expect(isShowcaseAutoSuppressed()).toBe(true);
+        expect(hasHandledWelcomeDemo()).toBe(true);
         resetShowcaseAfterDataClear();
         expect(isShowcaseAutoSuppressed()).toBe(false);
         expect(seenShowcaseIds()).toEqual([]);
+        expect(hasHandledWelcomeDemo()).toBe(false);
 
         markShowcaseDismissed();
         markShowcaseImportCompleted();
@@ -123,6 +127,13 @@ describe('Showcase-Onboarding', () => {
         expect(hasClearedDataset()).toBe(true);
     });
 
+    it('erlaubt nach dem Löschen beim nächsten Start erneut die Willkommen-Demo', () => {
+        markWelcomeDemoHandled();
+        expect(canAutoLoadWelcomeDemo({ handled: hasHandledWelcomeDemo() })).toBe(false);
+        resetWelcomeDemoAfterDataClear();
+        expect(canAutoLoadWelcomeDemo({ handled: hasHandledWelcomeDemo() })).toBe(true);
+    });
+
     it('zeigt zuerst die Begrüßung und öffnet den Showcase nur noch auf Klick', () => {
         const stateSource = readFileSync(resolve(process.cwd(), 'src/core/state.js'), 'utf8');
         const mainSource = readFileSync(resolve(process.cwd(), 'src/main.js'), 'utf8');
@@ -161,10 +172,13 @@ describe('Showcase-Onboarding', () => {
         expect(importWizard).toContain("loadDemo({ source: 'welcome', confirmReplacement: false, announce: false })");
         expect(importWizard).toContain('cancelWelcomeDemo({ handled: true })');
         expect(importWizard).toContain("on('dataset:cleared'");
+        expect(importWizard).toContain('resetWelcomeDemoAfterDataClear()');
         expect(importWizard).toContain("loadDemo({ source: 'restore', confirmReplacement: false, announce: true })");
         expect(html).toContain('id="btn-demo-restore"');
         expect(main).toContain("emit('app:ready')");
         expect(sidebar).toContain("emit('dataset:cleared')");
+        expect(readFileSync(resolve(process.cwd(), 'src/features/map.js'), 'utf8'))
+            .toContain("on('dataset:cleared', resetCustomerDiscoveryHints)");
         expect(css).toContain('width: 340px');
         expect(css).toContain('box-shadow: 0 18px 42px');
         expect(css).toContain('#showcase-dialog[open]');
