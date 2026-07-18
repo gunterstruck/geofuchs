@@ -26,6 +26,20 @@ export function customerMarkerLabel(name, { demo = false } = {}) {
     return value.replace(/^TourFuchs Demo\s*·\s*/i, '') || value;
 }
 
+/**
+ * Pixelradius für die Kundenverdichtung. In dichten Stadtansichten bleiben
+ * Stapel bewusst länger zusammen; erst im Nahbereich entstehen Einzelkarten.
+ */
+export function customerClusterRadius(zoom, { mobile = false } = {}) {
+    const value = Number(zoom) || 0;
+    if (value <= 6) return mobile ? 112 : 104;
+    if (value <= 8) return mobile ? 124 : 116;
+    if (value <= 10) return mobile ? 120 : 112;
+    if (value <= 12) return mobile ? 104 : 92;
+    if (value <= 14) return mobile ? 80 : 68;
+    return mobile ? 50 : 42;
+}
+
 export function canOfferCustomerMarkerHint({
     zoom = 0,
     mobile = false,

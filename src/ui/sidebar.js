@@ -650,7 +650,7 @@ function syncLevelControl() {
     const mode = document.getElementById('level-mode-label');
     const active = document.getElementById('level-active-label');
     if (select) select.value = state.levelMode === 'fixed' ? state.fixedLevel : 'auto';
-    if (mode) mode.textContent = automatic ? 'Automatisch nach Zoom' : 'Im Profi-Modus fixiert';
+    if (mode) mode.textContent = automatic ? 'Automatisch nach Zoom' : 'Manuell gewählt';
     if (active) active.textContent = CONFIG.levels[state.level]?.label ?? state.level;
     document.querySelector('.level-status')?.classList.toggle('is-fixed', !automatic);
 }

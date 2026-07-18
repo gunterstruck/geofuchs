@@ -12,12 +12,13 @@ const sidebar = source('src/ui/sidebar.js');
 const responsive = source('src/styles/responsive.css');
 
 describe('Basis-/Profi-Schnitt der Gebietskarte', () => {
-    it('zeigt den Auto-Status immer, die manuelle Wahl und das Cockpit aber nur Profis', () => {
+    it('zeigt Status und manuelle Gebietswahl auch in Basis, das Cockpit aber nur Profis', () => {
         const status = doc.querySelector('.level-status');
-        const control = doc.querySelector('.level-expert-control.expert-only');
+        const control = doc.querySelector('.level-control');
         expect(status).not.toBeNull();
         expect(status.closest('.expert-only')).toBeNull();
         expect(control?.querySelector('#level-select')).not.toBeNull();
+        expect(control?.classList.contains('expert-only')).toBe(false);
         expect(doc.querySelector('#btn-cockpit')?.classList.contains('expert-only')).toBe(true);
         expect(sidebar).toContain('<option value="auto">Automatisch nach Zoom</option>');
     });

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { revenueWeightedCentroids } from '../src/features/labelPlacement.js';
+import {
+    compactTerritoryLabel,
+    revenueWeightedCentroids,
+    selectNonOverlappingLabels,
+    territoryLabelBudget,
+    territoryLabelMode
+} from '../src/features/labelPlacement.js';
 
 describe('revenueWeightedCentroids', () => {
     it('einzelnes Polygon: Label sitzt in dessen Mitte', () => {
@@ -76,5 +82,39 @@ describe('revenueWeightedCentroids', () => {
             ]]
         ]));
         expect(pos.get('Y')[0]).toBeCloseTo(51.0, 5); // reiner Kundenschwerpunkt
+    });
+});
+
+describe('Progressive und kollisionsarme Gebietslabels', () => {
+    it('enthüllt Kennzahlen stufenweise mit dem Zoom', () => {
+        expect(territoryLabelMode(6)).toBe('chip');
+        expect(territoryLabelMode(7)).toBe('compact');
+        expect(territoryLabelMode(9)).toBe('detail');
+        expect(territoryLabelMode(7, { mobile: true })).toBe('chip');
+        expect(territoryLabelBudget('detail')).toBeLessThan(territoryLabelBudget('chip'));
+    });
+
+    it('kürzt redundante Organisationspräfixe nur für die Kartenanzeige', () => {
+        expect(compactTerritoryLabel('Bezirk Berlin-Spree')).toBe('Berlin-Spree');
+        expect(compactTerritoryLabel('Vertriebsgruppe Nord')).toBe('Nord');
+        expect(compactTerritoryLabel('H30C')).toBe('H30C');
+    });
+
+    it('behält bei Kollision das fachlich wichtigere Label', () => {
+        const selected = selectNonOverlappingLabels([
+            { id: 'klein', x: 100, y: 100, width: 80, height: 36, priority: 2 },
+            { id: 'wichtig', x: 104, y: 102, width: 80, height: 36, priority: 20 },
+            { id: 'frei', x: 240, y: 100, width: 80, height: 36, priority: 1 }
+        ], { viewportWidth: 400, viewportHeight: 250, maxItems: 10 });
+        expect(selected.map((item) => item.id)).toEqual(['wichtig', 'frei']);
+    });
+
+    it('achtet Kartenrand und festes Aufmerksamkeitsbudget', () => {
+        const selected = selectNonOverlappingLabels([
+            { id: 'außen', x: -100, y: 100, width: 50, height: 30, priority: 99 },
+            { id: 'a', x: 80, y: 80, width: 50, height: 30, priority: 3 },
+            { id: 'b', x: 200, y: 80, width: 50, height: 30, priority: 2 }
+        ], { viewportWidth: 300, viewportHeight: 180, maxItems: 1 });
+        expect(selected.map((item) => item.id)).toEqual(['a']);
     });
 });

@@ -14,7 +14,13 @@ import { state, on, emit, repColor, attrColor, getCustomer, markDirty, clearServ
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
 import { getRoadRoute, peekRoadRoute } from '../services/routing.js';
 import { aggregateByRegion, dominantRep } from './territory.js';
-import { revenueWeightedCentroids } from './labelPlacement.js';
+import {
+    compactTerritoryLabel,
+    revenueWeightedCentroids,
+    selectNonOverlappingLabels,
+    territoryLabelBudget,
+    territoryLabelMode
+} from './labelPlacement.js';
 import { suggestNearby, suggestAlongRoute } from './tour.js';
 import { popupSafeRect, popupPanOffset, popupContentHeightLimit } from './popupViewport.js';
 import { visitStatus, isOpportunity, lastVisit, agoText, formatDateDe, markVisitedToday, STATUS_COLORS, STATUS_LABELS } from './visits.js';
@@ -26,6 +32,7 @@ import {
     CUSTOMER_MARKER_MODES,
     DEFAULT_CUSTOMER_COLOR,
     canOfferCustomerMarkerHint,
+    customerClusterRadius,
     customerClusterSummary,
     customerMarkerLabel,
     customerMarkerMode,
@@ -434,12 +441,7 @@ export function initMap(containerId) {
     applyBasemap();
 
     clusterGroup = L.markerClusterGroup({
-        maxClusterRadius: (zoom) => {
-            if (zoom <= 6) return isMobileMap() ? 84 : 92;
-            if (zoom <= 7) return isMobileMap() ? 70 : 76;
-            if (zoom <= 8) return isMobileMap() ? 60 : 58;
-            return isMobileMap() ? 54 : 44;
-        },
+        maxClusterRadius: (zoom) => customerClusterRadius(zoom, { mobile: isMobileMap() }),
         spiderfyOnMaxZoom: true,
         spiderfyDistanceMultiplier: isMobileMap() ? 1.85 : 1.2,
         showCoverageOnHover: false,
@@ -457,6 +459,7 @@ export function initMap(containerId) {
         syncCustomerMarkerMode();
         const levelChanged = syncEffectiveLevel();
         if (!levelChanged && state.colorMode === 'auto') applyView();
+        else if (!levelChanged && currentView.labels) renderLabels();
         scheduleCustomerMarkerHint();
         scheduleCustomerClusterHint();
     });
@@ -467,7 +470,10 @@ export function initMap(containerId) {
     });
     map.getContainer().addEventListener('pointerleave', closeActiveRegionTooltip);
     // Für den „In der Nähe"-Begleiter: nach jeder Karten-Bewegung neu berechnen.
-    map.on('moveend', () => emit('map:moved'));
+    map.on('moveend', () => {
+        emit('map:moved');
+        if (currentView.labels) renderLabels();
+    });
 
     // Buttons in Popups (Event-Delegation)
     map.on('popupopen', (e) => {
@@ -976,14 +982,14 @@ function styleFor(feature) {
     if (!info) return { ...CONFIG.regionStyle.default };
 
     const territory = !currentView.markers; // Flächenansicht: kräftiger füllen
-    const maxOpacity = territory ? (info.assignedOnly ? 0.45 : 0.8) : 0.4;
+    const maxOpacity = territory ? (info.assignedOnly ? 0.4 : 0.62) : 0.2;
     const { fillColor, fillOpacity } = compositeFill(info.shares, maxOpacity);
     return {
         fillColor,
-        color: territory ? '#ffffff' : '#334155',
-        weight: territory ? 1.2 : 1,
+        color: territory ? '#ffffff' : '#64748b',
+        weight: territory ? 1.2 : 0.75,
         dashArray: info.assignedOnly ? '4 3' : '',
-        opacity: 1,
+        opacity: territory ? 1 : 0.42,
         fillOpacity
     };
 }
@@ -1100,25 +1106,57 @@ function renderLabels() {
     }
 
     const positions = revenueWeightedCentroids(polygonsByValue);
+    const labelMode = territoryLabelMode(map.getZoom(), { mobile: isMobileMap() });
+    const labelSize = labelMode === 'chip'
+        ? { width: 84, height: 30 }
+        : labelMode === 'compact'
+            ? { width: 112, height: 42 }
+            : { width: 158, height: 58 };
+    const mapSize = map.getSize();
+    const candidates = [...positions].map(([val, center]) => {
+        const point = map.latLngToContainerPoint(center);
+        const count = countByVal.get(val) || 0;
+        const revenue = revByVal.get(val) || 0;
+        return {
+            val,
+            center,
+            count,
+            revenue,
+            x: point.x,
+            y: point.y,
+            width: labelSize.width,
+            height: labelSize.height,
+            // Kundenzahl ist für die Orientierung wichtiger; Umsatz löst
+            // nur Gleichstände zwischen ähnlich großen Gebieten auf.
+            priority: count * 100 + Math.log10(Math.max(1, revenue))
+        };
+    });
+    const visibleLabels = selectNonOverlappingLabels(candidates, {
+        viewportWidth: mapSize.x,
+        viewportHeight: mapSize.y,
+        maxItems: territoryLabelBudget(labelMode, { mobile: isMobileMap() }),
+        gap: labelMode === 'chip' ? 7 : 10
+    });
 
-    for (const [val, center] of positions) {
+    for (const { val, center, count, revenue } of visibleLabels) {
         const col = attrColor(attr, val);
         const hasRevenue = revenueValues.has(val);
-        const revenue = revByVal.get(val) || 0;
         const rev = hasRevenue ? formatRevenueShort(revenue) : '';
-        const count = countByVal.get(val) || 0;
         const dimension = attr === 'channel' ? 'Vertriebshauptgruppe' : (state.dims[attr]?.label || 'Gebiet');
         const title = `${dimension} ${val}: ${count} Kunden${hasRevenue ? ` · ${formatRevenueFull(revenue)} Volumen` : ''}`;
+        const displayValue = labelMode === 'detail' ? val : compactTerritoryLabel(val);
+        const metrics = labelMode === 'detail'
+            ? `<span class="tl-metrics"><b>${count} Kunden</b>${rev ? `<span>${rev}</span>` : ''}</span>`
+            : `<span class="tl-count">${count}${labelMode === 'compact' ? ' Kunden' : ' Kd.'}</span>`;
         L.marker(center, {
             interactive: false,
             keyboard: false,
             icon: L.divIcon({
                 className: 'territory-label-wrapper',
-                html: `<div class="territory-stack-card${val === UNASSIGNED ? ' unassigned' : ''}" style="--territory-color:${col}" title="${escapeHtml(title)}">
+                html: `<div class="territory-stack-card territory-stack-card--${labelMode}${val === UNASSIGNED ? ' unassigned' : ''}" style="--territory-color:${col}" title="${escapeHtml(title)}">
                     <span class="tl-accent"></span>
-                    <span class="tl-kicker">${escapeHtml(dimension)}</span>
-                    <strong>${escapeHtml(val)}</strong>
-                    <span class="tl-metrics"><b>${count} Kunden</b>${rev ? `<span>${rev} Volumen</span>` : ''}</span>
+                    <strong>${escapeHtml(displayValue)}</strong>
+                    ${metrics}
                 </div>`,
                 iconSize: null
             })

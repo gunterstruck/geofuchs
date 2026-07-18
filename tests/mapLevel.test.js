@@ -17,10 +17,10 @@ describe('Automatische Gebietsebene', () => {
         expect(automaticLevelForZoom(6.74, 'kreise')).toBe('plz2');
     });
 
-    it('erzwingt Automatik in Basis und mobil, erlaubt Fixierung nur im Desktop-Profi-Modus', () => {
-        expect(automaticLevelActive('basis', 'fixed')).toBe(true);
+    it('lässt konkrete Ebenen in Basis, Profi und mobil fixiert', () => {
+        expect(automaticLevelActive('basis', 'fixed')).toBe(false);
         expect(automaticLevelActive('profi', 'auto')).toBe(true);
         expect(automaticLevelActive('profi', 'fixed')).toBe(false);
-        expect(automaticLevelActive('profi', 'fixed', true)).toBe(true);
+        expect(automaticLevelActive('profi', 'fixed', true)).toBe(false);
     });
 });

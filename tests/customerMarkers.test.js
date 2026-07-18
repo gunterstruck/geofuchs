@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import {
     DEFAULT_CUSTOMER_COLOR,
     canOfferCustomerMarkerHint,
+    customerClusterRadius,
     customerClusterSummary,
     customerMarkerLabel,
     customerMarkerMode,
@@ -24,6 +25,14 @@ describe('Lebendige Kunden-Kacheln', () => {
         expect(customerMarkerMode(15.5, { mobile: true })).toBe('detail');
         expect(customerMarkerModeClass('label')).toBe('customer-marker-mode-label');
         expect(customerMarkerModeClass('unbekannt')).toBe('customer-marker-mode-dot');
+    });
+
+    it('hält dichte Kundenbestände länger in ruhigen Stapeln zusammen', () => {
+        expect(customerClusterRadius(6)).toBe(104);
+        expect(customerClusterRadius(9)).toBe(112);
+        expect(customerClusterRadius(13)).toBe(68);
+        expect(customerClusterRadius(15)).toBe(42);
+        expect(customerClusterRadius(9, { mobile: true })).toBe(120);
     });
 
     it('zeigt bei Demokunden sofort den unterscheidbaren Namen statt des langen Präfixes', () => {

@@ -1,8 +1,8 @@
 import { CONFIG } from '../core/config.js';
 
-/** In Basis gilt immer die Zoomautomatik; Profi darf eine Ebene fixieren. */
-export function automaticLevelActive(depth, levelMode, mobile = false) {
-    return mobile || depth !== 'profi' || levelMode !== 'fixed';
+/** Automatik ist eine bewusste Wahl; jede konkrete Ebene bleibt fixiert. */
+export function automaticLevelActive(_depth, levelMode, _mobile = false) {
+    return levelMode !== 'fixed';
 }
 
 function directLevelIndex(zoom, steps) {
