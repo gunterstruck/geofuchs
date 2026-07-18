@@ -888,7 +888,7 @@ export function initShowcase() {
         document.getElementById('info-dialog')?.close();
         openPanel();
     });
-    ['btn-showcase-ob', 'btn-showcase-data'].forEach((id) => {
+    ['btn-showcase-ob'].forEach((id) => {
         document.getElementById(id)?.addEventListener('click', () => openPanel());
     });
 

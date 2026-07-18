@@ -323,7 +323,6 @@ export function selectShowcaseTour(customers, { areaRadiusKm = 85, maxRouteKm = 
 
 export const CRITICAL_SELECTORS = [
     '#btn-showcase-ob',
-    '#btn-showcase-data',
     '.mode-btn[data-mode="aussendienst"]',
     '.mode-btn[data-mode="gebietsplanung"]',
     '.mode-btn[data-mode="service"]',

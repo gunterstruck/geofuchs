@@ -59,7 +59,7 @@ describe('Onboarding-Trichter: ein Einstieg, sichtbare nächste Schritte', () =>
         expect(html).toContain('id="btn-own-data" class="ob-secondary-action"');
         expect(html).not.toContain('id="btn-demo"');
         expect(html).toContain('id="demo-preview-status"');
-        expect(html).toContain('id="btn-showcase-data"');
+        expect(html).not.toContain('id="btn-showcase-data"');
         expect(showcase).not.toContain('scheduleAutoOffer');
         expect(showcase).not.toContain('AUTO_OFFER_DELAY_MS');
     });

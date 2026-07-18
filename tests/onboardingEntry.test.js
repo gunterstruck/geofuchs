@@ -21,12 +21,11 @@ describe('Ruhiger Daten-Einstieg', () => {
         expect(onboarding.querySelector('[data-compliance-optin]')).toBeNull();
     });
 
-    it('hält die Live-Demos nach dem automatischen Einblenden der Daten prominent', () => {
-        const loaded = document.getElementById('data-loaded');
-        const launcher = document.getElementById('demo-launcher');
-        expect(launcher.querySelector('#btn-showcase-data')).not.toBeNull();
-        expect(launcher.compareDocumentPosition(document.getElementById('first-steps')) & 4).toBeTruthy();
-        expect(loaded.querySelector('.demo-launcher')).toBeNull();
+    it('überlässt die weitere Führung nach dem Datenstart vollständig den Ersten Schritten', () => {
+        expect(document.getElementById('first-steps')).not.toBeNull();
+        expect(document.getElementById('demo-launcher')).toBeNull();
+        expect(document.getElementById('btn-showcase-data')).toBeNull();
+        expect(html).not.toContain('TourFuchs live erleben');
     });
 
     it('trennt Excel-Import und verschlüsselten Umzug erst in der zweiten Ebene', () => {
