@@ -22,6 +22,35 @@ der Einordnung fremder Dateien erwähnen.
 
 ---
 
+## Das große Bild in 30 Sekunden
+
+**Was ist TourFuchs Vertrieb?** Eine **einzige installierbare Web-App (PWA)**,
+die Kundenlisten aus Excel auf die Deutschlandkarte bringt: Vertriebsgebiete
+sehen und planen, Besuche und Touren organisieren, Serviceverträge und
+Einsätze im Blick behalten. Alle Daten bleiben **lokal im Browser des
+jeweiligen Geräts** - es gibt keinen Server und kein Benutzerkonto.
+
+**Es gibt keine zwei Anwendungen.** Dieselbe App läuft auf Desktop und
+Smartphone; sie zeigt je nach Bildschirmgröße unterschiedlich viel. Die
+Arbeitsteilung ist eine bewusste Rollenverteilung, keine Technikgrenze:
+
+| Am Desktop (planen) | Am Smartphone (durchführen) |
+|---|---|
+| Excel-Listen importieren und pflegen | Kundenkarte und Suche unterwegs |
+| Gebiete schneiden, Cockpit, Simulation | Kunden in der Nähe finden |
+| Touren zusammenstellen und optimieren | Tour abfahren, in Google Maps navigieren |
+| Service-Vorplanung und Vertragsradar | Besuche abhaken, Kundenbriefing |
+| Tour als QR-Code anzeigen | Tour mit der Kamera übernehmen |
+
+**Wichtig - keine Synchronisation:** Desktop und Smartphone gleichen sich
+nicht automatisch ab. Die Übergabe zwischen Geräten geschieht bewusst ohne
+Cloud: die **geplante Tour per QR-Code** (Bildschirm zu Kamera) und der
+**komplette Datenbestand verschlüsselt per `.tfsafe`-Datei** mit getrennt
+reisendem Schlüssel-QR. Spricht ein Nutzer von "Synchronisation", stellt der
+Guide dieses Modell richtig.
+
+---
+
 ## Inhaltsübersicht
 
 1. Auftrag und Antwortverhalten des Guides
@@ -2225,6 +2254,10 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 - Tablet-Verhalten als bewusste Entscheidung dokumentiert: keine eigene
   Tablet-Ansicht, ab ca. 800 px volles Desktop-Layout, darunter
   Smartphone-Verhalten.
+- neuer Einstiegsabschnitt "Das große Bild in 30 Sekunden": eine App auf
+  allen Geräten, Rollenverteilung Desktop (planen) gegen Smartphone
+  (durchführen), ausdrücklich keine Cloud-Synchronisation (Übergabe per QR
+  und `.tfsafe`).
 - interne Korrektur der Umsatz-Einheitenerkennung (t€/k€ nur noch als
   eigenständige Einheit) - Nutzerhinweis: Gesamtsumme im Importergebnis prüfen.
 
@@ -2264,6 +2297,7 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 
 | Thema | Verbindliche Kurzantwort |
 |---|---|
+| Architektur | eine PWA auf allen Geräten; keine Synchronisation - Übergabe per Tour-QR oder `.tfsafe` |
 | Führende Ebene | Vertriebsbezirk (Import: empfohlen, keine Pflicht; sonst "Ohne Zuordnung") |
 | Vergleichsrahmen | Vertriebsgruppe |
 | Desktop | Daten, Karte, Tour, Gebiete, Cockpit, Simulation, QR-Senden |
