@@ -125,23 +125,37 @@
                     </div>
                 </div>
 
-                <!-- Datenübersicht + Verwaltung (nur mit geladenen Daten) -->
+                <!-- Datenübersicht + Verwaltung (nur mit geladenen Daten).
+                     Reihenfolge nach Aufgaben-Fluss: erst laden, dann sichern/
+                     übertragen, dann seltene Werkzeuge, dann Schutz (Tresor),
+                     und ganz zuletzt das destruktive Löschen. -->
                 <div id="data-loaded" style="display:none">
                     <h2>Kundendaten</h2>
                     <div id="data-status"></div>
                     <p class="muted small">Stammdaten, Kontakte und Serviceverträge können getrennt geladen werden, wenn sie dieselbe Kundennummer verwenden. Eine neue Kundenstammliste ersetzt den bisherigen Kundenbestand; separate Vertragsquellen bleiben erhalten und werden neu zugeordnet.</p>
                     <div id="data-actions">
+                        <p class="data-section-label">Daten laden</p>
                         <div class="button-column">
                             <button id="btn-upload-more">📤 Andere Excel- oder CSV-Liste laden</button>
                             <label class="compliance-optin compact">
                                 <input type="checkbox" data-compliance-optin>
                                 <span>Ich bin berechtigt, diese Daten zu verarbeiten.</span>
                             </label>
+                            <button id="btn-safe-receive">📥 Daten empfangen (Datei + Schlüssel)</button>
+                        </div>
+
+                        <p class="data-section-label">Sichern &amp; übertragen</p>
+                        <div class="button-column">
+                            <button id="btn-export">💾 Als Excel exportieren</button>
+                            <button id="btn-safe-export">🧳 Verschlüsselt exportieren (Datei + QR)</button>
+                        </div>
+                        <p class="muted small">Verschlüsselt umziehen: Datei und Schlüssel (QR) reisen getrennt – die Datei ist ohne Schlüssel wertlos.</p>
+
+                        <p class="data-section-label">Werkzeuge</p>
+                        <div class="button-column">
                             <button id="btn-template-2">📋 Excel-Vorlage herunterladen</button>
                             <button id="btn-geocode">🎯 Adressen exakt verorten</button>
                             <div id="geocode-progress" class="muted small" style="display:none"></div>
-                            <button id="btn-export">💾 Als Excel exportieren</button>
-                            <button id="btn-clear" class="danger">🗑 Daten löschen</button>
                         </div>
                     </div>
 
@@ -165,12 +179,10 @@
                                 <option value="3600000">1 Stunde</option>
                             </select>
                         </label>
-                        <h3>🧳 Sicherer Umzug</h3>
-                        <p class="muted small">Daten verschlüsselt auf ein anderes Gerät bringen: Datei und Schlüssel (QR) reisen getrennt – die Datei ist ohne Schlüssel wertlos.</p>
-                        <div class="button-column">
-                            <button id="btn-safe-export">🧳 Verschlüsselt exportieren (Datei + QR)</button>
-                            <button id="btn-safe-receive">📥 Daten empfangen (Datei + Schlüssel)</button>
-                        </div>
+                    </div>
+
+                    <div class="button-column data-danger-zone">
+                        <button id="btn-clear" class="danger">🗑 Daten löschen</button>
                     </div>
                 </div>
 

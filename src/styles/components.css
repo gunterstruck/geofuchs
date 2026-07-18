@@ -236,6 +236,18 @@
 .pulse { animation: gf-pulse 1s ease-out 3; }
 
 .button-column { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+/* Dezente Gruppen-Überschrift im Daten-Bereich (laden · sichern · Werkzeuge). */
+.data-section-label {
+    margin: 14px 0 -2px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--color-text-muted, #64748b);
+}
+#data-actions > .data-section-label:first-child { margin-top: 4px; }
+/* Löschen bewusst abgesetzt am Fuß des Daten-Tabs. */
+.data-danger-zone { margin-top: 16px; }
 .button-row { display: flex; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
 .button-row input[type="text"] { flex: 1; min-width: 0; }
 
