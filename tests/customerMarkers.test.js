@@ -87,6 +87,9 @@ describe('Lebendige Kunden-Kacheln', () => {
         expect(map).toContain('customer-stack-discovery-label');
         expect(map).toContain('Tippe einen Kundenstapel an');
         expect(map).toContain('territory-stack-card');
+        expect(map).toContain('tl-dimension');
+        expect(map).toContain("? 'Bezirk'");
+        expect(map).toContain('{ width: 96, height: 60 }');
         expect(map).toContain('Kundenkarte antippen und Details entdecken');
         expect(map).toContain('resetCustomerDiscoveryHints');
         expect(map).toContain('localStorage.removeItem(CUSTOMER_CLUSTER_HINT_KEY)');
@@ -94,6 +97,8 @@ describe('Lebendige Kunden-Kacheln', () => {
         expect(css).toContain('.customer-marker-mode-label .customer-marker-card');
         expect(css).toContain('@keyframes customer-popup-unfold');
         expect(css).toContain('.customer-stack-card.is-discovery .customer-stack-discovery-label');
+        expect(css).toMatch(/\.territory-stack-card--compact\s*\{\s*width:\s*96px;\s*min-height:\s*60px;/);
+        expect(css).not.toContain('text-overflow: ellipsis;\n    white-space: nowrap;\n}\n.territory-stack-card .tl-metrics');
         expect(css).toContain('@media (prefers-reduced-motion: reduce)');
     });
 });
