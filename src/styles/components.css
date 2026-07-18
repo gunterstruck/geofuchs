@@ -1366,10 +1366,34 @@ dialog footer { margin-top: 14px; display: flex; justify-content: flex-end; gap:
     display: grid;
     gap: 6px;
 }
-.first-steps-list li {
+.first-steps-action,
+.first-steps-static {
     display: flex;
     align-items: flex-start;
     gap: 8px;
+    width: 100%;
+}
+.first-steps-action {
+    padding: 4px;
+    margin: -4px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-s);
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.first-steps-action:hover,
+.first-steps-action:focus-visible {
+    border-color: var(--color-primary);
+    background: var(--color-surface);
+}
+.first-steps-action:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+.first-steps-play {
+    margin-left: auto;
+    align-self: center;
+    color: var(--color-primary-dark);
+    font-size: 0.72rem;
 }
 .first-steps-mark {
     flex: 0 0 auto;

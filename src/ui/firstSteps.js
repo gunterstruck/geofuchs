@@ -27,6 +27,7 @@ import {
     unhideFirstSteps
 } from '../features/firstSteps.js';
 import { showToast } from './toast.js';
+import { startShowcaseStory } from './showcase.js';
 
 const COLLAPSE_FEEDBACK_MS = 4000;
 
@@ -114,14 +115,27 @@ function render() {
         <ul class="first-steps-list">
             ${FIRST_STEPS.map((step) => `
                 <li class="${done.has(step.id) ? 'done' : ''}">
-                    <span class="first-steps-mark" aria-hidden="true">${done.has(step.id) ? '✓' : step.icon}</span>
-                    <span class="first-steps-text"><b>${step.label}</b><small>${step.hint}</small></span>
+                    ${step.showcase ? `<button type="button" class="first-steps-action" data-showcase="${step.showcase}" aria-label="${step.label} – Live-Demo starten">
+                        <span class="first-steps-mark" aria-hidden="true">${done.has(step.id) ? '✓' : step.icon}</span>
+                        <span class="first-steps-text"><b>${step.label}</b><small>${step.hint}</small></span>
+                        <span class="first-steps-play" aria-hidden="true">▶</span>
+                    </button>` : `<div class="first-steps-static">
+                        <span class="first-steps-mark" aria-hidden="true">${done.has(step.id) ? '✓' : step.icon}</span>
+                        <span class="first-steps-text"><b>${step.label}</b><small>${step.hint}</small></span>
+                    </div>`}
                 </li>`).join('')}
         </ul>
         <div class="first-steps-foot">
             <button type="button" class="first-steps-later">Später</button>
             <button type="button" class="linklike first-steps-never">Nicht mehr zeigen</button>
         </div>`;
+    container.querySelectorAll('.first-steps-action').forEach((button) => {
+        button.addEventListener('click', () => {
+            if (!startShowcaseStory(button.dataset.showcase)) {
+                showToast('Diese Live-Demo ist in dieser Ansicht nicht verfügbar.', 'info', 4000);
+            }
+        });
+    });
     container.querySelector('.first-steps-later').addEventListener('click', () => {
         setFirstStepsCollapsed(true);
         render();

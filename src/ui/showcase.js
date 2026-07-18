@@ -834,6 +834,15 @@ function openPanel() {
     showShowcaseDialog();
 }
 
+/** Startet eine konkrete Live-Demo aus einem kontextuellen Einstieg. */
+export function startShowcaseStory(storyId) {
+    if (insideMobilePreview || !dialog || running) return false;
+    const story = currentVisibleStories().find((item) => item.id === storyId);
+    if (!story) return false;
+    startStory(story);
+    return true;
+}
+
 export function initShowcase() {
     dialog = document.getElementById('showcase-dialog');
     if (!dialog) return;
