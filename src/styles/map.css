@@ -6,20 +6,148 @@
     justify-content: center;
     position: relative;
     background: transparent;
-    border-radius: 50%;
+    border-radius: 8px;
+    overflow: visible !important;
 }
 
-.customer-marker {
+.customer-marker-card {
+    --marker-color: #0d9488;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    color: var(--color-text, #0f172a);
+    cursor: pointer;
+    filter: drop-shadow(0 1px 3px rgba(15, 23, 42, 0.35));
+    transition: width 220ms ease, height 220ms ease, border-radius 220ms ease,
+        background 220ms ease, border-color 220ms ease, box-shadow 220ms ease, transform 180ms ease;
+}
+.customer-marker-symbol {
+    position: relative;
+    flex: 0 0 auto;
     width: 14px;
     height: 14px;
     border-radius: 50%;
     border: 2px solid #fff;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+    background: var(--marker-color);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    transition: width 220ms ease, height 220ms ease, border-radius 220ms ease;
 }
-.customer-marker.approx { border-style: dashed; opacity: 0.92; }
-.customer-marker.in-tour { outline: 3px solid #0d9488; outline-offset: 1px; }
-.customer-marker.overdue {
+.customer-marker-copy { display: none; min-width: 0; line-height: 1.15; }
+.customer-marker-copy b,
+.customer-marker-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.customer-marker-copy b { font-size: 0.74rem; }
+.customer-marker-copy small { color: var(--color-text-muted, #64748b); font-size: 0.64rem; }
+
+/* Ab Zoom 8 wird aus dem anonymen Punkt ein kleines Klemmbrett. */
+.customer-marker-mode-card .customer-marker-card,
+.customer-marker-mode-label .customer-marker-card,
+.customer-marker-mode-detail .customer-marker-card {
+    width: 26px;
+    height: 30px;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 3px 9px rgba(15, 23, 42, 0.22);
+    filter: none;
+}
+.customer-marker-mode-card .customer-marker-symbol,
+.customer-marker-mode-label .customer-marker-symbol,
+.customer-marker-mode-detail .customer-marker-symbol {
+    width: 18px;
+    height: 23px;
+    border: 0;
+    border-radius: 4px;
+    box-shadow: none;
+}
+.customer-marker-mode-card .customer-marker-symbol::before,
+.customer-marker-mode-label .customer-marker-symbol::before,
+.customer-marker-mode-detail .customer-marker-symbol::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: -3px;
+    width: 8px;
+    height: 5px;
+    border-radius: 3px 3px 1px 1px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.28);
+}
+.customer-marker-mode-card .customer-marker-symbol::after,
+.customer-marker-mode-label .customer-marker-symbol::after,
+.customer-marker-mode-detail .customer-marker-symbol::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 7px;
+    width: 9px;
+    height: 2px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 5px 0 rgba(255, 255, 255, 0.72), 0 10px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* Stadtzoom: Identität wird sichtbar, ohne das vollständige Popup vorwegzunehmen. */
+.customer-marker-mode-label .customer-marker-card,
+.customer-marker-mode-detail .customer-marker-card {
+    justify-content: flex-start;
+    gap: 7px;
+    width: 156px;
+    height: 38px;
+    padding: 5px 9px 5px 6px;
+    border-left: 4px solid var(--marker-color);
+    border-radius: 10px;
+}
+.customer-marker-mode-label .customer-marker-symbol,
+.customer-marker-mode-detail .customer-marker-symbol { width: 18px; height: 24px; }
+.customer-marker-mode-label .customer-marker-copy,
+.customer-marker-mode-detail .customer-marker-copy { display: grid; flex: 1; }
+.customer-marker-mode-label .customer-marker-copy small { display: none; }
+.customer-marker-mode-detail .customer-marker-card { width: 190px; height: 48px; }
+.customer-marker-mode-detail .customer-marker-copy b { font-size: 0.78rem; }
+
+.customer-marker-card:hover,
+.customer-marker-wrapper:focus .customer-marker-card,
+.customer-marker-card.is-opening { z-index: 1000; transform: translateY(-2px) scale(1.06); }
+.customer-marker-card.approx .customer-marker-symbol { outline: 1px dashed #fff; outline-offset: -3px; opacity: 0.92; }
+.customer-marker-card.in-tour { outline: 3px solid #0d9488; outline-offset: 2px; }
+.customer-marker-card.overdue {
     box-shadow: 0 0 0 2px #fff, 0 0 0 4px #dc2626, 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+.customer-marker-card.is-discovery { animation: customer-card-discovery 1.4s ease-in-out 2; }
+@keyframes customer-card-discovery {
+    0%, 100% { transform: translateY(0) scale(1); }
+    45% { transform: translateY(-5px) scale(1.1); }
+}
+
+.customer-marker-discovery {
+    padding: 7px 10px;
+    border: 1px solid rgba(13, 148, 136, 0.35);
+    border-radius: 10px;
+    background: #fff;
+    color: #0f766e;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+.customer-marker-discovery::before { border-top-color: #fff; }
+
+/* Das bestehende Detailfenster wächst sichtbar aus der Kunden-Kachel heraus. */
+.customer-detail-popup .leaflet-popup-content-wrapper {
+    transform-origin: 50% 100%;
+    animation: customer-popup-unfold 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.customer-detail-popup .leaflet-popup-tip { animation: customer-popup-tip 160ms ease-out both; }
+@keyframes customer-popup-unfold {
+    from { opacity: 0; transform: translateY(10px) scale(0.82); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes customer-popup-tip {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 .cluster-wrapper { background: transparent; }
@@ -268,23 +396,20 @@ button.contact-link {
         display: none;
     }
     .customer-marker-wrapper {
-        width: 36px !important;
-        height: 36px !important;
+        width: 44px !important;
+        height: 44px !important;
     }
     .customer-marker-wrapper::before {
         content: '';
         position: absolute;
-        width: 34px;
-        height: 34px;
+        width: 42px;
+        height: 42px;
         border-radius: 50%;
         background: rgba(13, 148, 136, 0.001);
     }
-    .customer-marker {
-        position: relative;
-        z-index: 1;
-        width: 17px;
-        height: 17px;
-    }
+    .customer-marker-card { position: relative; z-index: 1; }
+    .customer-marker-mode-label .customer-marker-card { width: 142px; }
+    .customer-marker-mode-detail .customer-marker-card { width: 172px; }
     .leaflet-popup-content {
         margin: 10px 12px;
         max-height: min(52dvh, 380px);
@@ -311,5 +436,13 @@ button.contact-link {
        ab (touch-action: none), die scrollbare Kundenliste behält ihr Scrollen. */
     .pan-map-popup { touch-action: none; }
     .pan-map-popup .cust-list { touch-action: pan-y; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .customer-marker-card,
+    .customer-marker-symbol { transition: none; }
+    .customer-marker-card.is-discovery,
+    .customer-detail-popup .leaflet-popup-content-wrapper,
+    .customer-detail-popup .leaflet-popup-tip { animation: none; }
 }
 body.popup-panning .leaflet-popup-content-wrapper { cursor: grabbing; }

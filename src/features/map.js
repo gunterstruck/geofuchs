@@ -22,6 +22,7 @@ import { automaticLevelActive, automaticLevelForZoom } from './mapLevel.js';
 import { isPlanningRelevantServiceContract, normalizeCustomerNumber } from './serviceContracts.js';
 import { serviceVisitsForCustomer, isOpenServiceVisit, serviceVisitWindow } from './serviceVisits.js';
 import { modeTourCustomers, modeVisibleCustomers } from './customerScope.js';
+import { CUSTOMER_MARKER_MODES, canOfferCustomerMarkerHint, customerMarkerLabel, customerMarkerMode, customerMarkerModeClass } from './customerMarkers.js';
 import { openRegionEditor } from '../ui/regionEditor.js';
 import { openCustomerBriefing } from '../ui/customerBriefing.js';
 
@@ -40,11 +41,17 @@ let roadRouteSeq = 0;
 let simulationPreview = null;
 let activeRegionTooltipLayer = null;
 let activePopup = null;
+let customerMarkers = [];
+let markerHintOfferTimer = 0;
+let markerHintDismissTimer = 0;
+let markerHintTarget = null;
 let popupFitFrame = 0;
 let levelLoadSequence = 0;
 let loadingLevel = null;
 const ROUTE_HUE_START = 0;      // rot
 const ROUTE_HUE_END = 276;      // lila
+const CUSTOMER_MARKER_HINT_KEY = 'tf_customer_marker_hint_seen';
+const insideMobilePreview = new URLSearchParams(location.search).has('mobilePreview');
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
@@ -52,6 +59,70 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
 
 function isMobileMap() {
     return window.innerWidth <= 768;
+}
+
+function markerHintWasShown() {
+    try { return localStorage.getItem(CUSTOMER_MARKER_HINT_KEY) === '1'; } catch { return false; }
+}
+
+function rememberMarkerHint() {
+    try { localStorage.setItem(CUSTOMER_MARKER_HINT_KEY, '1'); } catch { /* Speicherung ist optional */ }
+}
+
+function dismissCustomerMarkerHint() {
+    clearTimeout(markerHintOfferTimer);
+    clearTimeout(markerHintDismissTimer);
+    markerHintOfferTimer = 0;
+    markerHintDismissTimer = 0;
+    if (!markerHintTarget) return;
+    markerHintTarget.getElement()?.querySelector('.customer-marker-card')?.classList.remove('is-discovery');
+    markerHintTarget.closeTooltip();
+    markerHintTarget.unbindTooltip();
+    markerHintTarget = null;
+}
+
+function syncCustomerMarkerMode() {
+    if (!map) return;
+    const mode = customerMarkerMode(map.getZoom(), { mobile: isMobileMap() });
+    const container = map.getContainer();
+    CUSTOMER_MARKER_MODES.forEach((item) => container.classList.remove(customerMarkerModeClass(item)));
+    container.classList.add(customerMarkerModeClass(mode));
+}
+
+function maybeOfferCustomerMarkerHint() {
+    if (!map || !clusterGroup || !canOfferCustomerMarkerHint({
+        zoom: map.getZoom(),
+        mobile: isMobileMap(),
+        hasCustomers: customerMarkers.length > 0,
+        alreadyShown: markerHintWasShown(),
+        showcaseRunning: Boolean(document.querySelector('.sc-shield')),
+        insidePreview: insideMobilePreview
+    })) return;
+
+    const bounds = map.getBounds();
+    const center = map.getCenter();
+    const visible = customerMarkers
+        .filter(({ marker }) => bounds.contains(marker.getLatLng()) && clusterGroup.getVisibleParent(marker) === marker)
+        .sort((a, b) => center.distanceTo(a.marker.getLatLng()) - center.distanceTo(b.marker.getLatLng()));
+    const target = visible[0]?.marker;
+    if (!target?.getElement()) return;
+
+    rememberMarkerHint();
+    markerHintTarget = target;
+    target.getElement().querySelector('.customer-marker-card')?.classList.add('is-discovery');
+    target.bindTooltip('Kundenkarte antippen und Details entdecken', {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -18],
+        opacity: 1,
+        className: 'customer-marker-discovery'
+    }).openTooltip();
+    markerHintDismissTimer = window.setTimeout(dismissCustomerMarkerHint, 6500);
+}
+
+function scheduleCustomerMarkerHint() {
+    clearTimeout(markerHintOfferTimer);
+    markerHintOfferTimer = window.setTimeout(maybeOfferCustomerMarkerHint, 260);
 }
 
 function visibleElementRect(element) {
@@ -287,16 +358,22 @@ export function initMap(containerId) {
         })
     });
     map.addLayer(clusterGroup);
+    syncCustomerMarkerMode();
 
     labelLayer = L.layerGroup().addTo(map);
     tourLayer = L.layerGroup().addTo(map);
 
     // Zoom-Automatik: bei „auto" den Detailgrad neu bestimmen
     map.on('zoomend', () => {
+        syncCustomerMarkerMode();
         const levelChanged = syncEffectiveLevel();
         if (!levelChanged && state.colorMode === 'auto') applyView();
+        scheduleCustomerMarkerHint();
     });
-    map.on('movestart zoomstart', closeActiveRegionTooltip);
+    map.on('movestart zoomstart', () => {
+        closeActiveRegionTooltip();
+        dismissCustomerMarkerHint();
+    });
     map.getContainer().addEventListener('pointerleave', closeActiveRegionTooltip);
     // Für den „In der Nähe"-Begleiter: nach jeder Karten-Bewegung neu berechnen.
     map.on('moveend', () => emit('map:moved'));
@@ -1053,12 +1130,40 @@ function customerIcon(customer) {
     const overdue = state.ui.mode !== 'service'
         && currentView.markerBy !== 'status'
         && visitStatus(customer) === 'ueberfaellig';
+    const place = [customer.plz, customer.ort].map((value) => String(value ?? '').trim()).filter(Boolean).join(' ');
+    const openVisits = state.ui.mode === 'service'
+        ? serviceVisitsForCustomer(state.serviceVisits, customer, { scope: 'open' }).length
+        : 0;
+    const context = openVisits
+        ? `${openVisits} offene${openVisits === 1 ? 'r Einsatz' : ' Einsätze'}`
+        : (customer.rhythmusWochen ? STATUS_LABELS[visitStatus(customer)] : '');
+    const detail = [place, context].filter(Boolean).join(' · ');
+    const label = customerMarkerLabel(customer.name, { demo: isDemoCustomer(customer) });
     return L.divIcon({
         className: 'customer-marker-wrapper',
-        html: `<div class="customer-marker${customer.geo === 'plz' ? ' approx' : ''}${inTour ? ' in-tour' : ''}${overdue ? ' overdue' : ''}" style="background:${color}"></div>`,
-        iconSize: isMobileMap() ? [36, 36] : [24, 24],
-        iconAnchor: isMobileMap() ? [18, 18] : [12, 12]
+        html: `<div class="customer-marker-card${customer.geo === 'plz' ? ' approx' : ''}${inTour ? ' in-tour' : ''}${overdue ? ' overdue' : ''}" style="--marker-color:${color}" aria-hidden="true">
+            <span class="customer-marker-symbol"></span>
+            <span class="customer-marker-copy">
+                <b>${escapeHtml(label)}</b>
+                <small>${escapeHtml(detail || 'Details öffnen')}</small>
+            </span>
+        </div>`,
+        iconSize: isMobileMap() ? [44, 44] : [28, 28],
+        iconAnchor: isMobileMap() ? [22, 22] : [14, 14]
     });
+}
+
+function customerPopupOptions() {
+    return popupOptions({ maxWidth: 300, className: 'customer-detail-popup' });
+}
+
+function animateCustomerMarkerOpen(marker) {
+    dismissCustomerMarkerHint();
+    const card = marker.getElement()?.querySelector('.customer-marker-card');
+    if (!card) return;
+    card.classList.remove('is-opening');
+    requestAnimationFrame(() => card.classList.add('is-opening'));
+    window.setTimeout(() => card.classList.remove('is-opening'), 320);
 }
 
 const RHYTHM_OPTIONS = [
@@ -1263,6 +1368,7 @@ function tourFocusCustomers() {
 
 function renderMarkers() {
     clusterGroup.clearLayers();
+    customerMarkers = [];
     // In der Flächenansicht (Bezirke/Gruppen) werden Kunden ausgeblendet.
     if (!currentView.markers) return;
     const markers = [];
@@ -1272,12 +1378,16 @@ function renderMarkers() {
         if (state.ui.opportunityOnly && !isOpportunity(customer)) continue;
         const marker = L.marker([customer.lat, customer.lng], {
             icon: customerIcon(customer),
-            title: customer.name
+            title: `${customer.name} – Details öffnen`,
+            alt: `${customer.name} – Details öffnen`
         });
-        marker.bindPopup(() => customerPopupHtml(customer), popupOptions({ maxWidth: 300 }));
+        marker.bindPopup(() => customerPopupHtml(customer), customerPopupOptions());
+        marker.on('click', () => animateCustomerMarkerOpen(marker));
+        customerMarkers.push({ marker, customer });
         markers.push(marker);
     }
     clusterGroup.addLayers(markers);
+    scheduleCustomerMarkerHint();
 }
 
 // ---- Tour-Anzeige ----
@@ -1305,10 +1415,10 @@ function attachTourCustomerPopup(marker, point, tooltipText) {
     if (point?.customerId) {
         const customer = getCustomer(point.customerId);
         if (customer) {
-            marker.bindPopup(() => customerPopupHtml(customer), popupOptions({ maxWidth: 300 }));
+            marker.bindPopup(() => customerPopupHtml(customer), customerPopupOptions());
         }
     } else if (point?.id) {
-        marker.bindPopup(() => customerPopupHtml(point), popupOptions({ maxWidth: 300 }));
+        marker.bindPopup(() => customerPopupHtml(point), customerPopupOptions());
     }
     return marker;
 }
@@ -1397,7 +1507,7 @@ export function flyToCustomer(customer, openPopup = true) {
     map.flyTo([customer.lat, customer.lng], Math.max(map.getZoom(), 12), { duration: 0.8 });
     if (openPopup) {
         setTimeout(() => {
-            L.popup(popupOptions({ maxWidth: 300 }))
+            L.popup(customerPopupOptions())
                 .setLatLng([customer.lat, customer.lng])
                 .setContent(customerPopupHtml(customer))
                 .openOn(map);
