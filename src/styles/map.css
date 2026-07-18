@@ -426,13 +426,13 @@ body.demo-data-arriving .leaflet-marker-pane > *:nth-child(3n) { animation-delay
     font-weight: 800;
     font-variant-numeric: tabular-nums;
 }
-.territory-stack-card--chip { width: 86px; min-height: 56px; padding: 9px 7px 6px; }
+.territory-stack-card--chip { width: 80px; min-height: 64px; padding: 9px 7px 6px; }
 .territory-stack-card--chip .tl-dimension { display: none; }
 .territory-stack-card--chip > strong { margin-top: 0; font-size: 0.74rem; }
 .territory-stack-card--chip .tl-count { font-size: 0.53rem; }
 .territory-stack-card--chip .tl-rev { font-size: 0.58rem; }
-.territory-stack-card--compact { width: 100px; min-height: 70px; }
-.territory-stack-card--detail { width: 120px; min-height: 82px; }
+.territory-stack-card--compact { width: 94px; min-height: 84px; }
+.territory-stack-card--detail { width: 108px; min-height: 100px; }
 .territory-stack-card--detail .tl-count { font-size: 0.6rem; }
 .territory-stack-card--detail .tl-rev { font-size: 0.7rem; }
 .territory-stack-card.unassigned { border-style: dashed; }

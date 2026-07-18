@@ -5,7 +5,7 @@
 
 import { CONFIG } from '../core/config.js';
 import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, clearServiceContracts, clearServiceVisits, filterDimensionDefs, datasetSnapshot } from '../core/state.js';
-import { exactGeocodeCandidates, geocodeExact } from '../services/geocode.js';
+import { exactGeocodeCandidates, groupExactGeocodeCandidates, geocodeExact } from '../services/geocode.js';
 import { isDemoDataset } from '../core/demoSafety.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
@@ -301,6 +301,91 @@ function initSidebarContentDragScroll() {
         ev.stopPropagation();
         moved = false;
     }, true);
+}
+
+// ---- Datenpanel: Desktop-Reihenfolge bleibt, mobil nach Aufgaben gruppieren ----
+// Desktop nutzt die im HTML gesetzte, gewohnte Reihenfolge. Nur auf dem Handy
+// werden dieselben (identischen) Knöpfe in Gruppen umgehängt – gleiche IDs,
+// gleiche Wiring, kein doppeltes Markup. So ändert sich die Desktop-Ansicht nie.
+let dataPanelLayout = null;      // 'desktop' | 'mobile'
+let dataPanelGroups = null;
+
+function ensureDataPanelGroups() {
+    if (dataPanelGroups) return dataPanelGroups;
+    const makeGroup = (labelText) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'data-group';
+        const label = document.createElement('p');
+        label.className = 'data-section-label';
+        label.textContent = labelText;
+        const col = document.createElement('div');
+        col.className = 'button-column';
+        wrap.append(label, col);
+        return { wrap, col };
+    };
+    const danger = document.createElement('div');
+    danger.className = 'button-column data-danger-zone';
+    dataPanelGroups = {
+        load: makeGroup('Daten laden'),
+        save: makeGroup('Sichern & übertragen'),
+        tools: makeGroup('Werkzeuge'),
+        danger
+    };
+    return dataPanelGroups;
+}
+
+/**
+ * Datenpanel für die aktuelle Ansicht arrangieren.
+ * Desktop: exakt die HTML-Reihenfolge. Mobil: laden · sichern · Werkzeuge,
+ * dann der Tresor, dann das Löschen ganz unten.
+ */
+export function applyDataPanelLayout() {
+    const dataActions = document.getElementById('data-actions');
+    const primary = document.getElementById('data-primary-actions');
+    const vault = document.getElementById('vault-controls');
+    if (!dataActions || !primary || !vault) return;
+
+    const target = isMobileUi() ? 'mobile' : 'desktop';
+    if (dataPanelLayout === target) return;
+
+    const el = (id) => document.getElementById(id);
+    const nodes = {
+        upload: el('btn-upload-more'), compliance: el('compliance-row'),
+        template: el('btn-template-2'), geocode: el('btn-geocode'), progress: el('geocode-progress'),
+        exportBtn: el('btn-export'), clear: el('btn-clear'),
+        safeTitle: el('safe-transfer-title'), safeNote: el('safe-transfer-note'),
+        safeActions: el('safe-transfer-actions'), safeExport: el('btn-safe-export'),
+        safeReceive: el('btn-safe-receive')
+    };
+    if (Object.values(nodes).some((n) => !n)) return;
+
+    if (target === 'mobile') {
+        const g = ensureDataPanelGroups();
+        g.load.col.append(nodes.upload, nodes.compliance, nodes.safeReceive);
+        g.save.col.append(nodes.exportBtn, nodes.safeExport);
+        g.tools.col.append(nodes.template, nodes.geocode, nodes.progress);
+        nodes.safeNote.classList.add('data-group-note');
+        dataActions.append(g.load.wrap, g.save.wrap, nodes.safeNote, g.tools.wrap);
+        nodes.safeTitle.hidden = true;
+        primary.hidden = true;
+        g.danger.append(nodes.clear);
+        vault.after(g.danger);
+    } else {
+        if (dataPanelGroups) {
+            dataPanelGroups.load.wrap.remove();
+            dataPanelGroups.save.wrap.remove();
+            dataPanelGroups.tools.wrap.remove();
+            dataPanelGroups.danger.remove();
+        }
+        primary.hidden = false;
+        primary.append(nodes.upload, nodes.compliance, nodes.template, nodes.geocode,
+            nodes.progress, nodes.exportBtn, nodes.clear);
+        nodes.safeNote.classList.remove('data-group-note');
+        nodes.safeTitle.hidden = false;
+        vault.append(nodes.safeTitle, nodes.safeNote, nodes.safeActions);
+        nodes.safeActions.append(nodes.safeExport, nodes.safeReceive);
+    }
+    dataPanelLayout = target;
 }
 
 function applySidebar() {
@@ -787,11 +872,13 @@ export function initSidebar() {
     restoreSheetHeight();
     initDepth();
     syncTopnavPlacement();
+    applyDataPanelLayout();
     // Bei Wechsel Desktop <-> Handy (Drehen/Resize) Elemente umhängen.
     mobileQuery.addEventListener('change', () => {
         if (isMobileUi() && state.ui.mode === 'service') applyMode('aussendienst', false);
         syncSidebarPositionForViewport();
         syncTopnavPlacement();
+        applyDataPanelLayout();
         applySidebar();
         syncLevelControl();
         emit('level:control-changed');
@@ -1157,9 +1244,15 @@ async function toggleExactGeocoding() {
         );
         return;
     }
+    // Identische Adressen werden nur einmal angefragt – das kürzt die Wartezeit.
+    const uniqueCount = groupExactGeocodeCandidates(state.customers).length;
+    const dedupeHint = uniqueCount < candidates.length
+        ? ` Davon sind ${uniqueCount} eindeutige Adressen – nur diese werden angefragt.`
+        : '';
     if (!confirm(
-        `${candidates.length} Adressen werden über OpenStreetMap (Nominatim) exakt geocodiert.\n` +
-        'Das dauert ca. 1 Sekunde pro Adresse und benötigt Internet. Fortfahren?'
+        `${candidates.length} Kunden werden über OpenStreetMap (Nominatim) exakt geocodiert.${dedupeHint}\n` +
+        'Der freie Dienst erlaubt ca. 1 Adresse/Sekunde; Ergebnisse werden dauerhaft gespeichert, '
+        + 'sodass ein erneuter Lauf sofort geht. Benötigt Internet. Fortfahren?'
     )) return;
 
     btn.textContent = '⏸ Abbrechen';
