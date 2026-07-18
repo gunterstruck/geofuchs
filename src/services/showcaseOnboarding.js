@@ -61,6 +61,7 @@ export function resetShowcaseAfterDataClear(provided) {
     removeFlag(KEYS.imported, provided);
     removeFlag(KEYS.completed, provided);
     removeFlag(KEYS.seen, provided);
+    resetWelcomeDemoAfterDataClear(provided);
 }
 
 export function markShowcaseCompleted(provided) {
@@ -73,6 +74,14 @@ export function hasHandledWelcomeDemo(provided) {
 
 export function markWelcomeDemoHandled(provided) {
     writeFlag(KEYS.welcomeDemoHandled, provided);
+}
+
+/**
+ * Ein bewusst gelöschter Datenbestand ist ein echter Neubeginn. Beim nächsten
+ * App-Start darf deshalb die ruhige Willkommen-Choreografie erneut laufen.
+ */
+export function resetWelcomeDemoAfterDataClear(provided) {
+    removeFlag(KEYS.welcomeDemoHandled, provided);
 }
 
 export function hasClearedDataset(provided) {
