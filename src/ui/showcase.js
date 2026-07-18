@@ -26,7 +26,7 @@ import {
 import { distanceKm } from '../services/geocode.js';
 import { openSetupDialog, showRecoveryCodeForDemo } from './lockVault.js';
 import { flyToCustomer, fitToCustomers, fitTourRoute, focusMapArea, closeMapPopups } from '../features/map.js';
-import { showMapView, captureSheetForDemo, expandSheetForDemo, restoreSheetAfterDemo, applyDepth } from './sidebar.js';
+import { showMapView, captureSheetForDemo, expandSheetForDemo, restoreSheetAfterDemo, applyDepth, applyMode } from './sidebar.js';
 import { showKeyStepForDemo } from './safeTransfer.js';
 import { openCustomerBriefing as openBriefingDialog } from './customerBriefing.js';
 
@@ -51,6 +51,7 @@ let origConfirm = null;       // Originales window.confirm während patchConfirm
 let priorConsent = undefined; // Routing-Zustimmung vor der Demo (zum Zurücksetzen)
 let demoVaultCreated = false; // hat DIESE Demo den Tresor angelegt? (nur dann abbauen)
 let priorDepth = null;        // Ansichtstiefe vor der Demo (zum Zurücksetzen)
+let priorMode = null;         // Arbeitsfokus vor der Demo (zum Zurücksetzen)
 let showcaseTourPlan = null;  // reproduzierbare Start-/Stoppwahl der aktuellen Demo
 
 class AbortError extends Error {}
@@ -301,6 +302,34 @@ const HELPERS = {
         await clickEl('.tab-button[data-tab="daten"]');
         await resolveEl('#vault-controls', 3000);
         await sleep(300);
+    },
+    async gotoService() {
+        await clickEl('.mode-btn[data-mode="service"]');
+        await resolveEl('#service-customer-scope', 3000);
+        await sleep(600);
+    },
+    async gotoServiceTour() {
+        await clickEl('.tab-button[data-tab="tour"]');
+        expandSheetForDemo();
+        await resolveEl('#service-day-planner', 3000);
+        await sleep(400);
+    },
+    async pickServiceStart() {
+        // Start nahe am Tages-Cluster der Demo-Einsätze wählen, damit ein
+        // kompakter, glaubwürdiger Tagesplan entsteht (statt Quer-durchs-Land).
+        const byNumber = new Map(scopedWithCoords().map((c) => [String(c.nummer ?? '').trim(), c]));
+        const clustered = (state.serviceVisits || [])
+            .map((visit) => byNumber.get(String(visit.customerNumber ?? '').trim()))
+            .filter(Boolean);
+        const c = clustered[0] || scopedWithCoords()[0];
+        if (c) assignShowcaseStart(c);
+        await sleep(500);
+    },
+    async buildServiceDay() {
+        await clickEl('#btn-service-day-preview');
+        await resolveEl('#service-day-preview .service-day-preview-card', 6000);
+        document.querySelector('#service-day-preview')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await sleep(1200);
     },
     async pickBezirkAll() {
         const ok = await selectValue('#tour-bezirk', '__all__');
@@ -636,8 +665,9 @@ function cleanup(story) {
     // auf die definierte Ausgangslage bringen (nicht dort stehen bleiben, wo die
     // Vorführung geendet hat).
     restoreSheetAfterDemo();
-    // Ansichtstiefe auf den Stand vor der Demo zurück.
+    // Ansichtstiefe und Arbeitsfokus auf den Stand vor der Demo zurück.
     if (priorDepth) { applyDepth(priorDepth, false); priorDepth = null; }
+    if (priorMode) { applyMode(priorMode, false); priorMode = null; }
     resetView();
 }
 
@@ -668,6 +698,7 @@ async function play(story) {
     showChrome(story);
     // Vorführungen laufen im Profi-Modus, damit alle Funktionen zeigbar sind.
     priorDepth = state.ui.depth;
+    priorMode = state.ui.mode;
     applyDepth('profi', false);
     resetView();
     try {
