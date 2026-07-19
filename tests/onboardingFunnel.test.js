@@ -147,6 +147,14 @@ describe('Onboarding-Trichter: ein Einstieg, sichtbare nächste Schritte', () =>
         expect(ui).toContain('ev.isTrusted');
     });
 
+    it('zeigt die Checkliste beim ersten automatischen Reveal ausgeklappt', () => {
+        const ui = source('src/ui/firstSteps.js');
+        // Auf dem Handy startet die Checkliste sonst als Chip; beim allerersten
+        // Auto-Load der Beispielkunden wird sie einmal ausgeklappt gezeigt.
+        expect(ui).toContain("on('demo:auto-loaded'");
+        expect(ui).toContain('setFirstStepsCollapsed(false)');
+    });
+
     it('startet nach dem Zurücksetzen einen Neustart mit Live-Demo statt leerer Karte', () => {
         const wizard = source('src/ui/importWizard.js');
         const css = source('src/styles/responsive.css');
