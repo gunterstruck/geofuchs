@@ -34,7 +34,11 @@ let autoRevealTimer = null;
 let demoSheetSnapshot = null;
 
 const mobileQuery = window.matchMedia('(max-width: 768px)');
-const MOBILE_DATA_TABS = new Set(['karte', 'daten', 'tour']);
+// Mobil dreht sich alles um die Tour: mit Daten nur Karte + Tour (kein
+// Daten-Tab). Daten kommen über die Tour rein (vom Desktop scannen / gesichert
+// empfangen) oder – nach dem Zurücksetzen – über den Einstiegs-/Onboarding-Blick.
+// Ohne Daten führt der Daten-Blick durch das Onboarding (Beispieldaten/Demos).
+const MOBILE_DATA_TABS = new Set(['karte', 'tour']);
 const MOBILE_EMPTY_TABS = new Set(['karte', 'daten']);
 const SIDEBAR_WIDTH_KEY = 'gf_sidebar_width';
 const SIDEBAR_POS_KEY = 'gf_sidebar_position';
