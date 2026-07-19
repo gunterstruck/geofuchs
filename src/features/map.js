@@ -1131,26 +1131,65 @@ function renderLabels() {
             priority: count * 100 + Math.log10(Math.max(1, revenue))
         };
     });
-    const visibleLabels = selectNonOverlappingLabels(candidates, {
-        viewportWidth: mapSize.x,
-        viewportHeight: mapSize.y,
-        maxItems: territoryLabelBudget(labelMode, { mobile: isMobileMap() }),
-        gap: labelMode === 'chip' ? 7 : 10
-    });
+    const gap = labelMode === 'chip' ? 7 : 10;
+    // Beim Gebiete-Managen (Gebietsplanung) zählt Vollständigkeit: jeder Bezirk
+    // muss sichtbar sein, sonst ist er ein Management-Blindfleck. Dafür wird nur
+    // so weit verkleinert wie nötig; wer dann immer noch kollidiert, erscheint
+    // als kompakter Code-Chip, statt ganz zu verschwinden. Im Alltag bleibt die
+    // ruhige, kuratierte Ansicht mit Budget-Deckel erhalten.
+    const managing = state.ui.mode === 'gebietsplanung';
+    // Nur Gebiete, deren Schwerpunkt tatsächlich im Sichtfeld liegt, brauchen ein
+    // Label – für die anderen gibt es auf dieser Karte ohnehin keinen Platz.
+    const inView = (c) => c.x >= 0 && c.x <= mapSize.x && c.y >= 0 && c.y <= mapSize.y;
+    let labelScale = 1;
+    let visibleLabels = [];
+    let overflowLabels = [];
+    if (managing) {
+        for (const scale of [1, 0.9, 0.8, 0.7]) {
+            const scaled = candidates.map((c) => ({ ...c, width: c.width * scale, height: c.height * scale }));
+            visibleLabels = selectNonOverlappingLabels(scaled, {
+                viewportWidth: mapSize.x,
+                viewportHeight: mapSize.y,
+                maxItems: Infinity,
+                gap: gap * scale
+            });
+            labelScale = scale;
+            const shown = new Set(visibleLabels.map((c) => c.val));
+            overflowLabels = candidates.filter((c) => !shown.has(c.val) && inView(c));
+            if (overflowLabels.length === 0) break;
+        }
+    } else {
+        visibleLabels = selectNonOverlappingLabels(candidates, {
+            viewportWidth: mapSize.x,
+            viewportHeight: mapSize.y,
+            maxItems: territoryLabelBudget(labelMode, { mobile: isMobileMap() }),
+            gap
+        });
+    }
 
+    const dimension = attr === 'channel' ? 'Vertriebshauptgruppe' : (state.dims[attr]?.label || 'Gebiet');
+    const compactDimension = attr === 'bezirk'
+        ? 'Bezirk'
+        : attr === 'gruppe'
+            ? 'Gruppe'
+            : attr === 'channel'
+                ? 'Hauptgruppe'
+                : dimension;
+    const labelTitle = (val, count, hasRevenue, revenue) =>
+        `${dimension} ${val}: ${count} Kunden${hasRevenue ? ` · ${formatRevenueFull(revenue)} Volumen` : ''}`;
+    const addLabel = (center, html) => L.marker(center, {
+        interactive: false,
+        keyboard: false,
+        icon: L.divIcon({ className: 'territory-label-wrapper', html, iconSize: null })
+    }).addTo(labelLayer);
+
+    // Beim Verkleinern skaliert die ganze Kachel mittig auf ihrem Gebiet.
+    const scaleStyle = labelScale === 1 ? '' : `transform:translate(-50%,-50%) scale(${labelScale});`;
     for (const { val, center, count, revenue } of visibleLabels) {
         const col = attrColor(attr, val);
         const hasRevenue = revenueValues.has(val);
         const rev = hasRevenue ? formatRevenueShort(revenue) : '';
-        const dimension = attr === 'channel' ? 'Vertriebshauptgruppe' : (state.dims[attr]?.label || 'Gebiet');
-        const compactDimension = attr === 'bezirk'
-            ? 'Bezirk'
-            : attr === 'gruppe'
-                ? 'Gruppe'
-                : attr === 'channel'
-                    ? 'Hauptgruppe'
-                    : dimension;
-        const title = `${dimension} ${val}: ${count} Kunden${hasRevenue ? ` · ${formatRevenueFull(revenue)} Volumen` : ''}`;
+        const title = labelTitle(val, count, hasRevenue, revenue);
         const displayValue = labelMode === 'detail' ? val : compactTerritoryLabel(val);
         // Umsatz ab Vertriebsbezirk aufwärts in jeder Stufe zeigen (kompakt in
         // T€/€), Kundenzahl bleibt die primäre Orientierung darüber.
@@ -1159,20 +1198,23 @@ function renderLabels() {
                     <span class="tl-count">${countLabel}</span>
                     ${rev ? `<span class="tl-rev">${escapeHtml(rev)}</span>` : ''}
                 </span>`;
-        L.marker(center, {
-            interactive: false,
-            keyboard: false,
-            icon: L.divIcon({
-                className: 'territory-label-wrapper',
-                html: `<div class="territory-stack-card territory-stack-card--${labelMode}${val === UNASSIGNED ? ' unassigned' : ''}" style="--territory-color:${col}" title="${escapeHtml(title)}">
+        addLabel(center, `<div class="territory-stack-card territory-stack-card--${labelMode}${val === UNASSIGNED ? ' unassigned' : ''}" style="--territory-color:${col};${scaleStyle}" title="${escapeHtml(title)}">
                     <span class="tl-accent"></span>
                     <span class="tl-dimension">${escapeHtml(compactDimension)}</span>
                     <strong>${escapeHtml(displayValue)}</strong>
                     ${metrics}
-                </div>`,
-                iconSize: null
-            })
-        }).addTo(labelLayer);
+                </div>`);
+    }
+
+    // Vollständigkeits-Fallback: übrige Bezirke als kompakter Code-Chip – nie unsichtbar.
+    for (const { val, center, count, revenue } of overflowLabels) {
+        const col = attrColor(attr, val);
+        const hasRevenue = revenueValues.has(val);
+        const title = labelTitle(val, count, hasRevenue, revenue);
+        addLabel(center, `<div class="territory-stack-card territory-stack-card--mini${val === UNASSIGNED ? ' unassigned' : ''}" style="--territory-color:${col}" title="${escapeHtml(title)}">
+                    <span class="tl-accent"></span>
+                    <strong>${escapeHtml(compactTerritoryLabel(val))}</strong>
+                </div>`);
     }
 }
 
