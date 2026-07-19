@@ -120,7 +120,9 @@ export const CONFIG = {
 
     tour: {
         defaultRadiusKm: 25,
-        maxSuggestions: 25,
+        // Genug Vorschläge, damit ein größerer Umkreis auch spürbar mehr (und
+        // weiter entfernte) Kunden erreichbar macht; die Liste bleibt scrollbar.
+        maxSuggestions: 40,
         // Google Maps erlaubt max. 9 Zwischenziele im Directions-Link
         maxWaypoints: 9,
         // Faktor Luftlinie -> geschätzte Straßenkilometer

@@ -10,7 +10,7 @@
 
 import { CONFIG } from '../core/config.js';
 import { state, on, emit, getCustomer, repColor, customerInTourScope, markDirty, clearServiceTourPlan, UNASSIGNED } from '../core/state.js';
-import { suggestNearby, suggestAlongRoute, optimizeOrder, routeDistance, googleMapsLink } from '../features/tour.js';
+import { suggestNearby, countNearby, suggestAlongRoute, optimizeOrder, routeDistance, googleMapsLink } from '../features/tour.js';
 import { printDayPlan, downloadIcs, DEFAULT_VISIT_MINUTES } from '../features/tourExport.js';
 import { combinePlanStart, todayInputValue } from '../features/dayPlanner.js';
 import { encodeTourPayload, MAX_QR_STOPS } from '../features/tourShare.js';
@@ -119,6 +119,8 @@ export function initTourPanel() {
 
     document.getElementById('btn-optimize').addEventListener('click', optimizeTour);
     document.getElementById('btn-route-focus').addEventListener('click', showRouteOnMap);
+    // Umschalter über der Karte nutzt denselben Ablauf (toggelt Luftlinie/Straße).
+    document.getElementById('btn-route-mode')?.addEventListener('click', showRouteOnMap);
     document.getElementById('btn-gmaps').addEventListener('click', openInGoogleMaps);
     document.getElementById('btn-tour-print').addEventListener('click', () => {
         const eff = effStops();
@@ -1060,6 +1062,13 @@ function renderStops() {
     routeFocus.textContent = !state.tour.mapFocus
         ? '🗺️ Route auf Karte anzeigen'
         : (state.tour.routeLineMode === 'road' ? '🗺️ Luftlinie anzeigen' : '🗺️ Straßenroute anzeigen');
+    // Umschalter über der Karte spiegeln: nur sichtbar, wenn die Route liegt.
+    const routeModeBar = document.getElementById('route-mode-bar');
+    const routeModeBtn = document.getElementById('btn-route-mode');
+    if (routeModeBar) routeModeBar.hidden = !(state.tour.mapFocus && hasRoute);
+    if (routeModeBtn) routeModeBtn.textContent = state.tour.routeLineMode === 'road'
+        ? '📏 Luftlinie anzeigen'
+        : '🗺️ Straßenroute anzeigen';
     document.getElementById('btn-gmaps').disabled = !hasRoute;
     document.getElementById('btn-tour-print').disabled = !hasRoute;
     document.getElementById('btn-tour-ics').disabled = !hasRoute;
@@ -1121,7 +1130,13 @@ function renderSuggestions() {
             : '<p class="muted">Keine weiteren (sichtbaren) Kunden im gewählten Umkreis.</p>';
         return;
     }
-    el.innerHTML = suggestions.map(({ customer: c, km }) => {
+    // Anzahl im Umkreis sichtbar machen: Der Regler „lebt" auch dann, wenn die
+    // Liste aus Übersichtsgründen nur die nächsten Kunden zeigt.
+    const totalNear = routeMode ? suggestions.length : countNearby(state.tour.start, pool, state.tour.radiusKm, exclude);
+    const countLine = routeMode
+        ? ''
+        : `<p class="suggestion-count muted small">${totalNear} Kunde${totalNear === 1 ? '' : 'n'} im Umkreis von ${state.tour.radiusKm} km${totalNear > suggestions.length ? ` · zeige die ${suggestions.length} nächsten` : ''}</p>`;
+    el.innerHTML = countLine + suggestions.map(({ customer: c, km }) => {
         const status = visitStatus(c);
         const statusTag = c.rhythmusWochen
             ? `<span class="mini-badge" style="background:${STATUS_COLORS[status]}" title="${STATUS_LABELS[status]}"></span>`

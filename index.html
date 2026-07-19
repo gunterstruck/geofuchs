@@ -440,6 +440,11 @@
         </aside>
 
         <main id="map" role="application" aria-label="Deutschlandkarte"></main>
+        <!-- Kleiner Umschalter über der Karte: nur sichtbar, wenn eine Route auf
+             der Karte liegt. Wechselt zwischen Luftlinie und Straßenroute. -->
+        <div id="route-mode-bar" class="route-mode-bar" hidden>
+            <button id="btn-route-mode" class="route-mode-toggle" type="button">🗺️ Straßenroute anzeigen</button>
+        </div>
         <section id="simulation-map-bar" class="simulation-map-bar" aria-label="Simulationsansicht" hidden>
             <div class="simulation-map-status">
                 <span class="simulation-map-badge">Simulation</span>
