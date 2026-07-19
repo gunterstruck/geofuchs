@@ -84,6 +84,9 @@ describe('Onboarding-Trichter: ein Einstieg, sichtbare nächste Schritte', () =>
 
         expect(steps).toContain("showcase: 'tour'");
         expect(steps).toContain("showcase: 'handy-qr'");
+        // Vierte Demo statt Import; am Handy das Gerät-Gegenstück (Empfang).
+        expect(steps).toContain("showcase: 'tresor'");
+        expect(steps).toContain("showcase: 'empfang'");
         expect(ui).toContain('data-showcase');
         expect(ui).toContain('startShowcaseStory(button.dataset.showcase)');
         expect(ui).toContain("on('customer:detail-opened'");
@@ -94,14 +97,17 @@ describe('Onboarding-Trichter: ein Einstieg, sichtbare nächste Schritte', () =>
         expect(css).toContain('.first-steps-play');
     });
 
-    it('öffnet den echten Datei-Einstieg aus „Eigene Excel-Liste laden“', () => {
+    it('bietet vier Live-Demos gerätegerecht an, der Import bleibt im Onboarding', () => {
         const steps = source('src/features/firstSteps.js');
         const ui = source('src/ui/firstSteps.js');
+        const html = source('index.html');
 
-        expect(steps).toContain("action: 'own-data'");
-        expect(ui).toContain("button.dataset.action === 'own-data'");
-        expect(ui).toContain("document.getElementById('btn-own-data')");
-        expect(ui).toContain('ownDataButton.click()');
+        // Die Checkliste besteht jetzt aus vier Live-Demos (kein Import-Schritt).
+        expect(steps).toContain('export function firstStepsFor');
+        expect(steps).not.toContain("action: 'own-data'");
+        expect(ui).not.toContain("button.dataset.action === 'own-data'");
+        // Der eigene Datenimport bleibt über das Onboarding erreichbar.
+        expect(html).toContain('id="btn-own-data"');
     });
 
     it('bietet drei Zustände: „Später", Chip-Zeile und umkehrbares „Nicht mehr zeigen"', () => {

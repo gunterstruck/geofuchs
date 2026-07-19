@@ -272,6 +272,12 @@ function initSidebarContentDragScroll() {
     };
 
     sidebar.addEventListener('pointerdown', (ev) => {
+        // Immer zuerst zurücksetzen: Ein voriger Scroll-Drag hinterlässt sonst
+        // moved=true (ein reiner Scroll erzeugt oft keinen Klick, der es löscht).
+        // Der nächste Tap auf ein interaktives Element trifft die Ignore-Früh-
+        // Rückgabe, moved bliebe true und der Capture-Click-Handler würde den
+        // ersten Klick schlucken – man müsste zweimal tippen.
+        moved = false;
         if (ev.button !== 0 || ev.target.closest(SIDEBAR_DRAG_SCROLL_IGNORE)) return;
         const panel = ev.target.closest('.tab-panel.active');
         if (!panel || panel.scrollHeight <= panel.clientHeight) return;
@@ -281,7 +287,6 @@ function initSidebarContentDragScroll() {
         pointerId = ev.pointerId;
         startY = ev.clientY;
         startScrollTop = panel.scrollTop;
-        moved = false;
         panel.setPointerCapture?.(ev.pointerId);
         panel.classList.add('drag-scrolling');
         document.body.classList.add('sidebar-content-dragging');

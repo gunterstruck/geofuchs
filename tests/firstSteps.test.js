@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
     FIRST_STEPS,
+    firstStepsFor,
     allFirstStepsDone,
     deriveCompletedSteps,
     dismissFirstSteps,
@@ -29,15 +30,24 @@ describe('Erste-Schritte-Checkliste (Logik)', () => {
 
     it('leitet erledigte Schritte aus dem App-Zustand ab', () => {
         expect(deriveCompletedSteps()).toEqual([]);
-        expect(deriveCompletedSteps({ customerCount: 5, fileName: 'Demo-Daten' }))
-            .toEqual([]);
-        expect(deriveCompletedSteps({ customerCount: 5, fileName: 'Demo-Daten', tourStopCount: 2 }))
-            .toEqual(['tour']);
-        // Eigene Datei zählt nur mit geladenen Kunden und nicht für Demo-Daten
-        expect(deriveCompletedSteps({ customerCount: 5, fileName: 'kunden.xlsx' }))
-            .toEqual(['eigene']);
-        expect(deriveCompletedSteps({ customerCount: 0, fileName: 'kunden.xlsx' }))
-            .toEqual([]);
+        expect(deriveCompletedSteps({ tourStopCount: 0 })).toEqual([]);
+        // Sobald die Tour Stopps hat, gilt „Erste Tour planen" als erledigt.
+        expect(deriveCompletedSteps({ tourStopCount: 2 })).toEqual(['tour']);
+    });
+
+    it('bietet vier gerätegerechte Live-Demos (kein Import in der Checkliste)', () => {
+        const desktop = firstStepsFor({ isDesktop: true });
+        const mobile = firstStepsFor({ isDesktop: false });
+        expect(desktop).toHaveLength(4);
+        expect(mobile).toHaveLength(4);
+        // Alle Schritte sind Live-Demos.
+        expect(desktop.every((s) => s.showcase && !s.action)).toBe(true);
+        expect(mobile.every((s) => s.showcase && !s.action)).toBe(true);
+        // Stabile IDs (Fortschritt); nur der dritte Schritt ist gerätegerecht.
+        expect(desktop.map((s) => s.id)).toEqual(['daten', 'tour', 'handy', 'sicher']);
+        expect(mobile.map((s) => s.id)).toEqual(['daten', 'tour', 'handy', 'sicher']);
+        expect(desktop.find((s) => s.id === 'handy').showcase).toBe('handy-qr');
+        expect(mobile.find((s) => s.id === 'handy').showcase).toBe('empfang');
     });
 
     it('zeigt die Karte nur mit Daten, bis abgewählt oder alles erledigt ist', () => {

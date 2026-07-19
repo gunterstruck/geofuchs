@@ -14,7 +14,7 @@
 
 import { state, on } from '../core/state.js';
 import {
-    FIRST_STEPS,
+    firstStepsFor,
     allFirstStepsDone,
     deriveCompletedSteps,
     dismissFirstSteps,
@@ -90,14 +90,17 @@ function render() {
     }
 
     const done = new Set(progress.done);
-    const doneCount = FIRST_STEPS.filter((step) => done.has(step.id)).length;
+    // Gerätegerechte Liste (Desktop-Schwelle wie in der Showcase-Engine: 769px),
+    // damit die angebotene Demo genau die ist, die hier auch startet.
+    const steps = firstStepsFor({ isDesktop: window.matchMedia('(min-width: 769px)').matches });
+    const doneCount = steps.filter((step) => done.has(step.id)).length;
 
     if (effectiveCollapsed(progress)) {
         clearTimeout(collapseTimer);
         container.hidden = false;
         container.classList.add('collapsed');
         container.innerHTML = `
-            <button type="button" class="first-steps-chip">🦊 Erste Schritte <b>${doneCount}/${FIRST_STEPS.length}</b><span class="muted"> ▸</span></button>`;
+            <button type="button" class="first-steps-chip">🦊 Erste Schritte <b>${doneCount}/${steps.length}</b><span class="muted"> ▸</span></button>`;
         container.querySelector('.first-steps-chip').addEventListener('click', () => {
             setFirstStepsCollapsed(false);
             render();
@@ -110,19 +113,16 @@ function render() {
     container.innerHTML = `
         <div class="first-steps-head">
             <b>🦊 Erste Schritte</b>
-            <span class="muted small">${doneCount}/${FIRST_STEPS.length}</span>
+            <span class="muted small">${doneCount}/${steps.length}</span>
         </div>
         <ul class="first-steps-list">
-            ${FIRST_STEPS.map((step) => `
+            ${steps.map((step) => `
                 <li class="${done.has(step.id) ? 'done' : ''}">
-                    ${step.showcase || step.action ? `<button type="button" class="first-steps-action" data-showcase="${step.showcase || ''}" data-action="${step.action || ''}" aria-label="${step.label} – ${step.showcase ? 'Live-Demo starten' : 'öffnen'}">
+                    <button type="button" class="first-steps-action" data-showcase="${step.showcase}" aria-label="${step.label} – Live-Demo starten">
                         <span class="first-steps-mark" aria-hidden="true">${done.has(step.id) ? '✓' : step.icon}</span>
                         <span class="first-steps-text"><b>${step.label}</b><small>${step.hint}</small></span>
-                        <span class="first-steps-play" aria-hidden="true">${step.showcase ? '▶' : '›'}</span>
-                    </button>` : `<div class="first-steps-static">
-                        <span class="first-steps-mark" aria-hidden="true">${done.has(step.id) ? '✓' : step.icon}</span>
-                        <span class="first-steps-text"><b>${step.label}</b><small>${step.hint}</small></span>
-                    </div>`}
+                        <span class="first-steps-play" aria-hidden="true">▶</span>
+                    </button>
                 </li>`).join('')}
         </ul>
         <div class="first-steps-foot">
@@ -131,12 +131,6 @@ function render() {
         </div>`;
     container.querySelectorAll('.first-steps-action').forEach((button) => {
         button.addEventListener('click', () => {
-            if (button.dataset.action === 'own-data') {
-                const ownDataButton = document.getElementById('btn-own-data');
-                if (ownDataButton) ownDataButton.click();
-                else showToast('Der Datenimport ist in dieser Ansicht nicht verfügbar.', 'info', 4000);
-                return;
-            }
             if (!startShowcaseStory(button.dataset.showcase)) {
                 showToast('Diese Live-Demo ist in dieser Ansicht nicht verfügbar.', 'info', 4000);
             }
@@ -187,7 +181,7 @@ export function initFirstSteps() {
     on('app:ready', render);
     on('customer:detail-opened', () => completeFirstStep('daten'));
     on('showcase:story-completed', (storyId) => {
-        const stepByStory = { 'excel-karte': 'daten', tour: 'tour', 'handy-qr': 'handy' };
+        const stepByStory = { 'excel-karte': 'daten', tour: 'tour', 'handy-qr': 'handy', empfang: 'handy', tresor: 'sicher' };
         if (stepByStory[storyId]) completeFirstStep(stepByStory[storyId]);
     });
 

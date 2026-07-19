@@ -16,6 +16,18 @@ describe('Sidebar-Bedienung', () => {
         expect(sidebarSource).not.toMatch(/addEventListener\(['"]wheel['"]/);
     });
 
+    it('setzt den Bewegungs-Merker vor der Ignore-Rückgabe zurück (kein Doppel-Tap)', () => {
+        // Nach einem Scroll-Drag darf der nächste Tap auf ein interaktives
+        // Element nicht geschluckt werden: moved muss bei jedem pointerdown –
+        // also VOR der Ignore-Früh-Rückgabe – zurückgesetzt werden.
+        const pd = sidebarSource.indexOf("sidebar.addEventListener('pointerdown'");
+        expect(pd).toBeGreaterThan(-1);
+        const reset = sidebarSource.indexOf('moved = false;', pd);
+        const ignore = sidebarSource.indexOf('SIDEBAR_DRAG_SCROLL_IGNORE', pd);
+        expect(reset).toBeGreaterThan(pd);
+        expect(reset).toBeLessThan(ignore);
+    });
+
     it('behält die Größensteuerung an Plus, Minus und 100 Prozent', () => {
         expect(doc.querySelector('#panel-zoom-in')).not.toBeNull();
         expect(doc.querySelector('#panel-zoom-out')).not.toBeNull();
