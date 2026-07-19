@@ -403,11 +403,17 @@ const HELPERS = {
         if (c) assignShowcaseStart(c);
         await sleep(400);
     },
+    async addOneSuggestion() {
+        await HELPERS.addSuggestions(1);
+    },
     async addTwoSuggestions() {
+        await HELPERS.addSuggestions(2);
+    },
+    async addSuggestions(count = 2) {
         const plannedStops = showcaseTourPlan?.stops?.filter((c) => c.id !== state.tour.start?.customerId) || [];
-        if (plannedStops.length >= 2) {
+        if (plannedStops.length >= count) {
             await moveToEl('#tour-suggestions');
-            for (const customer of plannedStops.slice(0, 2)) {
+            for (const customer of plannedStops.slice(0, count)) {
                 const selector = `#tour-suggestions [data-add="${CSS.escape(String(customer.id))}"]`;
                 if (await resolveEl(selector, 250)) await clickEl(selector);
                 else if (!state.tour.stops.includes(customer.id)) {
@@ -418,7 +424,7 @@ const HELPERS = {
             }
             return;
         }
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < count; i++) {
             const add = await resolveEl('#tour-suggestions [data-add]', 2500);
             if (add) { await clickEl('#tour-suggestions [data-add]'); await sleep(600); continue; }
             // Fallback: einen weiteren verorteten Kunden anhängen
