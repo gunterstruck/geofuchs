@@ -179,6 +179,15 @@ export function initFirstSteps() {
     on('customers:changed', render);
     on('tour:changed', render);
     on('app:ready', render);
+    // Der allererste automatische Reveal (Beispielkunden erscheinen von selbst)
+    // ist der Moment, die geführten Live-Demos zu zeigen: Checkliste einmal
+    // ausgeklappt – auf dem Handy sonst nur ein Chip. Die Einklapp-bei-Aktivität-
+    // Logik räumt sie beim ersten echten Tap wieder weg.
+    on('demo:auto-loaded', () => {
+        if (firstStepsProgress().dismissed) return;
+        setFirstStepsCollapsed(false);
+        render();
+    });
     on('customer:detail-opened', () => completeFirstStep('daten'));
     on('showcase:story-completed', (storyId) => {
         const stepByStory = { 'excel-karte': 'daten', tour: 'tour', 'handy-qr': 'handy', empfang: 'handy', tresor: 'sicher' };

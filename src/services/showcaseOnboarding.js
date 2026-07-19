@@ -10,7 +10,10 @@ const KEYS = Object.freeze({
 // Lang genug, damit die Deutschlandkarte bewusst als ruhiger Ausgangspunkt
 // wahrgenommen wird – kurz genug, um nicht wie eine Ladezeit zu wirken.
 export const WELCOME_DEMO_DELAY_MS = 4600;
-export const WELCOME_DEMO_MOBILE_DELAY_MS = 7800;
+// Handy: etwas länger als Desktop, damit die ruhige Deutschlandkarte wirkt –
+// aber deutlich kürzer als früher (7,8 s fühlten sich beim ersten Eindruck
+// leicht wie „hängt/lädt" an), damit der Reveal nicht zu spät kommt.
+export const WELCOME_DEMO_MOBILE_DELAY_MS = 6000;
 
 export function welcomeDemoDelayMs({ mobile = false } = {}) {
     return mobile ? WELCOME_DEMO_MOBILE_DELAY_MS : WELCOME_DEMO_DELAY_MS;

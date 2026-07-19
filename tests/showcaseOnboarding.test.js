@@ -118,7 +118,7 @@ describe('Showcase-Onboarding', () => {
 
     it('gibt der mobilen Begrüßung mehr Lesezeit als dem Desktop', () => {
         expect(welcomeDemoDelayMs({ mobile: false })).toBe(4600);
-        expect(welcomeDemoDelayMs({ mobile: true })).toBe(7800);
+        expect(welcomeDemoDelayMs({ mobile: true })).toBe(6000);
     });
 
     it('merkt ein bewusstes Datenlöschen für die spätere Demo-Wiederherstellung', () => {
