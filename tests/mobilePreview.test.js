@@ -79,15 +79,19 @@ describe('Mobile Außendienst & Tour am Desktop', () => {
         expect(sidebar).toMatch(/mobileQuery\.addEventListener\('change'[\s\S]*applyDataPanelLayout\(\)/);
     });
 
-    it('macht Beispieldaten mobil über ein weit geöffnetes, scrollbares Datenblatt erreichbar', () => {
+    it('zeigt mobil mit Daten nur Karte + Tour; das Onboarding trägt den Dateneinstieg', () => {
         const sidebar = readFileSync(resolve(process.cwd(), 'src/ui/sidebar.js'), 'utf8');
         const responsiveCss = readFileSync(resolve(process.cwd(), 'src/styles/responsive.css'), 'utf8');
 
-        expect(sidebar).toContain("const MOBILE_DATA_TABS = new Set(['karte', 'daten', 'tour'])");
+        // Mit Daten kein Daten-Tab mehr – nur Karte + Tour.
+        expect(sidebar).toContain("const MOBILE_DATA_TABS = new Set(['karte', 'tour'])");
+        // Ohne Daten führt der Daten-Blick weiterhin durch das Onboarding.
+        expect(sidebar).toContain("const MOBILE_EMPTY_TABS = new Set(['karte', 'daten'])");
         expect(sidebar).toContain("else if (isMobileUi() && btn.dataset.tab === 'daten')");
         expect(sidebar).toContain('setSheetHeight(Math.round(sheetMaxHeight() * 0.88), true)');
         expect(responsiveCss).toContain('.mobile-topnav .depth-switch { grid-template-columns: repeat(2, minmax(0, 1fr)); }');
-        expect(responsiveCss).toContain('.mobile-topnav .tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }');
+        // Genau zwei Tabs füllen den Streifen ohne Lücke.
+        expect(responsiveCss).toContain('.mobile-topnav .tabs { grid-auto-flow: column;');
         expect(responsiveCss).toContain('touch-action: pan-y;');
         expect(responsiveCss).toContain('-webkit-overflow-scrolling: touch;');
     });
