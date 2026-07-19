@@ -711,13 +711,10 @@ function resolveView() {
     if (!aggregatable()) return { paint: null, markers: true, labels: false, markerBy: 'bezirk' };
     if (z >= CONFIG.map.lodCustomerZoom) {
         const p = firstActiveAttr(['bezirk', 'gruppe']);
-        // Beim Gebiete-Managen sind die Bezirks-Kacheln das Arbeitsgerät: Sie
-        // bleiben auch nah dran sichtbar (die Vollständigkeits-Logik fängt
-        // Kollisionen ab), zusätzlich zu den Kundenpunkten fürs Zuordnen.
-        // Im Außendienst gehört die Nähe dagegen ganz den Kunden.
-        if (state.ui.mode === 'gebietsplanung') {
-            return { paint: p, markers: true, labels: true, markerBy: p };
-        }
+        // Sobald die Kunden-Klemmbretter erscheinen, gehört die Bühne den
+        // Kunden – auch beim Gebiete-Managen. Die farbigen Bezirksflächen
+        // bleiben als Orientierung, nur die Bezirks-Kacheln räumen das Feld
+        // (beides zusammen war zu voll und durcheinander).
         return { paint: p, markers: true, labels: false, markerBy: p };
     }
     if (z >= CONFIG.map.lodBezirkZoom) {
@@ -1189,6 +1186,40 @@ function renderLabels() {
             const shown = new Set(visibleLabels.map((c) => c.val));
             overflowLabels = candidates.filter((c) => !shown.has(c.val) && inView(c));
             if (overflowLabels.length === 0) break;
+        }
+        // Mini-Chips nicht mehr blind auf den Schwerpunkt setzen: Sie weichen
+        // in kleinen Schritten aus, statt volle Kacheln oder einander zu
+        // überlappen – und bleiben dabei immer im Bild (nie unsichtbar).
+        const collidesWith = (a, b, pad) => a.left < b.right + pad && a.right + pad > b.left
+            && a.top < b.bottom + pad && a.bottom + pad > b.top;
+        const placedRects = visibleLabels.map((c) => ({
+            left: c.x - c.width / 2, right: c.x + c.width / 2,
+            top: c.y - c.height / 2, bottom: c.y + c.height / 2
+        }));
+        for (const c of overflowLabels) {
+            const chipText = compactTerritoryLabel(c.val);
+            const w = Math.min(150, chipText.length * 6.5 + 22);
+            const h = 24;
+            const step = h + 12;
+            const side = w / 2 + 40;
+            const nudges = [[0, 0], [0, -step], [0, step], [-side, 0], [side, 0],
+                [-side, -step], [side, -step], [-side, step], [side, step],
+                [0, -2 * step], [0, 2 * step]];
+            let rect = null;
+            for (const [dx, dy] of nudges) {
+                const x = Math.min(Math.max(c.x + dx, edge + w / 2), mapSize.x - edge - w / 2);
+                const y = Math.min(Math.max(c.y + dy, edge + h / 2), mapSize.y - edge - h / 2);
+                const candidateRect = { left: x - w / 2, right: x + w / 2, top: y - h / 2, bottom: y + h / 2 };
+                if (!placedRects.some((other) => collidesWith(candidateRect, other, 6))) {
+                    c.x = x;
+                    c.y = y;
+                    rect = candidateRect;
+                    break;
+                }
+            }
+            if (!rect) rect = { left: c.x - w / 2, right: c.x + w / 2, top: c.y - h / 2, bottom: c.y + h / 2 };
+            placedRects.push(rect);
+            c.center = map.containerPointToLatLng([c.x, c.y]);
         }
     } else {
         visibleLabels = selectNonOverlappingLabels(candidates, {
