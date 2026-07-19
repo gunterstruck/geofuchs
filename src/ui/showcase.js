@@ -293,11 +293,11 @@ const HELPERS = {
         fitToCustomers();
         await sleep(1400);
     },
-    async openCustomerFromMap() {
+    async zoomToCustomerCards() {
         showMapView();
         await sleep(500);
         // Die echte Cluster-Interaktion sichtbar wiederholen, bis aus dem
-        // Kundenstapel eine einzelne Kundenkarte wird. So erklärt sich die
+        // Kundenstapel einzelne Kundenkacheln werden. So erklärt sich die
         // Zoom-Logik durch die Mausbewegung statt durch einen Sprung.
         for (let depth = 0; depth < 4; depth++) {
             if (await resolveEl('.customer-marker-card', 350)) break;
@@ -305,6 +305,8 @@ const HELPERS = {
             await clickEl('.customer-stack-card');
             await sleep(1100);
         }
+    },
+    async openCustomerCard() {
         if (await resolveEl('.customer-marker-card', 800)) {
             await clickEl('.customer-marker-card');
             await resolveEl('.leaflet-popup-content', 2200);
@@ -312,6 +314,10 @@ const HELPERS = {
             return;
         }
         await HELPERS.showOneCustomer();
+    },
+    async openCustomerFromMap() {
+        await HELPERS.zoomToCustomerCards();
+        await HELPERS.openCustomerCard();
     },
     async focusDemoTourArea() {
         showcaseTourPlan = selectShowcaseTour(scopedWithCoords());
@@ -503,9 +509,22 @@ const HELPERS = {
         showKeyStepForDemo();
         await sleep(800);
     },
+    async typeReceiveKeyDemo() {
+        // Den Eintipp-Fallback sichtbar aufklappen und einen Demo-Schlüssel
+        // tippen – ohne „Entschlüsseln" zu drücken (es gibt ja keine Datei).
+        const details = document.querySelector('#safe-step-key details.safe-fallback');
+        if (details && !details.open) {
+            await clickEl('#safe-step-key details.safe-fallback summary');
+            await sleep(500);
+        }
+        await typeInto('#safe-key-input', 'TFK1:DEMO-SCHLÜSSEL');
+        await sleep(700);
+    },
     async closeReceive() {
         const d = document.getElementById('safe-receive-dialog');
         if (d?.open) d.close();
+        const input = document.getElementById('safe-key-input');
+        if (input) input.value = '';
         await sleep(400);
     },
     async openVaultSetup() {
