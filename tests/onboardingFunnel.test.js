@@ -134,6 +134,32 @@ describe('Onboarding-Trichter: ein Einstieg, sichtbare nächste Schritte', () =>
         expect(ui).toContain('resetFirstSteps()');
     });
 
+    it('klappt die Checkliste ein, sobald der Nutzer erkennbar etwas anderes tut', () => {
+        const ui = source('src/ui/firstSteps.js');
+        // Aktivitäts-Signale (Bezirk wählen, Kunde öffnen, Karte antippen) klappen
+        // die Karte zur schmalen Zeile ein – als hätte der Nutzer „Später" gedrückt.
+        expect(ui).toContain('collapseOnActivity');
+        expect(ui).toContain("'tour:scope-changed'");
+        expect(ui).toContain("'customer:detail-opened'");
+        expect(ui).toContain('setFirstStepsCollapsed(true)');
+        // Echtes Antippen der Karte zählt, programmatische Ereignisse nicht.
+        expect(ui).toContain("getElementById('map')?.addEventListener('pointerdown'");
+        expect(ui).toContain('ev.isTrusted');
+    });
+
+    it('startet nach dem Zurücksetzen einen Neustart mit Live-Demo statt leerer Karte', () => {
+        const wizard = source('src/ui/importWizard.js');
+        const css = source('src/styles/responsive.css');
+        // Zurücksetzen ist ein Neustart: Die Willkommens-Demo wird neu geplant und
+        // die Nutzerabsicht zurückgenommen, damit die Beispielkunden wiederkommen.
+        expect(wizard).toContain("on('dataset:cleared'");
+        expect(wizard).toContain('welcomeDemoUserIntent = false');
+        expect(wizard).toContain('scheduleWelcomeDemo()');
+        // Das mobile Onboarding-Panel bleibt kompakt (~ein Drittel), Karte sichtbar.
+        expect(css).toContain('height: min(52dvh, 480px)');
+        expect(css).toContain('.sidebar.onboarding .ob-primary-action');
+    });
+
     it('hebt die Compliance-Checkbox am Ort hervor, wenn sie fehlt', () => {
         const wizard = source('src/ui/importWizard.js');
         const css = source('src/styles/components.css');

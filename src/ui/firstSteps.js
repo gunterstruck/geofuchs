@@ -185,6 +185,24 @@ export function initFirstSteps() {
         if (stepByStory[storyId]) completeFirstStep(stepByStory[storyId]);
     });
 
+    // Sobald der Nutzer erkennbar etwas anderes tut (Bezirk wählen, Kunde
+    // öffnen, Karte antippen, planen …), klappt die Checkliste zur schmalen
+    // Zeile ein – als hätte er „Später" gedrückt. Kein Interesse, kein Platz.
+    const collapseOnActivity = () => {
+        if (!container || container.hidden || container.classList.contains('collapsed')) return;
+        if (firstStepsProgress().dismissed) return;
+        setFirstStepsCollapsed(true);
+        render();
+    };
+    ['tour:scope-changed', 'customer:detail-opened', 'service-customer-scope:changed']
+        .forEach((evt) => on(evt, collapseOnActivity));
+    // Tour-Aktivität zählt erst, sobald wirklich geplant wird (Start/Stopps).
+    on('tour:changed', () => { if (state.tour.start || state.tour.stops.length) collapseOnActivity(); });
+    // Echtes Antippen der Karte (kein programmatisches Ereignis) ist Aktivität.
+    document.getElementById('map')?.addEventListener('pointerdown', (ev) => {
+        if (ev.isTrusted) collapseOnActivity();
+    }, true);
+
     // Bewusstes „Daten löschen" ist ein Neustart: Wie beim Demo-Fortschritt des
     // Schaufensters beginnt auch die Erste-Schritte-Checkliste wieder von vorn –
     // inklusive einer früheren Abwahl.

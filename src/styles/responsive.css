@@ -274,16 +274,22 @@
         pointer-events: none;
     }
 
-    /* Erster Start: Begrüßungs-Panel etwas höher und der Fuchs größer */
+    /* Erster Start / Neustart nach dem Zurücksetzen: bewusst kompakt (rund ein
+       Drittel bis knapp die Hälfte), damit oben die Deutschlandkarte sichtbar
+       bleibt. Kurze Begrüßung + großer „Live-Demos"-Knopf liegen sofort im Blick,
+       der Rest ist scrollbar. */
     .sidebar.onboarding {
-        height: min(76dvh, 680px);
-    }
-    .sidebar.onboarding .ob-fox {
-        font-size: 3.4rem;
+        height: min(52dvh, 480px);
     }
     .sidebar.onboarding .ob-hero {
-        padding-top: 14px;
+        padding: 6px 4px 2px;
     }
+    .sidebar.onboarding .ob-fox {
+        font-size: 2.6rem;
+    }
+    .sidebar.onboarding .ob-hero h2 { margin: 4px 0 2px; }
+    /* Der Live-Demo-Knopf ist der Held des Neustarts – etwas kräftiger. */
+    .sidebar.onboarding .ob-primary-action { font-size: 1.1rem; padding: 15px 12px; }
 
     .sidebar:not(.onboarding) .tabs {
         grid-auto-flow: initial;
