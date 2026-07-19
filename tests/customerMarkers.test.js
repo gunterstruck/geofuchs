@@ -99,7 +99,7 @@ describe('Lebendige Kunden-Kacheln', () => {
         expect(css).toContain('.territory-stack-card--mini');
         expect(map).toContain('Kundenkarte antippen und Details entdecken');
         expect(map).toContain('resetCustomerDiscoveryHints');
-        expect(map).toContain('localStorage.removeItem(CUSTOMER_CLUSTER_HINT_KEY)');
+        expect(map).toContain('localStorage.removeItem(CUSTOMER_DISCOVERY_DONE_KEY)');
         expect(map).toContain("className: 'customer-detail-popup'");
         expect(css).toContain('.customer-marker-mode-label .customer-marker-card');
         // Label-/Detailstufe ist eine hochkant „Tablet"-Kachel mit Pin-Spitze auf

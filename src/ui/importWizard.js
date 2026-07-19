@@ -58,10 +58,24 @@ export function initImportWizard() {
     ownDataDialog = document.getElementById('own-data-dialog');
 
     document.getElementById('btn-own-data')?.addEventListener('click', () => {
-        cancelWelcomeDemo({ handled: true });
+        // Nur reinschauen darf das Willkommen nicht dauerhaft beenden: kein
+        // persistentes „erledigt" – die Pause gilt für diese Sitzung, nach
+        // einem echten Neustart läuft das Intro wieder. Wer wirklich eigene
+        // Daten lädt, blockiert die Automatik ohnehin über den Datenbestand.
+        cancelWelcomeDemo();
         ownDataDialog?.showModal();
     });
     document.getElementById('btn-showcase-ob')?.addEventListener('click', () => cancelWelcomeDemo());
+    // „Später" im Demo-Panel heißt nicht „nie": Schließt sich die Demo-Auswahl
+    // ohne gestartete Vorführung und ohne Daten, wird die Willkommens-Automatik
+    // wieder scharf – die Karte belebt sich kurz darauf doch noch von selbst.
+    document.getElementById('showcase-dialog')?.addEventListener('close', () => {
+        if (state.customers.length > 0) return;
+        if (document.querySelector('.sc-shield')) return; // Vorführung startet gerade
+        if (hasHandledWelcomeDemo()) return;
+        welcomeDemoUserIntent = false;
+        scheduleWelcomeDemo();
+    });
     document.getElementById('btn-demo-restore')?.addEventListener('click', restoreDemoAfterClear);
     ownDataDialog?.querySelector('.dialog-close')?.addEventListener('click', () => ownDataDialog.close());
 
@@ -410,6 +424,17 @@ function showImportResult({ customerCount, contactCount = 0, areaCount, skipped,
     resultDialog.showModal();
 }
 
+// Die Begrüßung verspricht nur, was auch passiert: Solange die Automatik
+// scharf ist, kündigt sie die Beispielkunden an – ist sie pausiert, lädt die
+// Zeile stattdessen aktiv zum Selbst-Starten ein.
+const AUTO_NOTE_ARMED = 'Schau dir zuerst an, was möglich ist. Die Beispielkunden erscheinen gleich automatisch auf der Deutschlandkarte.';
+const AUTO_NOTE_PAUSED = 'Schau dir zuerst an, was möglich ist – eine Live-Demo bringt die Beispielkunden jederzeit auf die Karte.';
+
+function setAutoNote(text) {
+    const note = document.getElementById('ob-auto-note');
+    if (note) note.textContent = text;
+}
+
 function previewStatus({ title, detail, stateName = '' }) {
     const status = document.getElementById('demo-preview-status');
     if (!status) return;
@@ -424,6 +449,7 @@ function cancelWelcomeDemo({ handled = false } = {}) {
     if (welcomeDemoTimer) clearTimeout(welcomeDemoTimer);
     welcomeDemoTimer = null;
     if (handled) markWelcomeDemoHandled();
+    setAutoNote(AUTO_NOTE_PAUSED);
     previewStatus({
         title: 'Automatische Beispieldaten pausiert.',
         detail: 'Dein gewählter Einstieg hat jetzt Vorrang.',
@@ -445,6 +471,7 @@ function welcomeDemoBlockers() {
 
 function scheduleWelcomeDemo() {
     if (!canAutoLoadWelcomeDemo(welcomeDemoBlockers())) return;
+    setAutoNote(AUTO_NOTE_ARMED);
     previewStatus({
         title: 'Die Deutschlandkarte ist bereit.',
         detail: 'Beispielkunden erscheinen gleich automatisch.'

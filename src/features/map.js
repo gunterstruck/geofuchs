@@ -67,8 +67,15 @@ let levelLoadSequence = 0;
 let loadingLevel = null;
 const ROUTE_HUE_START = 0;      // rot
 const ROUTE_HUE_END = 276;      // lila
-const CUSTOMER_MARKER_HINT_KEY = 'tf_customer_marker_hint_seen';
-const CUSTOMER_CLUSTER_HINT_KEY = 'tf_customer_cluster_hint_seen';
+// Entdeck-Reise: Die „Tippe …"-Hinweise begleiten den Nutzer über mehrere
+// Zoomstufen (Stapel → kleinerer Stapel → Kundenkachel), bis er zum ersten
+// Mal eine Kundenkarte geöffnet hat. Erst dieser Belohnungsmoment beendet
+// die Reise dauerhaft; je Sitzung sind die Hinweise gedeckelt, damit sie
+// führen, ohne zu nerven.
+const CUSTOMER_DISCOVERY_DONE_KEY = 'tf_customer_discovery_done';
+const DISCOVERY_HINT_MAX_OFFERS = 3;
+let clusterHintOffers = 0;
+let markerHintOffers = 0;
 const insideMobilePreview = new URLSearchParams(location.search).has('mobilePreview');
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => (
@@ -79,28 +86,24 @@ function isMobileMap() {
     return window.innerWidth <= 768;
 }
 
-function markerHintWasShown() {
-    try { return localStorage.getItem(CUSTOMER_MARKER_HINT_KEY) === '1'; } catch { return false; }
+function discoveryJourneyDone() {
+    try { return localStorage.getItem(CUSTOMER_DISCOVERY_DONE_KEY) === '1'; } catch { return false; }
 }
 
-function rememberMarkerHint() {
-    try { localStorage.setItem(CUSTOMER_MARKER_HINT_KEY, '1'); } catch { /* Speicherung ist optional */ }
-}
-
-function storedHintWasShown(key) {
-    try { return localStorage.getItem(key) === '1'; } catch { return false; }
-}
-
-function rememberHint(key) {
-    try { localStorage.setItem(key, '1'); } catch { /* Speicherung ist optional */ }
+/** Erste geöffnete Kundenkarte = Ziel erreicht, keine Hinweise mehr. */
+function completeDiscoveryJourney() {
+    try { localStorage.setItem(CUSTOMER_DISCOVERY_DONE_KEY, '1'); } catch { /* Speicherung ist optional */ }
+    dismissCustomerMarkerHint();
+    dismissCustomerClusterHint();
 }
 
 function resetCustomerDiscoveryHints() {
     dismissCustomerMarkerHint();
     dismissCustomerClusterHint();
+    clusterHintOffers = 0;
+    markerHintOffers = 0;
     try {
-        localStorage.removeItem(CUSTOMER_MARKER_HINT_KEY);
-        localStorage.removeItem(CUSTOMER_CLUSTER_HINT_KEY);
+        localStorage.removeItem(CUSTOMER_DISCOVERY_DONE_KEY);
     } catch { /* Speicherung ist optional */ }
 }
 
@@ -112,7 +115,7 @@ function dismissCustomerClusterHint() {
 }
 
 function maybeOfferCustomerClusterHint() {
-    if (!map || storedHintWasShown(CUSTOMER_CLUSTER_HINT_KEY)
+    if (!map || discoveryJourneyDone() || clusterHintOffers >= DISCOVERY_HINT_MAX_OFFERS
         || document.querySelector('.sc-shield') || insideMobilePreview) return;
     const mapRect = map.getContainer().getBoundingClientRect();
     const centerX = mapRect.left + mapRect.width / 2;
@@ -125,7 +128,7 @@ function maybeOfferCustomerClusterHint() {
                 - Math.hypot(b.left + b.width / 2 - centerX, b.top + b.height / 2 - centerY);
         })[0];
     if (!target) return;
-    rememberHint(CUSTOMER_CLUSTER_HINT_KEY);
+    clusterHintOffers += 1;
     clusterHintTarget = target;
     target.classList.add('is-discovery');
     clusterHintTimer = window.setTimeout(dismissCustomerClusterHint, 4600);
@@ -161,7 +164,7 @@ function maybeOfferCustomerMarkerHint() {
         zoom: map.getZoom(),
         mobile: isMobileMap(),
         hasCustomers: customerMarkers.length > 0,
-        alreadyShown: markerHintWasShown(),
+        alreadyShown: discoveryJourneyDone() || markerHintOffers >= DISCOVERY_HINT_MAX_OFFERS,
         showcaseRunning: Boolean(document.querySelector('.sc-shield')),
         insidePreview: insideMobilePreview
     })) return;
@@ -174,7 +177,7 @@ function maybeOfferCustomerMarkerHint() {
     const target = visible[0]?.marker;
     if (!target?.getElement()) return;
 
-    rememberMarkerHint();
+    markerHintOffers += 1;
     markerHintTarget = target;
     target.getElement().querySelector('.customer-marker-card')?.classList.add('is-discovery');
     target.bindTooltip('Kundenkarte antippen und Details entdecken', {
@@ -544,6 +547,7 @@ export function initMap(containerId) {
 
     on('customers:changed', refreshAll);
     on('dataset:cleared', resetCustomerDiscoveryHints);
+    on('customer:detail-opened', completeDiscoveryJourney);
     on('filters:changed', refreshAll);
     on('mode:changed', refreshAll);
     on('tab:changed', refreshAll);
