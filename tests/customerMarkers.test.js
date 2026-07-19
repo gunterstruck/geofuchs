@@ -93,6 +93,10 @@ describe('Lebendige Kunden-Kacheln', () => {
         // Umsatz je Gebiet ab Vertriebsbezirk aufwärts in jeder Labelstufe.
         expect(map).toContain('class="tl-rev"');
         expect(css).toContain('.territory-stack-card .tl-rev');
+        // Vollständigkeits-Modus beim Gebiete-Managen: adaptiv verkleinern + Code-Chip-Fallback.
+        expect(map).toContain("state.ui.mode === 'gebietsplanung'");
+        expect(map).toContain('territory-stack-card--mini');
+        expect(css).toContain('.territory-stack-card--mini');
         expect(map).toContain('Kundenkarte antippen und Details entdecken');
         expect(map).toContain('resetCustomerDiscoveryHints');
         expect(map).toContain('localStorage.removeItem(CUSTOMER_CLUSTER_HINT_KEY)');

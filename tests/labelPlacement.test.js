@@ -109,6 +109,22 @@ describe('Progressive und kollisionsarme Gebietslabels', () => {
         expect(selected.map((item) => item.id)).toEqual(['wichtig', 'frei']);
     });
 
+    it('kleinere Kacheln passen kollisionsfrei nebeneinander (Basis der adaptiven Verkleinerung)', () => {
+        const candidates = [
+            { id: 'a', x: 60, y: 60, width: 100, height: 80, priority: 3 },
+            { id: 'b', x: 130, y: 60, width: 100, height: 80, priority: 2 },
+            { id: 'c', x: 200, y: 60, width: 100, height: 80, priority: 1 }
+        ];
+        const opts = { viewportWidth: 300, viewportHeight: 200, maxItems: Infinity };
+        // Volle Größe: die Kacheln überlappen -> nicht alle passen.
+        const full = selectNonOverlappingLabels(candidates, { ...opts, gap: 10 });
+        expect(full.length).toBeLessThan(3);
+        // Auf 60 % verkleinert passen alle drei kollisionsfrei nebeneinander.
+        const scaled = candidates.map((c) => ({ ...c, width: c.width * 0.6, height: c.height * 0.6 }));
+        const small = selectNonOverlappingLabels(scaled, { ...opts, gap: 6 });
+        expect(small.length).toBe(3);
+    });
+
     it('achtet Kartenrand und festes Aufmerksamkeitsbudget', () => {
         const selected = selectNonOverlappingLabels([
             { id: 'außen', x: -100, y: 100, width: 50, height: 30, priority: 99 },

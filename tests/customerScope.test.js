@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { state, setCustomers, setServiceContracts, setServiceVisits } from '../src/core/state.js';
 import {
     applyServiceCustomerScope,
@@ -22,6 +22,10 @@ const CONTRACTS = [
 ];
 
 beforeEach(() => {
+    // „Heute" fest verankern, damit der Jetzt-/Wochen-Fokus unabhängig vom
+    // realen Testdatum bleibt (die Einsatztermine 17./19.07. sind relativ dazu).
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-17T09:00:00Z'));
     setCustomers(CUSTOMERS.map((customer) => ({ ...customer })), { fileName: 'test.xlsx' });
     setServiceContracts(CONTRACTS.map((contract) => ({ ...contract })), { SAP: { count: 3 } });
     setServiceVisits([
@@ -31,6 +35,10 @@ beforeEach(() => {
     state.ui.mode = 'aussendienst';
     state.ui.serviceCustomerScope = 'contracts';
     state.tour.bezirk = '__all__';
+});
+
+afterEach(() => {
+    vi.useRealTimers();
 });
 
 describe('Servicekunden-Scope', () => {
