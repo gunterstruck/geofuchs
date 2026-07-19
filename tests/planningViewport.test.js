@@ -25,12 +25,21 @@ describe('Viewport-Grenze der Gebietsplanung', () => {
 describe('Bezirks-Kacheln beim Gebiete-Managen im Nah-Zoom', () => {
     const mapSrc = readFileSync(resolve(process.cwd(), 'src/features/map.js'), 'utf8');
 
-    it('blendet die Kacheln auch ab Kunden-Zoomstufe nicht aus', () => {
-        // Im Auto-Farbmodus ersetzt der Nah-Zoom sonst die Flächen durch
-        // Kundenmarker (labels: false) – beim Gebiete-Managen bleiben die
-        // Bezirks-Kacheln als Arbeitsgerät sichtbar, zusätzlich zu den Kunden.
-        expect(mapSrc).toContain("if (state.ui.mode === 'gebietsplanung') {");
-        expect(mapSrc).toContain('return { paint: p, markers: true, labels: true, markerBy: p };');
+    it('räumt die Bühne, sobald die Kunden-Klemmbretter erscheinen', () => {
+        // Bezirks-Kacheln tragen die Orientierung nur, solange Kunden Punkte
+        // sind. Ab der Klemmbrett-Zoomstufe gehört die Fläche den Kunden –
+        // beides zusammen war zu voll; die farbigen Bezirksflächen bleiben.
+        expect(mapSrc).not.toContain('return { paint: p, markers: true, labels: true, markerBy: p };');
+        expect(mapSrc).toContain('gehört die Bühne den');
+    });
+
+    it('lässt Mini-Chips ausweichen statt Kacheln zu überlappen', () => {
+        // Der Vollständigkeits-Fallback saß bisher blind auf dem Schwerpunkt
+        // und klebte auf vollen Kacheln. Jetzt sucht er sich per Versatz-
+        // Kandidaten eine freie Stelle – nie unsichtbar, nie übereinander.
+        expect(mapSrc).toContain('placedRects');
+        expect(mapSrc).toContain('collidesWith');
+        expect(mapSrc).toContain('const nudges =');
     });
 
     it('holt die Kachel eines angeschnittenen Bezirks an den Kartenrand', () => {
