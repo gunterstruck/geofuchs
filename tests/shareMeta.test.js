@@ -25,7 +25,7 @@ describe('Teilbarkeit: Link-Vorschau, Rechtsseiten und Feedback-Kanal', () => {
     });
 
     it('verlinkt einen sichtbaren Feedback-Kanal im Info-Dialog', () => {
-        expect(html).toContain('https://github.com/gunterstruck/geofuchs/issues');
+        expect(html).toContain('https://github.com/gunterstruck/tourfuchs/issues');
         expect(html).toContain('mailto:tourfuchs@online.de?subject=TourFuchs%20Feedback');
     });
 

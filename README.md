@@ -163,6 +163,6 @@ Nutzung auf eigene Gefahr, **keine Haftung jeglicher Art**. Vollständiger Text:
 
 ## Kontakt & Impressum
 
-**Günter Struck** · Lönsberg 8 · 45136 Essen · geofuchs@online.de
+**Günter Struck** · Lönsberg 8 · 45136 Essen · tourfuchs@online.de
 
 **Made with 🦊 in Germany**
