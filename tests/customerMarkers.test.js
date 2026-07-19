@@ -97,6 +97,10 @@ describe('Lebendige Kunden-Kacheln', () => {
         expect(map).toContain("state.ui.mode === 'gebietsplanung'");
         expect(map).toContain('territory-stack-card--mini');
         expect(css).toContain('.territory-stack-card--mini');
+        // Der Mini-Chip hängt in Leaflets 0 Pixel breiter Marker-Ebene:
+        // „width: auto" kollabierte dort zur leeren Pille ohne Bezirks-Code.
+        expect(css).toMatch(/\.territory-stack-card--mini \{[^}]*width: max-content;/);
+        expect(css).not.toMatch(/\.territory-stack-card--mini \{[^}]*width: auto;/);
         expect(map).toContain('Kundenkarte antippen und Details entdecken');
         expect(map).toContain('resetCustomerDiscoveryHints');
         expect(map).toContain('localStorage.removeItem(CUSTOMER_DISCOVERY_DONE_KEY)');
