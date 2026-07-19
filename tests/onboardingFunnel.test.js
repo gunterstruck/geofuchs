@@ -168,6 +168,41 @@ describe('Onboarding-Trichter: ein Einstieg, sichtbare nächste Schritte', () =>
         expect(css).toContain('.sidebar.onboarding .ob-primary-action');
     });
 
+    it('beendet das Willkommen nicht dauerhaft, nur weil der Daten-Dialog aufging', () => {
+        const wizard = source('src/ui/importWizard.js');
+        // Reinschauen in „Eigene Daten laden" pausiert nur die Sitzung –
+        // markWelcomeDemoHandled bleibt dem echten Erledigen vorbehalten.
+        const ownDataHandler = wizard.slice(wizard.indexOf("'btn-own-data'"), wizard.indexOf('btn-showcase-ob'));
+        expect(ownDataHandler).toContain('cancelWelcomeDemo()');
+        expect(ownDataHandler).not.toContain('handled: true');
+    });
+
+    it('macht die Willkommens-Automatik nach „Später" im Demo-Panel wieder scharf', () => {
+        const wizard = source('src/ui/importWizard.js');
+        expect(wizard).toContain("getElementById('showcase-dialog')?.addEventListener('close'");
+        expect(wizard).toContain('welcomeDemoUserIntent = false;\n        scheduleWelcomeDemo();');
+    });
+
+    it('verspricht in der Begrüßung nur, was wirklich passiert', () => {
+        const wizard = source('src/ui/importWizard.js');
+        const html = source('index.html');
+        expect(html).toContain('id="ob-auto-note"');
+        expect(wizard).toContain('AUTO_NOTE_ARMED');
+        expect(wizard).toContain('AUTO_NOTE_PAUSED');
+        expect(wizard).toContain('setAutoNote(AUTO_NOTE_PAUSED)');
+        expect(wizard).toContain('setAutoNote(AUTO_NOTE_ARMED)');
+    });
+
+    it('führt die Entdeck-Hinweise bis zur ersten geöffneten Kundenkarte weiter', () => {
+        const mapSrc = source('src/features/map.js');
+        // Die Reise endet erst mit dem Belohnungsmoment, nicht nach dem ersten Tap;
+        // je Sitzung gedeckelt, damit die Hinweise führen statt nerven.
+        expect(mapSrc).toContain('tf_customer_discovery_done');
+        expect(mapSrc).toContain('DISCOVERY_HINT_MAX_OFFERS');
+        expect(mapSrc).toContain("on('customer:detail-opened', completeDiscoveryJourney)");
+        expect(mapSrc).not.toContain('tf_customer_marker_hint_seen');
+    });
+
     it('hebt die Compliance-Checkbox am Ort hervor, wenn sie fehlt', () => {
         const wizard = source('src/ui/importWizard.js');
         const css = source('src/styles/components.css');
