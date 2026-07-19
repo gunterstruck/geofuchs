@@ -138,20 +138,21 @@ export function initImportWizard() {
     });
     on('customers:changed', syncDemoRestoreOffer);
     on('dataset:cleared', () => {
-        // Nicht in derselben Sitzung sofort wieder Daten einladen. Nach einem
-        // echten PWA-Neustart ist die Nutzerabsicht frisch und das Intro darf
-        // erneut von der leeren Deutschlandkarte aus beginnen.
-        welcomeDemoUserIntent = true;
+        // Zurücksetzen ist ein Neustart: Das Intro beginnt erneut von der leeren
+        // Deutschlandkarte, die Beispielkunden erscheinen gleich wieder (inkl.
+        // Entdeck-Hinweis auf der Karte). Wer stattdessen sofort eigene Daten
+        // lädt, stoppt das automatisch (Nutzerabsicht/Dialog blockieren die Demo).
+        welcomeDemoUserIntent = false;
         if (welcomeDemoTimer) clearTimeout(welcomeDemoTimer);
         welcomeDemoTimer = null;
         markDatasetCleared();
         resetWelcomeDemoAfterDataClear();
         syncDemoRestoreOffer();
         previewStatus({
-            title: 'Daten gelöscht.',
-            detail: 'Jetzt neu laden oder beim nächsten Start das Intro noch einmal erleben.',
-            stateName: 'paused'
+            title: 'Zurückgesetzt – Willkommen zurück.',
+            detail: 'Die Beispielkunden erscheinen gleich wieder auf der Karte.'
         });
+        scheduleWelcomeDemo();
     });
 }
 
