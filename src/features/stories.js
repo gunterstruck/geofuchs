@@ -15,13 +15,16 @@
  *  { t:'run', key }               benannter Helfer aus der Engine
  */
 
+// `duration` ist die real gemessene Laufzeit (Sekunden, kompletter Durchlauf
+// in der laufenden App) – keine Schätzung. Nach jeder Skript-Änderung neu
+// messen, damit das Demo-Panel hält, was es verspricht.
 export const STORIES = [
     {
         id: 'excel-karte',
         icon: '🗺️',
         title: 'Von der Liste zur Kundenkarte',
         blurb: 'Kundenstapel verstehen und bis zum Detail aufzoomen.',
-        duration: 15,
+        duration: 22,
         minRuntimeMs: 15000,
         steps: [
             { t: 'say', text: 'TourFuchs macht aus einer Kundenliste eine verständliche Deutschlandkarte.', sel: '#map', ms: 2400 },
@@ -36,7 +39,7 @@ export const STORIES = [
         icon: '🚗',
         title: 'Deine Tour, Schritt für Schritt',
         blurb: 'Startpunkt, Vorschläge, optimierte Route.',
-        duration: 42,
+        duration: 60,
         needsData: true,
         mutatesTour: true,
         steps: [
@@ -71,7 +74,7 @@ export const STORIES = [
         icon: '📲',
         title: 'Aufs Handy – ohne Kabel, ohne Cloud',
         blurb: 'Tour per QR-Code an dein Smartphone.',
-        duration: 34,
+        duration: 43,
         desktopOnly: true,   // Übergabe Desktop -> Handy; auf dem Handy selbst sinnlos
         needsData: true,
         mutatesTour: true,
@@ -99,7 +102,7 @@ export const STORIES = [
         icon: '🧪',
         title: 'Was wäre wenn? Gebiete umbauen – ohne Risiko',
         blurb: 'Testweise umverteilen, Wirkung sofort sehen.',
-        duration: 38,
+        duration: 40,
         desktopOnly: true,   // Gebietsplanung/Cockpit gibt es nur auf dem Desktop
         needsData: true,
         patchConfirm: true,   // „Verwerfen" bestätigt sich in der Vorführung automatisch
@@ -123,7 +126,7 @@ export const STORIES = [
         icon: '🛠️',
         title: 'Dein Service-Tag, verständlich geplant',
         blurb: 'Einsätze rein – erklärbarer Tagesplan raus.',
-        duration: 36,
+        duration: 39,
         desktopOnly: true,   // Service-Fokus (Profi) gibt es nur auf dem Desktop
         needsData: true,
         mutatesTour: true,
@@ -148,7 +151,7 @@ export const STORIES = [
         icon: '🎯',
         title: 'Spontaner Termin? Sofort gebrieft',
         blurb: 'Passenden Kunden finden und mit Copilot vorbereitet starten.',
-        duration: 34,
+        duration: 46,
         needsData: true,
         mutatesTour: true,
         steps: [
@@ -174,7 +177,7 @@ export const STORIES = [
         icon: '🔐',
         title: 'Deine Daten im Tresor',
         blurb: 'Verschlüsselt, PIN-geschützt, sicher aufs Handy.',
-        duration: 32,
+        duration: 18,
         needsData: true,
         mutatesVault: true,   // Demo legt einen Tresor an – cleanup baut ihn wieder ab
         steps: [
