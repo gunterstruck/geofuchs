@@ -38,7 +38,11 @@ describe('Showcase-Stories: Guardrail', () => {
     it('führt die Karten-Demo sichtbar vom Kundenstapel bis zum Popup', () => {
         const mapStory = STORIES.find((story) => story.id === 'excel-karte');
         expect(mapStory.steps.some((step) => step.sel === '.customer-stack-card')).toBe(true);
-        expect(mapStory.steps.some((step) => step.key === 'openCustomerFromMap')).toBe(true);
+        // Zoom-Beat und Popup-Öffnung sind getrennte Phasen mit eigener
+        // Erzählung: erst die Kundenkacheln würdigen, dann die Kundenkarte.
+        expect(mapStory.steps.some((step) => step.key === 'zoomToCustomerCards')).toBe(true);
+        expect(mapStory.steps.some((step) => step.key === 'openCustomerCard')).toBe(true);
+        expect(mapStory.steps.some((step) => step.sel === '.customer-marker-card')).toBe(true);
         expect(mapStory.steps.at(-1)?.sel).toBe('.leaflet-popup-content');
         expect(mapStory.minRuntimeMs).toBe(15000);
         expect(showcaseSource).toContain("await clickEl('.customer-stack-card')");

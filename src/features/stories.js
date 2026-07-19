@@ -24,14 +24,17 @@ export const STORIES = [
         icon: '🗺️',
         title: 'Von der Liste zur Kundenkarte',
         blurb: 'Kundenstapel verstehen und bis zum Detail aufzoomen.',
-        duration: 22,
+        duration: 30,
         minRuntimeMs: 15000,
         steps: [
             { t: 'say', text: 'TourFuchs macht aus einer Kundenliste eine verständliche Deutschlandkarte.', sel: '#map', ms: 2400 },
             { t: 'run', key: 'excelToMap' },
             { t: 'say', text: 'Jeder Stapel sagt sofort, wie viele Kunden hier liegen. Antippen bedeutet: eine Ebene näher.', sel: '.customer-stack-card', ms: 3200 },
-            { t: 'run', key: 'openCustomerFromMap' },
-            { t: 'say', text: 'So entsteht der Zusammenhang ganz natürlich: Region, Kundenkarte, Details – Adresse, Kontakt und Umsatz auf einen Blick.', sel: '.leaflet-popup-content', ms: 3600, pos: 'bottom' }
+            { t: 'run', key: 'zoomToCustomerCards' },
+            { t: 'say', text: 'Näher dran wird aus dem Stapel jede einzelne Kundenkachel – die Farbe zeigt den Vertriebsbezirk.', sel: '.customer-marker-card', ms: 2800 },
+            { t: 'run', key: 'openCustomerCard' },
+            { t: 'say', text: 'So entsteht der Zusammenhang ganz natürlich: Region, Kundenkarte, Details – Adresse, Kontakt und Umsatz auf einen Blick.', sel: '.leaflet-popup-content', ms: 3600, pos: 'bottom' },
+            { t: 'say', text: 'Und von hier ist alles einen Tipp entfernt: anrufen, zur Tour hinzufügen, Gesprächs-Briefing.', sel: '.leaflet-popup-content', ms: 3000, pos: 'bottom' }
         ]
     },
     {
@@ -177,7 +180,7 @@ export const STORIES = [
         icon: '🔐',
         title: 'Deine Daten im Tresor',
         blurb: 'Verschlüsselt, PIN-geschützt, sicher aufs Handy.',
-        duration: 18,
+        duration: 29,
         needsData: true,
         mutatesVault: true,   // Demo legt einen Tresor an – cleanup baut ihn wieder ab
         steps: [
@@ -208,8 +211,11 @@ export const STORIES = [
             { t: 'say', text: 'Schritt 1: die verschlüsselte Datei (.tfsafe) wählen, die du dir geschickt hast.', sel: '#safe-file-input', ms: 2800 },
             { t: 'run', key: 'showReceiveKeyStep' },
             { t: 'say', text: 'Schritt 2: den Schlüssel-QR mit der Kamera scannen – der Schlüssel reist getrennt von der Datei.', sel: '#safe-scan-video', ms: 3000 },
-            { t: 'say', text: '… oder den Schlüssel einfach eintippen. Danach eine PIN festlegen – fertig.', sel: '#safe-key-input', ms: 3200 },
-            { t: 'run', key: 'closeReceive' }
+            { t: 'say', text: 'Kamera klappt nicht? Dann den Schlüssel einfach eintippen – so:', sel: '#safe-key-input', ms: 2200 },
+            { t: 'run', key: 'typeReceiveKeyDemo' },
+            { t: 'say', text: 'Danach noch eine eigene PIN festlegen – ab dann liegen die Daten verschlüsselt auf diesem Handy.', sel: '#safe-key-input', ms: 3000 },
+            { t: 'run', key: 'closeReceive' },
+            { t: 'say', text: 'Fertig: dieselben Kunden wie am Desktop – sicher in deiner Tasche, ganz ohne Cloud.', sel: '#map', ms: 3200, pos: 'bottom' }
         ]
     }
 ];
