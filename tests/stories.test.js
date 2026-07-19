@@ -76,15 +76,18 @@ describe('Showcase-Stories: Guardrail', () => {
         }
     });
 
-    it('die Tour-Demo zeigt die QR-Übergabe nur am Desktop', () => {
+    it('die Tour-Demo endet ohne QR-Dopplung – der Desktop bekommt den Cliffhanger', () => {
+        // Die QR-Übergabe hat ihre eigene Demo (handy-qr); in der Tour-Demo
+        // gäbe sie das Finale doppelt. Der Desktop verweist stattdessen auf
+        // die nächste Demo, das Handy endet mit der stehenden Route.
         const tour = STORIES.find((story) => story.id === 'tour');
         const desktopSteps = visibleStorySteps(tour, { isDesktop: true });
         const mobileSteps = visibleStorySteps(tour, { isDesktop: false });
 
-        expect(desktopSteps.some((step) => step.key === 'shareTourQr')).toBe(true);
-        expect(mobileSteps.some((step) => step.key === 'shareTourQr')).toBe(false);
+        expect(desktopSteps.some((step) => step.key === 'shareTourQr')).toBe(false);
+        expect(desktopSteps.at(-1)?.text).toContain('nächste Demo');
         expect(mobileSteps.some((step) => step.sel === '#qr-share-canvas')).toBe(false);
-        expect(mobileSteps.at(-1)?.text).toContain('Straßenroute');
+        expect(mobileSteps.at(-1)?.text).toContain('Reihenfolge und Strecke');
     });
 
     it('blendet die QR-Übergabe-Taste im mobilen View aus', () => {
