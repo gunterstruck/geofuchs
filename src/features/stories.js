@@ -105,7 +105,7 @@ export const STORIES = [
         icon: '🧪',
         title: 'Was wäre wenn? Gebiete umbauen – ohne Risiko',
         blurb: 'Testweise umverteilen, Wirkung sofort sehen.',
-        duration: 40,
+        duration: 42,
         desktopOnly: true,   // Gebietsplanung/Cockpit gibt es nur auf dem Desktop
         needsData: true,
         patchConfirm: true,   // „Verwerfen" bestätigt sich in der Vorführung automatisch
@@ -116,7 +116,7 @@ export const STORIES = [
             { t: 'run', key: 'openCockpit' },
             { t: 'say', text: 'Ich buche testweise Gebiete auf einen anderen Bezirk um …', ms: 2400 },
             { t: 'run', key: 'simAssign' },
-            { t: 'say', text: 'Schau die Kennzahlen: grün rauf, rot runter – sofort sichtbar.', ms: 2800 },
+            { t: 'say', text: 'Schau die Kennzahlen: grün rauf, rot runter – Zeile für Zeile sofort sichtbar.', ms: 4200 },
             { t: 'run', key: 'simToMap' },
             { t: 'say', text: 'Und auf der Karte: Alt, Neu und nur die Änderungen.', ms: 2200 },
             { t: 'run', key: 'simCycleViews' },
@@ -129,7 +129,7 @@ export const STORIES = [
         icon: '🛠️',
         title: 'Dein Service-Tag, verständlich geplant',
         blurb: 'Einsätze rein – erklärbarer Tagesplan raus.',
-        duration: 39,
+        duration: 40,
         desktopOnly: true,   // Service-Fokus (Profi) gibt es nur auf dem Desktop
         needsData: true,
         mutatesTour: true,
@@ -139,6 +139,7 @@ export const STORIES = [
             { t: 'run', key: 'gotoService' },
             { t: 'say', text: 'Im Service-Fokus zählen nur Vertragskunden und offene Einsätze – die Zähler zeigen den Handlungsbedarf.', sel: '#service-customer-scope', ms: 3000 },
             { t: 'run', key: 'gotoServiceTour' },
+            { t: 'say', text: 'Bezirk und Startpunkt – schnell gesetzt …', ms: 1800 },
             { t: 'run', key: 'pickBezirkAll' },
             { t: 'run', key: 'pickServiceStart' },
             { t: 'say', text: 'Startpunkt steht. Jetzt plant TourFuchs den Tag – lokal auf deinem Gerät, ohne Cloud.', sel: '#btn-service-day-preview', ms: 2600 },
@@ -146,7 +147,7 @@ export const STORIES = [
             { t: 'say', text: 'Fertig: Stopps mit Uhrzeiten, Fahrzeiten, Rückkehr und Auslastung.', sel: '#service-day-preview', ms: 2800 },
             { t: 'say', text: 'Und jeder Stopp erklärt sich selbst – Priorität, SLA, Zeitfenster. Keine Blackbox.', sel: '#service-day-preview', ms: 3000 },
             { t: 'say', text: 'Ein Klick auf „Übernehmen" macht daraus die fixe Tagestour – inklusive Tagesplan-Druck und Kalender.', ms: 3200 },
-            { t: 'say', text: 'Und am Einsatzort? Ein Tipp öffnet Zanobo: Dein Smartphone vergleicht das Betriebsgeräusch der Anlage mit ihrer Referenz – lokal, ohne Cloud. Orientierung, keine Diagnose.', ms: 3800 }
+            { t: 'say', text: 'Und vor Ort hilft optional Zanobo: Das Smartphone vergleicht das Anlagen-Geräusch mit seiner Referenz – lokal, als Orientierung, keine Diagnose.', ms: 3200 }
         ]
     },
     {
@@ -194,7 +195,8 @@ export const STORIES = [
             { t: 'say', text: 'In der echten Einrichtung erscheint jetzt dieser einmalige Wiederherstellungscode. Er gehört getrennt vom Gerät aufbewahrt.', sel: '#recovery-code', ms: 3400 },
             { t: 'say', text: 'Entsperrt wird künftig per PIN – oder per Face-/Touch-ID, wenn dein Gerät das kann.', ms: 2600 },
             { t: 'say', text: 'Geht das Gerät verloren, bleiben die Daten unlesbar. Das ist der Tresor.', ms: 2400 },
-            { t: 'run', key: 'finishVaultDemo' }
+            { t: 'run', key: 'finishVaultDemo' },
+            { t: 'say', text: 'Ab jetzt wacht das Schloss hier oben: Ein Tipp sperrt sofort – entsperrt wird per PIN oder Face-ID.', sel: '#btn-vault-toggle', ms: 3400 }
         ]
     },
     {
@@ -202,7 +204,7 @@ export const STORIES = [
         icon: '📥',
         title: 'Verschlüsselte Daten aufs Handy holen',
         blurb: 'Datei wählen, Schlüssel scannen, fertig.',
-        duration: 26,
+        duration: 30,
         mobileOnly: true,     // Gegenstück zur Desktop-QR-Story; nur am Handy sinnvoll
         needsData: true,
         steps: [
