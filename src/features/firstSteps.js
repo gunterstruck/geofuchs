@@ -9,18 +9,31 @@
  * damit die Logik in Node unit-testbar bleibt.
  */
 
+// Vier Live-Demos als roter Faden. Der dritte Schritt ist gerätegerecht: am
+// Desktop wird die Tour PER QR ans Handy gegeben, am Handy werden die
+// gesicherten Daten EMPFANGEN – jeweils die Demo, die dort auch wirklich läuft.
 export const FIRST_STEPS = [
-    { id: 'daten',  icon: '📍', label: 'Kunden auf der Karte verstehen', hint: 'Live-Demo: vom Kundenstapel bis zum Detail', showcase: 'excel-karte' },
-    { id: 'tour',   icon: '🧭', label: 'Erste Tour planen', hint: 'Live-Demo starten: Start wählen und Stopps hinzufügen', showcase: 'tour' },
-    { id: 'handy',  icon: '📱', label: 'Tour aufs Handy holen', hint: 'Live-Demo starten: QR-Code anzeigen und scannen', showcase: 'handy-qr' },
+    { id: 'daten',  icon: '🗺️', label: 'Kunden auf der Karte verstehen', hint: 'Live-Demo: vom Kundenstapel bis zum Detail', showcase: 'excel-karte' },
+    { id: 'tour',   icon: '🧭', label: 'Erste Tour planen', hint: 'Live-Demo: Start wählen und Stopps hinzufügen', showcase: 'tour' },
     {
-        id: 'eigene',
-        icon: '📊',
-        label: 'Eigene Excel-Liste laden',
-        hint: 'Excel/CSV auswählen oder Vorlage herunterladen',
-        action: 'own-data'
-    }
+        id: 'handy', icon: '📲', label: 'Tour aufs Handy holen',
+        hint: 'Live-Demo: QR-Code anzeigen und scannen', showcase: 'handy-qr',
+        mobile: { icon: '📥', label: 'Daten aufs Handy holen', hint: 'Live-Demo: Datei wählen und Schlüssel scannen', showcase: 'empfang' }
+    },
+    { id: 'sicher', icon: '🔐', label: 'Daten im Tresor sichern', hint: 'Live-Demo: PIN setzen, verschlüsselt speichern', showcase: 'tresor' }
 ];
+
+/**
+ * Die vier Schritte für die aktuelle Ansicht. Auf dem Handy ersetzt der
+ * gerätegerechte Variantensatz (step.mobile) den Desktop-Schritt – damit die
+ * angebotene Demo genau die ist, die dort auch startbar ist.
+ */
+export function firstStepsFor({ isDesktop = true } = {}) {
+    return FIRST_STEPS.map((step) => {
+        const { mobile, ...base } = step;
+        return (!isDesktop && mobile) ? { ...base, ...mobile } : base;
+    });
+}
 
 const STORE_KEY = 'tf_first_steps';
 
@@ -85,10 +98,9 @@ export function resetFirstSteps(provided) {
  * Einmal erledigte Schritte bleiben über markFirstStepDone dauerhaft ✓,
  * auch wenn z. B. die Tour später wieder geleert wird.
  */
-export function deriveCompletedSteps({ customerCount = 0, fileName = null, tourStopCount = 0 } = {}) {
+export function deriveCompletedSteps({ tourStopCount = 0 } = {}) {
     const done = [];
     if (tourStopCount > 0) done.push('tour');
-    if (customerCount > 0 && fileName && fileName !== 'Demo-Daten') done.push('eigene');
     return done;
 }
 
