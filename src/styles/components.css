@@ -551,6 +551,37 @@
     color: var(--color-primary-dark);
 }
 
+/* Kompakter Luftlinie/Straße-Umschalter über der Karte (Desktop + Mobile). */
+.route-mode-bar {
+    position: absolute;
+    z-index: 1030;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+.route-mode-bar[hidden] { display: none; }
+.route-mode-toggle {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 0;
+    padding: 8px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.96);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    box-shadow: var(--shadow-2);
+    color: var(--color-text);
+    font-weight: 700;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.route-mode-toggle:hover { border-color: var(--color-primary); background: #fff; }
+
 .simulation-map-bar {
     position: absolute;
     z-index: 1100;
@@ -911,6 +942,7 @@ body:not(.depth-profi) .profi-only { display: none !important; }
 }
 .tour-empty-guide li { margin: 2px 0; }
 
+.suggestion-count { margin: 0 0 6px; }
 .suggestion-row {
     display: flex;
     align-items: center;

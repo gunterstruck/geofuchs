@@ -33,6 +33,18 @@ export function suggestNearby(origin, customers, radiusKm, excludeIds = new Set(
         .slice(0, CONFIG.tour.maxSuggestions);
 }
 
+/**
+ * Wie viele (sichtbare, nicht bereits eingeplante) Kunden liegen insgesamt im
+ * Umkreis? Macht die Wirkung des Umkreis-Reglers sichtbar, auch wenn die Liste
+ * aus Gründen der Übersicht nur die nächsten `maxSuggestions` zeigt.
+ */
+export function countNearby(origin, customers, radiusKm, excludeIds = new Set()) {
+    if (!origin) return 0;
+    return customers.reduce((n, c) => (
+        c.lat !== null && !excludeIds.has(c.id) && distanceKm(origin, c) <= radiusKm ? n + 1 : n
+    ), 0);
+}
+
 // ---- Korridor entlang der Route ----
 
 /** lokale Planar-Projektion (km) relativ zu einem Referenzpunkt */

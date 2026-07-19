@@ -364,6 +364,10 @@
         padding: 10px;
     }
 
+    /* Über dem eingeklappten Blatt platzieren, damit der Umschalter frei liegt. */
+    .route-mode-bar { bottom: calc(var(--mobile-sheet-peek, 46px) + 14px); }
+    .route-mode-toggle { padding: 7px 13px; font-size: 0.8rem; }
+
     .simulation-map-status {
         align-items: flex-start;
         flex-wrap: wrap;
