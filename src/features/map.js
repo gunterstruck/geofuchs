@@ -711,6 +711,13 @@ function resolveView() {
     if (!aggregatable()) return { paint: null, markers: true, labels: false, markerBy: 'bezirk' };
     if (z >= CONFIG.map.lodCustomerZoom) {
         const p = firstActiveAttr(['bezirk', 'gruppe']);
+        // Beim Gebiete-Managen sind die Bezirks-Kacheln das Arbeitsgerät: Sie
+        // bleiben auch nah dran sichtbar (die Vollständigkeits-Logik fängt
+        // Kollisionen ab), zusätzlich zu den Kundenpunkten fürs Zuordnen.
+        // Im Außendienst gehört die Nähe dagegen ganz den Kunden.
+        if (state.ui.mode === 'gebietsplanung') {
+            return { paint: p, markers: true, labels: true, markerBy: p };
+        }
         return { paint: p, markers: true, labels: false, markerBy: p };
     }
     if (z >= CONFIG.map.lodBezirkZoom) {
@@ -1080,7 +1087,7 @@ function renderLabels() {
         if (!bbox) return;
         const [minX, minY, maxX, maxY] = bbox;
         const list = polygonsByValue.get(val) ?? [];
-        list.push({ lat: (minY + maxY) / 2, lng: (minX + maxX) / 2, count, revenue });
+        list.push({ lat: (minY + maxY) / 2, lng: (minX + maxX) / 2, count, revenue, bbox });
         polygonsByValue.set(val, list);
     };
 
@@ -1149,6 +1156,27 @@ function renderLabels() {
     let visibleLabels = [];
     let overflowLabels = [];
     if (managing) {
+        // Nah herangezoomt liegt der Schwerpunkt eines Bezirks oft außerhalb
+        // des Bildes, obwohl man mitten in seiner Fläche steht. Solche Kacheln
+        // werden an den Kartenrand geholt statt zu verschwinden – man sieht
+        // immer, in wessen Gebiet man gerade arbeitet.
+        const viewBounds = map.getBounds();
+        const west = viewBounds.getWest();
+        const east = viewBounds.getEast();
+        const south = viewBounds.getSouth();
+        const north = viewBounds.getNorth();
+        // Sichtbar ist ein Bezirk, sobald eine seiner Teilflächen das Bild
+        // schneidet – der Mittelpunkt allein liegt nah dran oft daneben.
+        const intersectsView = (b) => Array.isArray(b) && !(b[2] < west || b[0] > east || b[3] < south || b[1] > north);
+        const edge = 14;
+        for (const c of candidates) {
+            if (inView(c)) continue;
+            const parts = polygonsByValue.get(c.val) || [];
+            if (!parts.some((p) => intersectsView(p.bbox))) continue;
+            c.x = Math.min(Math.max(c.x, edge + c.width / 2), mapSize.x - edge - c.width / 2);
+            c.y = Math.min(Math.max(c.y, edge + c.height / 2), mapSize.y - edge - c.height / 2);
+            c.center = map.containerPointToLatLng([c.x, c.y]);
+        }
         for (const scale of [1, 0.9, 0.8, 0.7]) {
             const scaled = candidates.map((c) => ({ ...c, width: c.width * scale, height: c.height * scale }));
             visibleLabels = selectNonOverlappingLabels(scaled, {
