@@ -216,6 +216,7 @@ export function initTourPanel() {
     on('service-visits:changed', refreshPlanningScope);
     on('service-day:focus', focusServiceDayPlanner);
     syncModeSpecificTourControls();
+    initTourAccordion();
     applyTourMode(state.ui.depth === 'profi' ? 'expert' : 'basic', false);
     renderTourScope();
     renderPanel();
@@ -882,6 +883,84 @@ function renderPanel() {
     updateSuggestModeUi(); // Modus kann auch von der Karte („Als Ziel") gesetzt werden
     renderStops();
     renderSuggestions();
+    updateTourAccordion();
+}
+
+// ---- Mobiles Tour-Akkordeon (Startpunkt · Vorschläge · Meine Tour) ----
+// Auf dem Handy sind die drei Gruppen ein-/ausklappbare Karten; eingeklappt
+// bleibt eine sprechende Zeile stehen. Genau eine Gruppe ist offen. Solange der
+// Nutzer nicht selbst eine Karte antippt, folgt das Akkordeon dem Flow
+// (Start → Vorschläge → Meine Tour). Ab dem ersten Tipp behält er die Kontrolle.
+let tourAccPinned = false;
+
+function isMobileTour() {
+    return window.matchMedia('(max-width: 768px)').matches;
+}
+
+function currentTourStep() {
+    if (!state.tour.start) return 'start';
+    if (state.tour.stops.length === 0) return 'suggest';
+    return 'mytour';
+}
+
+function openTourAcc(key) {
+    document.querySelectorAll('.tour-acc').forEach((el) => {
+        const open = el.dataset.acc === key;
+        el.classList.toggle('open', open);
+        el.querySelector('.acc-head')?.setAttribute('aria-expanded', String(open));
+    });
+}
+
+function tourAccSummaries() {
+    const sumStart = document.getElementById('acc-sum-start');
+    if (sumStart) sumStart.textContent = state.tour.start ? `🚩 ${state.tour.start.label}` : 'noch offen';
+
+    const sumSuggest = document.getElementById('acc-sum-suggest');
+    if (sumSuggest) {
+        sumSuggest.textContent = state.tour.suggestMode === 'route'
+            ? 'entlang der Tour'
+            : `Umkreis ${state.tour.radiusKm} km`;
+    }
+
+    const sumMytour = document.getElementById('acc-sum-mytour');
+    if (sumMytour) {
+        const n = state.tour.stops.length;
+        if (n === 0) {
+            sumMytour.textContent = 'noch leer';
+        } else if (state.tour.mapFocus) {
+            sumMytour.textContent = `${n} Stopp${n === 1 ? '' : 's'} · auf Karte`;
+        } else {
+            const { roadKmEstimate } = routeDistance(state.tour.start, effStops(), state.tour.roundTrip);
+            sumMytour.textContent = `${n} Stopp${n === 1 ? '' : 's'} · ~${Math.round(roadKmEstimate)} km`;
+        }
+    }
+}
+
+function updateTourAccordion() {
+    tourAccSummaries();
+    if (!isMobileTour()) return;
+    // Leere Tour = neuer Anlauf: Das Akkordeon folgt wieder von selbst dem Flow.
+    if (!state.tour.start && state.tour.stops.length === 0) tourAccPinned = false;
+    // Ohne manuelle Wahl der Bühne folgt das Akkordeon dem Arbeitsfluss.
+    const anyOpen = document.querySelector('.tour-acc.open');
+    if (!tourAccPinned || !anyOpen) openTourAcc(currentTourStep());
+}
+
+function initTourAccordion() {
+    document.querySelectorAll('.tour-acc .acc-head').forEach((head) => {
+        head.addEventListener('click', (ev) => {
+            // Der Info-Punkt zeigt nur seinen Tooltip, klappt nicht.
+            if (ev.target.closest('.help-dot')) return;
+            if (!isMobileTour()) return;
+            const acc = head.closest('.tour-acc');
+            const alreadyOpen = acc.classList.contains('open');
+            tourAccPinned = true;
+            openTourAcc(alreadyOpen ? null : acc.dataset.acc);
+        });
+        head.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); head.click(); }
+        });
+    });
 }
 
 function renderDest() {
