@@ -434,25 +434,46 @@ function updateMobileNextStep() {
         btn.hidden = true;
         return;
     }
+    // Der Fuchs führt als Kette durch den Flow – jeder Schritt bietet den
+    // nächsten sinnvollen Zug an: in der Nähe suchen → Tour ab hier planen →
+    // Route auf die Karte. (Liegt die Route, übernimmt die Route-Leiste.)
     const label = btn.querySelector('.mns-label');
-    if (state.tour.stops.length >= 2 && !state.tour.mapFocus) {
-        btn.dataset.action = 'route';
-        if (label) label.textContent = 'Route auf die Karte';
-    } else {
-        btn.dataset.action = 'nearby';
-        if (label) label.textContent = 'Kunden in meiner Nähe';
+    const icon = btn.querySelector('.mns-icon');
+    let action = 'nearby';
+    let text = 'Kunden in meiner Nähe';
+    let glyph = '📍';
+    if (!state.tour.start) {
+        action = 'nearby'; text = 'Kunden in meiner Nähe'; glyph = '📍';
+    } else if (state.tour.stops.length === 0) {
+        action = 'plan'; text = 'Tour ab hier planen'; glyph = '🚩';
+    } else if (!state.tour.mapFocus) {
+        action = 'route'; text = 'Route auf die Karte'; glyph = '🗺️';
     }
+    btn.dataset.action = action;
+    if (label) label.textContent = text;
+    if (icon) icon.textContent = glyph;
     btn.hidden = false;
     requestAnimationFrame(() => btn.classList.add('show'));
+}
+
+/** Vom Fuchs aufgerufen: in die Tourplanung wechseln, Start ist schon gesetzt. */
+function goToTourPlanning() {
+    activateTab('tour');
+    state.ui.sidebarOpen = true;
+    // Angenehme Arbeitshöhe wie beim Tippen auf den Tour-Tab; das Akkordeon
+    // öffnet dank gesetztem Start automatisch die Gruppe „Vorschläge".
+    setSheetHeight(Math.round(window.innerHeight * (2 / 3)), true);
+    applySidebar();
 }
 
 function initMobileNextStep() {
     const btn = document.getElementById('mobile-next-step');
     if (!btn) return;
     btn.addEventListener('click', () => {
-        // Der Nutzer greift den Vorschlag auf – das Ergebnis bleibt auf der Karte
-        // sichtbar (dorthin zoomen bzw. Route zeigen), ohne das Blatt aufzuziehen.
+        // „Nähe" und „Route" lassen das Ergebnis auf der Karte sichtbar (kein
+        // Aufziehen). „Planen" führt bewusst ins Tour-Blatt mit gesetztem Start.
         if (btn.dataset.action === 'route') document.getElementById('btn-route-focus')?.click();
+        else if (btn.dataset.action === 'plan') goToTourPlanning();
         else document.getElementById('btn-nearby')?.click();
     });
     ['tour:changed', 'customers:changed', 'mode:changed', 'tab:changed', 'dataset:cleared']
