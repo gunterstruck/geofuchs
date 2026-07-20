@@ -57,6 +57,20 @@ describe('Mobiles Tour-Akkordeon (Startpunkt · Vorschläge · Meine Tour)', () 
         expect(panel).toContain('Umkreis ${state.tour.radiusKm} km');
     });
 
+    it('zieht das Tour-Blatt ganz auf und hält alle drei Köpfe sichtbar', () => {
+        const sidebar = read('src/ui/sidebar.js');
+        const css = read('src/styles/responsive.css');
+        // Volle Planungsfläche bis knapp unter die schwebende Navi.
+        expect(sidebar).toContain('function tourSheetHeight');
+        expect(sidebar).toContain('setSheetHeight(tourSheetHeight()');
+        // Offene Gruppe scrollt intern (gedeckelt), damit die Köpfe stehenbleiben.
+        expect(css).toContain('.tour-acc.open .acc-body {\n        max-height: 34vh;');
+        expect(css).toContain('.tour-acc.open .scroll-list { max-height: none; overflow: visible; }');
+        // „Was ist in meiner Nähe?" beim Planen (Start steht) ausgeblendet.
+        expect(panel).toContain("classList.toggle('tour-has-start', !!state.tour.start)");
+        expect(css).toContain('body.tour-has-start #tab-tour.active #btn-nearby { display: none; }');
+    });
+
     it('bleibt beim Aussuchen in „Vorschläge" – springt nicht beim ersten Stopp zu „Meine Tour"', () => {
         // currentTourStep darf ab gesetztem Start nur „suggest" liefern; zu
         // „mytour" wechselt der Nutzer bewusst selbst (sonst konnte man keine

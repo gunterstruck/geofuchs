@@ -970,6 +970,10 @@ function tourAccSummaries() {
 
 function updateTourAccordion() {
     tourAccSummaries();
+    // Steht ein Start, ist „Was ist in meiner Nähe?" beim Planen redundant –
+    // die Body-Klasse blendet den Knopf mobil aus und schafft Platz für die
+    // Akkordeon-Köpfe.
+    document.body.classList.toggle('tour-has-start', !!state.tour.start);
     if (!isMobileTour()) return;
     // Leere Tour = neuer Anlauf: Das Akkordeon folgt wieder von selbst dem Flow.
     if (!state.tour.start && state.tour.stops.length === 0) tourAccPinned = false;

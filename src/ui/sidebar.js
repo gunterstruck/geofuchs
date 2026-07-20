@@ -465,9 +465,9 @@ function updateMobileNextStep() {
 function goToTourPlanning() {
     activateTab('tour');
     state.ui.sidebarOpen = true;
-    // Angenehme Arbeitshöhe wie beim Tippen auf den Tour-Tab; das Akkordeon
+    // Ganz aufziehen – beim Planen brauchen wir den Platz; das Akkordeon
     // öffnet dank gesetztem Start automatisch die Gruppe „Vorschläge".
-    setSheetHeight(Math.round(window.innerHeight * (2 / 3)), true);
+    setSheetHeight(tourSheetHeight(), true);
     applySidebar();
 }
 
@@ -493,6 +493,16 @@ function topbarPx() {
 }
 function sheetMaxHeight() {
     return Math.max(SHEET_MIN_HEIGHT, Math.round(window.innerHeight - topbarPx() - 8));
+}
+// Tour-Blatt „ganz aufgezogen": bis knapp unter die schwebende Navi
+// (Basis/Profi + Karte/Tour), damit maximal Platz zum Planen entsteht, die
+// Umschalter oben aber sichtbar und bedienbar bleiben.
+function tourSheetHeight() {
+    const nav = document.getElementById('mobile-topnav');
+    const navBottom = nav && nav.offsetParent !== null
+        ? Math.round(nav.getBoundingClientRect().bottom)
+        : topbarPx();
+    return clampSheetHeight(window.innerHeight - navBottom - 6);
 }
 // Sichtbare „Guckhöhe" des geschlossenen Blatts (nur der Griff schaut heraus).
 function peekPx() {
@@ -778,7 +788,7 @@ export function showMapView(persist = true) {
 /** Mobil gezielt mit geöffnetem Tour-Sheet starten, optional ohne Persistenz. */
 export function showTourView(persist = false) {
     activateTab('tour');
-    if (isMobileUi()) setSheetHeight(Math.round(window.innerHeight * (2 / 3)), persist);
+    if (isMobileUi()) setSheetHeight(tourSheetHeight(), persist);
     if (persist) persistSettings();
 }
 
@@ -1029,9 +1039,9 @@ export function initSidebar() {
         btn.addEventListener('click', () => {
             handleMapTabRouteToggle(btn.dataset.tab);
             activateTab(btn.dataset.tab);
-            // Handy: „Tour" öffnet das Blatt auf 2/3 der Bildschirmhöhe.
+            // Handy: „Tour" zieht das Blatt ganz auf – volle Planungsfläche.
             if (isMobileUi() && btn.dataset.tab === 'tour') {
-                setSheetHeight(Math.round(window.innerHeight * (2 / 3)), true);
+                setSheetHeight(tourSheetHeight(), true);
             } else if (isMobileUi() && btn.dataset.tab === 'daten') {
                 // Kundendaten brauchen mehr Lesefläche als die kompakte Tour.
                 // Das Panel bleibt dennoch per Griff frei in der Höhe verstellbar.
