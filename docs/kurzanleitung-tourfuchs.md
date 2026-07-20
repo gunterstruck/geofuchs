@@ -21,14 +21,14 @@ Pflichtfelder:
 
 - Kundenname
 - PLZ
-- Betriebsbezirk
+- Vertriebsbezirk
 
 ## 3. Karte nutzen
 
 - Suche oben für Kunde, Ort, PLZ oder Kundennummer.
 - Marker anklicken, um Kundendetails zu sehen.
 - Kartenstil wechseln: Hell, Standard oder Satellit.
-- Im Gebietsmodus Flächen nach Betriebsbezirk oder Vertriebsgruppe einfärben.
+- Im Gebietsmodus Flächen nach Vertriebsbezirk oder Vertriebsgruppe einfärben.
 
 ## 4. Gebiets-Cockpit
 
@@ -72,9 +72,16 @@ Merksatz:
 
 Auf dem Smartphone stehen Karte und Tour im Mittelpunkt.
 
-- Bottom Sheet hochziehen oder minimieren.
+- Bottom Sheet hochziehen oder minimieren; „Tour" zieht das Blatt ganz auf.
 - Kunden antippen, um Details zu sehen.
 - Tour zusammenstellen und navigieren.
+- Die Tour ist ein Akkordeon aus **Startpunkt · Vorschläge · Meine Tour** –
+  genau eine Gruppe ist offen und folgt dem Arbeitsfluss.
+- Ein kleiner schwebender **Fuchs-Knopf** schlägt den nächsten Schritt vor:
+  📍 Kunden in der Nähe → 🚩 Tour ab hier planen → 🗺️ Route auf die Karte.
+
+Der Service-Modus ist ein optionales Modul: im Profi-Modus unten in der
+Gebietsplanung per Häkchen einblendbar.
 
 Komplexe Gebietsplanung bitte am Desktop durchführen.
 

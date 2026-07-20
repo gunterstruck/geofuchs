@@ -1,6 +1,6 @@
 # TourFuchs Vertrieb - Schulungsunterlagen
 
-Stand: 08.07.2026
+Stand: 20.07.2026
 
 ## 1. Ziel der Schulung
 
@@ -37,7 +37,7 @@ Die Gebietsplanung arbeitet primär am Desktop:
 
 - Excel-Daten prüfen und importieren
 - Gebiete auf der Karte analysieren
-- Betriebsbezirke vergleichen
+- Vertriebsbezirke vergleichen
 - Vertriebsgruppen betrachten
 - Kunden und Gebiete testweise umverteilen
 - Simulation übernehmen oder verwerfen
@@ -84,9 +84,9 @@ Smartphone:
 
 Das ist kein Nachteil, sondern eine Produktentscheidung: Analyse gehört an den großen Bildschirm, Navigation in die mobile Ansicht.
 
-### Betriebsbezirk ist führend
+### Vertriebsbezirk ist führend
 
-Der Betriebsbezirk ist die zentrale operative Ebene. Er steuert:
+Der Vertriebsbezirk ist die zentrale operative Ebene. Er steuert:
 
 - Gebietsfärbung
 - Gebiets-Cockpit
@@ -172,7 +172,7 @@ Für eine sinnvolle Karte werden mindestens benötigt:
 
 - Kundenname
 - PLZ
-- Betriebsbezirk
+- Vertriebsbezirk
 
 Empfohlen sind zusätzlich:
 
@@ -197,7 +197,7 @@ Beispiele:
 |---|---|
 | Kundenname | Firma, Kunde, Kundenname |
 | PLZ | PLZ, Postleitzahl |
-| Betriebsbezirk | Vertriebsbezirk, Bezirk, Betriebsbezirk |
+| Vertriebsbezirk | Vertriebsbezirk, Bezirk, Betriebsbezirk |
 | Vertriebsgruppe | Gruppe, Vertriebsgruppe |
 | Umsatz | Umsatz, Jahresumsatz |
 | Ansprechpartner | Kontakt, Ansprechpartner |
@@ -279,11 +279,11 @@ TourFuchs arbeitet mit einer Gebietshierarchie:
 
 - Vertriebschannel optional
 - Vertriebsgruppe empfohlen
-- Betriebsbezirk Pflicht
+- Vertriebsbezirk Pflicht
 
 Für den Alltag ist besonders wichtig:
 
-- Betriebsbezirk ist die führende operative Ebene.
+- Vertriebsbezirk ist die führende operative Ebene.
 - Vertriebsgruppe dient als Gruppierung für Vergleich und Umverteilung.
 - Weitere Ebenen sollten nur eingeblendet werden, wenn sie fachlich gebraucht werden.
 
@@ -310,7 +310,7 @@ Typische Fragestellungen:
 Die automatische Ansicht reduziert visuelle Überladung:
 
 - weit herausgezoomt: grobe Gruppenansicht
-- mittlerer Zoom: Betriebsbezirke
+- mittlerer Zoom: Vertriebsbezirke
 - naher Zoom: einzelne Kunden
 
 ## 12. Gebiets-Cockpit
@@ -353,7 +353,7 @@ In der Praxis wird meistens innerhalb einer Vertriebsgruppe verglichen und umver
 Beispiel:
 
 - Vertriebsgruppe Nord auswählen
-- nur Betriebsbezirke dieser Gruppe betrachten
+- nur Vertriebsbezirke dieser Gruppe betrachten
 - Kunden und Umsatz innerhalb dieser Gruppe vergleichen
 - Gebiete innerhalb dieser Gruppe neu zuordnen
 
@@ -398,7 +398,7 @@ Erst Zuweisung übernehmen schreibt die Änderung dauerhaft in die Daten. Vorher
 
 ## 15. Flächenzeilen
 
-Flächenzeilen sind Zeilen ohne Kundenname, aber mit Gebiet und Betriebsbezirk.
+Flächenzeilen sind Zeilen ohne Kundenname, aber mit Gebiet und Vertriebsbezirk.
 
 Beispiele:
 
@@ -555,7 +555,7 @@ Mögliche Ursachen:
 
 Mögliche Ursachen:
 
-- keine Betriebsbezirk-Spalte
+- keine Vertriebsbezirk-Spalte
 - Ebene auf Keine Gebiete
 - Ansicht und Farbe unpassend eingestellt
 - Gebiet ohne Kunden nicht zugeordnet
@@ -600,7 +600,7 @@ Inhalte:
 - Was ist TourFuchs?
 - Desktop vs. Mobile
 - lokale Speicherung
-- Betriebsbezirk als führende Ebene
+- Vertriebsbezirk als führende Ebene
 
 ### Modul 2: Datenimport (30 Minuten)
 
@@ -641,14 +641,14 @@ Inhalte:
 
 - Gebietsebene
 - Vertriebsgruppe
-- Betriebsbezirk
+- Vertriebsbezirk
 - Flächen
 - Gebiets-Popup
 
 Übung:
 
 - Landkreise anzeigen
-- Betriebsbezirke einfärben
+- Vertriebsbezirke einfärben
 - Gebiet anklicken
 - Umsatzsumme interpretieren
 
@@ -728,7 +728,7 @@ Lade Demo-Daten oder eine Schulungsdatei und prüfe:
 
 ### Aufgabe 2: Bezirk analysieren
 
-Wähle einen Betriebsbezirk und beantworte:
+Wähle einen Vertriebsbezirk und beantworte:
 
 - Wie viele Kunden liegen im Bezirk?
 - Wo liegen Cluster?
@@ -774,7 +774,7 @@ Plane eine Tour:
 
 ## 26. Antworten zu den Prüfungsfragen
 
-1. Der Betriebsbezirk.
+1. Der Vertriebsbezirk.
 2. Lokal im Browser, vor allem IndexedDB.
 3. Erst nach Zuweisung übernehmen.
 4. Weil komplexe Analyse am Desktop sinnvoller ist und mobile Nutzung auf Tour/Karte fokussiert ist.
@@ -795,7 +795,7 @@ Plane eine Tour:
 ## 28. Empfohlene Schulungsbotschaften
 
 - TourFuchs ersetzt keine CRM-Strategie, sondern macht vorhandene Kundendaten räumlich nutzbar.
-- Betriebsbezirk ist die operative Wahrheit.
+- Vertriebsbezirk ist die operative Wahrheit.
 - Die Vertriebsgruppe ist der sinnvolle Rahmen für Vergleiche.
 - Nicht jede Analyse gehört aufs Handy.
 - Eine Simulation ist erst dann echt, wenn sie übernommen wird.
