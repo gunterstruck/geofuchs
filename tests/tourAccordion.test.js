@@ -56,4 +56,14 @@ describe('Mobiles Tour-Akkordeon (Startpunkt · Vorschläge · Meine Tour)', () 
         expect(panel).toContain('acc-sum-mytour');
         expect(panel).toContain('Umkreis ${state.tour.radiusKm} km');
     });
+
+    it('bleibt beim Aussuchen in „Vorschläge" – springt nicht beim ersten Stopp zu „Meine Tour"', () => {
+        // currentTourStep darf ab gesetztem Start nur „suggest" liefern; zu
+        // „mytour" wechselt der Nutzer bewusst selbst (sonst konnte man keine
+        // weiteren Kunden mehr aussuchen).
+        const from = panel.indexOf('function currentTourStep');
+        const step = panel.slice(from, panel.indexOf('\nfunction ', from + 10));
+        expect(step).not.toContain("return 'mytour'");
+        expect(step).toContain("return 'suggest'");
+    });
 });

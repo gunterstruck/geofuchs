@@ -926,9 +926,13 @@ function isMobileTour() {
 }
 
 function currentTourStep() {
+    // „Vorschläge" ist die Arbeitsbühne: Solange der Nutzer Kunden hinzufügt,
+    // bleibt sie offen (früher sprang das Akkordeon beim ersten Stopp sofort zu
+    // „Meine Tour" – man konnte nicht weiter aussuchen). Zu „Meine Tour"
+    // (Prüfen/Optimieren) wechselt man bewusst selbst; die Zusammenfassungszeile
+    // „N Stopps · ~X km" lädt sichtbar dazu ein.
     if (!state.tour.start) return 'start';
-    if (state.tour.stops.length === 0) return 'suggest';
-    return 'mytour';
+    return 'suggest';
 }
 
 function openTourAcc(key) {
