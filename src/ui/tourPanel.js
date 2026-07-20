@@ -793,6 +793,15 @@ function findNearby() {
             const here = { lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'Mein Standort' };
             state.tour.start = here;
             state.tour.suggestMode = 'radius';
+            // „Was ist in meiner Nähe?" meint ALLE Kunden um mich herum. Ohne
+            // vorher gewählten Bezirk (z. B. vom schwebenden Fuchs auf der Karte)
+            // filterte der Tour-Scope sonst alles weg – die Karte zeigte Stapel,
+            // die Suche fand aber nichts. Fehlt der Bezirk, gilt „Alle Bezirke".
+            if (!state.tour.bezirk || state.tour.bezirk === '__none__') {
+                state.tour.bezirk = '__all__';
+                emit('tour:scope-changed');
+                renderTourScope();
+            }
             const salesPriority = state.ui.mode !== 'service';
             overdueFirst = salesPriority;
             const cb = document.getElementById('overdue-first');
@@ -800,13 +809,32 @@ function findNearby() {
             updateSuggestModeUi();
             emit('tour:changed');
             focusPoint(here.lat, here.lng, 11);
-            const near = suggestNearby(here, tourPool(), state.tour.radiusKm, new Set(), salesPriority);
-            showToast(near.length
-                ? salesPriority
+            const pool = tourPool();
+            const near = suggestNearby(here, pool, state.tour.radiusKm, new Set(), salesPriority);
+            if (near.length) {
+                showToast(salesPriority
                     ? `${near.length} Kunde(n) im Umkreis von ${state.tour.radiusKm} km – überfällige zuerst.`
-                    : `${near.length} Kunde(n) im Umkreis von ${state.tour.radiusKm} km.`
-                : `Keine sichtbaren Kunden im Umkreis von ${state.tour.radiusKm} km. Umkreis erhöhen?`,
-                near.length ? 'success' : 'info', 5000);
+                    : `${near.length} Kunde(n) im Umkreis von ${state.tour.radiusKm} km.`,
+                    'success', 5000);
+            } else {
+                // Nie in einer Sackgasse enden: Ist der nächste Kunde nur knapp
+                // außerhalb, den Umkreis automatisch bis zu ihm weiten und zeigen.
+                const nearest = suggestNearby(here, pool, Infinity, new Set(), false)[0];
+                if (nearest) {
+                    const widened = Math.min(CONFIG.tour.maxRadiusKm || 100, Math.ceil((nearest.km + 1) / 5) * 5);
+                    state.tour.radiusKm = Math.max(state.tour.radiusKm, widened);
+                    const slider = document.getElementById('radius-slider');
+                    if (slider) slider.value = state.tour.radiusKm;
+                    const rv = document.getElementById('radius-value');
+                    if (rv) rv.textContent = `${state.tour.radiusKm} km`;
+                    updateSuggestModeUi();
+                    emit('tour:changed');
+                    const count = suggestNearby(here, pool, state.tour.radiusKm, new Set(), salesPriority).length;
+                    showToast(`Nichts ganz in der Nähe – Umkreis auf ${state.tour.radiusKm} km geweitet: ${count} Kunde(n).`, 'info', 5000);
+                } else {
+                    showToast('Keine verorteten Kunden gefunden.', 'info', 5000);
+                }
+            }
         },
         () => showToast('Standort konnte nicht ermittelt werden. Bitte Freigabe prüfen.', 'error'),
         { enableHighAccuracy: true, timeout: 10000 }

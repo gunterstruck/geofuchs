@@ -47,3 +47,21 @@ describe('Umkreis-Zähler und Route-Umschalter über der Karte', () => {
         expect(css).toContain('.route-mode-toggle');
     });
 });
+
+describe('„Was ist in meiner Nähe?" findet Kunden auch ohne Bezirkswahl', () => {
+    const tourPanel = read('src/ui/tourPanel.js');
+
+    it('setzt ohne gewählten Bezirk automatisch „Alle Bezirke"', () => {
+        // Ursache des Bugs: customerInTourScope liefert ohne Bezirk false –
+        // die Karte zeigte Kundenstapel, die Nähe-Suche fand aber nichts.
+        expect(tourPanel).toContain("if (!state.tour.bezirk || state.tour.bezirk === '__none__') {");
+        expect(tourPanel).toContain("state.tour.bezirk = '__all__';");
+    });
+
+    it('weitet den Umkreis bis zum nächsten Kunden statt in einer Sackgasse zu enden', () => {
+        expect(tourPanel).toContain('suggestNearby(here, pool, Infinity');
+        expect(tourPanel).toContain('geweitet');
+        // Der Regler wird sichtbar mitgezogen.
+        expect(tourPanel).toContain("getElementById('radius-slider')");
+    });
+});
