@@ -413,6 +413,51 @@ function applySidebar() {
         }
     }
     scheduleDesktopNoteAutoHide();
+    updateMobileNextStep();
+}
+
+// ---- Schwebender „nächster Schritt"-Fuchs (nur mobil) ----
+// Ein kleiner, freundlicher Knopf über dem eingeklappten Blatt, der den
+// sinnvollsten nächsten Schritt andeutet. Bewusst getrennt vom Sheet und nur
+// sichtbar, wenn das Blatt zu ist – sonst stiehlt er der Bedienung den Platz.
+function updateMobileNextStep() {
+    const btn = document.getElementById('mobile-next-step');
+    if (!btn) return;
+    const routeVisible = !document.getElementById('route-mode-bar')?.hidden;
+    const canShow = isMobileUi()
+        && !state.ui.sidebarOpen
+        && state.ui.mode === 'aussendienst'
+        && state.customers.length > 0
+        && !routeVisible;
+    if (!canShow) {
+        btn.classList.remove('show');
+        btn.hidden = true;
+        return;
+    }
+    const label = btn.querySelector('.mns-label');
+    if (state.tour.stops.length >= 2 && !state.tour.mapFocus) {
+        btn.dataset.action = 'route';
+        if (label) label.textContent = 'Route auf die Karte';
+    } else {
+        btn.dataset.action = 'nearby';
+        if (label) label.textContent = 'Kunden in meiner Nähe';
+    }
+    btn.hidden = false;
+    requestAnimationFrame(() => btn.classList.add('show'));
+}
+
+function initMobileNextStep() {
+    const btn = document.getElementById('mobile-next-step');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+        // Der Nutzer greift den Vorschlag auf – das Ergebnis bleibt auf der Karte
+        // sichtbar (dorthin zoomen bzw. Route zeigen), ohne das Blatt aufzuziehen.
+        if (btn.dataset.action === 'route') document.getElementById('btn-route-focus')?.click();
+        else document.getElementById('btn-nearby')?.click();
+    });
+    ['tour:changed', 'customers:changed', 'mode:changed', 'tab:changed', 'dataset:cleared']
+        .forEach((evt) => on(evt, updateMobileNextStep));
+    updateMobileNextStep();
 }
 
 // ---- Panelhöhe kontinuierlich per Griff ziehen (Maus + Touch) ----
@@ -503,6 +548,16 @@ function toggleSheet() {
     }
 }
 
+/** Handy: das Blatt vollständig auf die Guckhöhe zurückziehen (kein Rest). */
+function collapseSheetFully() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar?.classList.remove('sheet-sized');
+    document.documentElement.style.removeProperty('--sheet-height');
+    try { localStorage.removeItem(SHEET_HEIGHT_KEY); } catch (e) { /* egal */ }
+    state.ui.sidebarOpen = false;
+    applySidebar();
+}
+
 /**
  * Ein Griff für alles: senkrecht ziehen = Höhe ändern, waagerecht ziehen =
  * Panel verschieben/schweben (nur Desktop), kurzer Klick = ein-/ausklappen bzw.
@@ -519,6 +574,7 @@ function initSheetGrip() {
 
     let mode = null;             // 'pending' | 'resize' | 'move'
     let startX = 0, startY = 0, startH = 0, offsetX = 0, offsetY = 0, moved = false;
+    let rawHeight = 0;           // vom Finger gewünschte Höhe (ungeklammert)
 
     grip.addEventListener('pointerdown', (ev) => {
         const rect = sidebar.getBoundingClientRect();
@@ -547,7 +603,7 @@ function initSheetGrip() {
                 state.ui.sidebarOpen = true; applySidebar();
             }
         }
-        if (mode === 'resize') setSheetHeight(startH - dy);
+        if (mode === 'resize') { rawHeight = startH - dy; setSheetHeight(rawHeight); }
         else if (mode === 'move') applySidebarPosition({ left: ev.clientX - offsetX, top: ev.clientY - offsetY });
     });
     const finish = () => {
@@ -557,6 +613,12 @@ function initSheetGrip() {
         // Handy: reiner Tipp macht nichts – das Blatt wird nur durch Ziehen bewegt.
         if (!moved) { if (!isMobileUi()) toggleSheet(); return; }
         if (done === 'resize') {
+            // Bis zum Boden gezogen = ganz einklappen (nicht bei der Mindesthöhe
+            // hängenbleiben). Das Blatt kehrt sauber zur Guckhöhe zurück.
+            if (isMobileUi() && rawHeight <= SHEET_MIN_HEIGHT) {
+                collapseSheetFully();
+                return;
+            }
             try { localStorage.setItem(SHEET_HEIGHT_KEY, String(Math.round(sidebar.getBoundingClientRect().height))); } catch (e) { /* egal */ }
         } else if (done === 'move') {
             const rect = sidebar.getBoundingClientRect();
@@ -879,6 +941,7 @@ export function initSidebar() {
     initSidebarContentDragScroll();
     initSheetGrip();
     restoreSheetHeight();
+    initMobileNextStep();
     initDepth();
     syncTopnavPlacement();
     applyDataPanelLayout();
