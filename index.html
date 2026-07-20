@@ -365,7 +365,9 @@
                     <p id="chancen-count" class="muted small"></p>
                 </div>
 
-                <h3>1. Startpunkt <span class="help-dot" tabindex="0" title="Starte mit deinem Standort oder einem Kunden. Danach schlägt TourFuchs passende Kunden in der Nähe oder entlang der Route vor.">?</span></h3>
+                <div class="tour-acc" data-acc="start">
+                <h3 class="acc-head" role="button" tabindex="0" aria-expanded="true">1. Startpunkt <span class="help-dot" tabindex="0" title="Starte mit deinem Standort oder einem Kunden. Danach schlägt TourFuchs passende Kunden in der Nähe oder entlang der Route vor.">?</span><span class="acc-summary" id="acc-sum-start"></span><span class="acc-caret" aria-hidden="true">▾</span></h3>
+                <div class="acc-body">
                 <div id="tour-start"></div>
                 <div class="button-row">
                     <button id="btn-my-location">📍 Mein Standort</button>
@@ -411,7 +413,12 @@
                     </div>
                 </div>
 
-                <h3><span id="suggest-head">2. Vorschläge</span> <span class="help-dot" tabindex="0" title="Umkreis zeigt Kunden nahe am Start. Entlang der Tour zeigt Kunden im Korridor der geplanten Strecke.">?</span></h3>
+                </div><!-- /.acc-body -->
+                </div><!-- /.tour-acc start -->
+
+                <div class="tour-acc" data-acc="suggest">
+                <h3 class="acc-head" role="button" tabindex="0" aria-expanded="true"><span id="suggest-head">2. Vorschläge</span> <span class="help-dot" tabindex="0" title="Umkreis zeigt Kunden nahe am Start. Entlang der Tour zeigt Kunden im Korridor der geplanten Strecke.">?</span><span class="acc-summary" id="acc-sum-suggest"></span><span class="acc-caret" aria-hidden="true">▾</span></h3>
+                <div class="acc-body">
                 <div class="seg-toggle expert-only expert-swipe-section" id="suggest-mode" role="group" aria-label="Vorschlagsmodus" data-expert-section="suggest-mode">
                     <button type="button" id="mode-radius" class="seg active" data-mode="radius">Umkreis um Start</button>
                     <button type="button" id="mode-route" class="seg" data-mode="route">Entlang der Tour</button>
@@ -421,8 +428,12 @@
                 <p id="suggest-hint" class="muted small"></p>
                 <label id="tour-sales-priority" class="check-inline"><input type="checkbox" id="overdue-first"> Überfällige zuerst</label>
                 <div id="tour-suggestions" class="scroll-list"></div>
+                </div><!-- /.acc-body -->
+                </div><!-- /.tour-acc suggest -->
 
-                <h3><span id="mytour-head">3. Meine Tour</span> <span class="help-dot" tabindex="0" title="Tippe Kunden aus den Vorschlägen oder aus Karten-Popups zur Tour. Karte zeigt die Reihenfolge farbig von Rot nach Lila.">?</span></h3>
+                <div class="tour-acc" data-acc="mytour">
+                <h3 class="acc-head" role="button" tabindex="0" aria-expanded="true"><span id="mytour-head">3. Meine Tour</span> <span class="help-dot" tabindex="0" title="Tippe Kunden aus den Vorschlägen oder aus Karten-Popups zur Tour. Karte zeigt die Reihenfolge farbig von Rot nach Lila.">?</span><span class="acc-summary" id="acc-sum-mytour"></span><span class="acc-caret" aria-hidden="true">▾</span></h3>
+                <div class="acc-body">
                 <label class="check-inline expert-only expert-swipe-section" data-expert-section="round-trip"><input type="checkbox" id="round-trip"> 🔁 Rundreise (zurück zum Start)</label>
                 <div id="tour-stops"></div>
                 <p id="tour-summary"></p>
@@ -437,6 +448,8 @@
                     <button id="btn-tour-scan">📷 Tour vom Desktop scannen</button>
                     <button id="btn-tour-clear" class="danger" disabled>✕ Tour leeren</button>
                 </div>
+                </div><!-- /.acc-body -->
+                </div><!-- /.tour-acc mytour -->
 
                 <div class="expert-only expert-swipe-section" data-expert-section="saved-tours">
                     <h3>Gespeicherte Touren</h3>

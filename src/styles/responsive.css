@@ -111,7 +111,69 @@
     vertical-align: text-top;
 }
 
+/* Tour-Akkordeon: Auf dem Desktop bleibt alles wie bisher – der Wrapper ist
+   layout-transparent (display:contents), Zusammenfassung und Pfeil unsichtbar.
+   Erst auf dem Handy werden die drei Gruppen zu ein-/ausklappbaren Karten. */
+.tour-acc { display: contents; }
+.tour-acc > .acc-summary,
+.acc-head .acc-summary,
+.acc-head .acc-caret { display: none; }
+
 @media (max-width: 768px) {
+    /* Startpunkt · Vorschläge · Meine Tour werden zu drei Karten. Eingeklappt
+       bleibt eine sprechende Zeile stehen; genau eine Gruppe ist offen. */
+    .tour-acc {
+        display: block;
+        margin: 10px 0;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+        overflow: hidden;
+    }
+    .tour-acc.open {
+        border-color: color-mix(in srgb, var(--color-primary, #0d9488) 40%, #e2e8f0);
+        box-shadow: 0 6px 18px rgba(13, 148, 136, 0.12);
+    }
+    .tour-acc .acc-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        padding: 13px 14px;
+        cursor: pointer;
+        user-select: none;
+        font-size: 0.98rem;
+        transition: background 0.15s;
+    }
+    .tour-acc .acc-head:active { background: #f8fafc; }
+    .tour-acc.open .acc-head { border-bottom: 1px solid #f1f5f9; }
+    .tour-acc .acc-summary {
+        display: block;
+        margin-left: auto;
+        max-width: 55%;
+        overflow: hidden;
+        color: var(--color-primary-dark, #0f766e);
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-align: right;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .tour-acc.open .acc-summary { display: none; }
+    .tour-acc .acc-caret {
+        display: inline-block;
+        margin-left: 6px;
+        color: #94a3b8;
+        font-size: 0.8rem;
+        transition: transform 0.2s ease;
+    }
+    .tour-acc.open .acc-caret { transform: rotate(180deg); color: var(--color-primary, #0d9488); }
+    .tour-acc .acc-body { padding: 2px 14px 14px; }
+    .tour-acc:not(.open) .acc-body { display: none; }
+    /* Der Info-Punkt im Kopf soll das Auf-/Zuklappen nicht auslösen. */
+    .tour-acc .acc-head .help-dot { pointer-events: auto; }
+
     /* Gebietsplanung ist bewusst ein Desktop-Werkzeug. JS beendet zusätzlich
        eine laufende Vorschau beim Wechsel auf diese Breite. */
     #simulation-map-bar,
