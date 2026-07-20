@@ -2,6 +2,8 @@
 
 Der Service-Vertragsradar ist eine lokale Entscheidungs- und Frühwarnansicht. SAP, SieSales/Salesforce oder ein anderes Quellsystem bleiben führend. TourFuchs verändert keine Verträge und leitet keine rechtlich verbindlichen Fristen aus Freitext ab.
 
+Der Service-Fokus ist ein optionales Modul. Er ist standardmäßig ausgeblendet und wird im Profi-Modus unten in der Gebietsplanung über das Häkchen „🛡️ Service-Modul anzeigen" eingeblendet.
+
 ## Grundprinzip
 
 - Eine Zeile beschreibt genau einen aktuellen Vertrag.

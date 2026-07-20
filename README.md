@@ -21,18 +21,19 @@ TourFuchs beantwortet die zwei Kernfragen im Vertriebsalltag:
 
 | Bereich | Funktion |
 |---|---|
+| 🎬 **Onboarding & Live-Demos** | Ruhiger Erststart: leere Deutschlandkarte, die Beispielkunden erscheinen von selbst mit „Klick-mich-an"-Hinweis. Vier geführte **Live-Demos** (Geister-Cursor bedient die echte App, je ~30–60 s) und eine mitlaufende **„Erste Schritte"-Checkliste**, die einklappt, sobald der Nutzer erkennbar arbeitet |
 | 📄 **Daten** | Excel-/CSV-Import per Klick oder Drag & Drop, automatische Spaltenerkennung mit Prüf-Dialog; eine neue Kundenliste ersetzt nach Warnung den bisherigen Bestand, reine Kontakt-/Gebietsdateien ergänzen ihn gezielt |
 | 🛡️ **Sichere Demo** | Eindeutig markierte Beispielkunden, reservierte Drama-Rufnummern und `example.com`-Adressen; Telefon, E-Mail und Copilot-Briefing werden lokal simuliert, Exporte als Demo gekennzeichnet |
 | 📍 **Verortung** | Sofort über PLZ-Koordinaten (offline, ohne API-Schlüssel); optional adressgenau über OpenStreetMap/Nominatim |
-| 🗺️ **Gebiete** | Landkreise (400 Kreise & Städte) **und** PLZ-Ebenen (1-, 2-, 3- und 5-stellig); Flächen primär nach **Betriebsbezirk** einfärbbar, optional nach Vertriebsgruppe (mit Label und Umsatzsumme); Klick zeigt Kunden & Bezirksverteilung je Gebiet |
-| ✏️ **Gebiets-Editor** | Im Gebiets-Popup „Kunden dieses Gebiets umordnen": Kundenliste des Gebiets mit Checkboxen & Filter, ausgewählte Kunden (oder das ganze Gebiet) einem anderen Betriebsbezirk oder einer Gruppe zuweisen – auch gemischte Gebiete gezielt aufteilen; wirkt sofort auf der Karte, mit **Rückgängig** |
-| 🔍 **Zoom-Automatik** | „Automatisch (nach Zoom)": weit herausgezoomt zeigt die Karte Vertriebsgruppen als Flächen (mit Umsatz), mittlerer Zoom die Betriebsbezirke, hineingezoomt die einzelnen Kunden – der Detailgrad wächst mit dem Zoom |
-| 👥 **Filter** | **Betriebsbezirk** ist die führende Ebene. Vertriebsgruppe kann zusätzlich eingeblendet werden; weitere optionale Ebenen lassen sich bei Bedarf ergänzen. Kundenzähler helfen beim schnellen Prüfen der Verteilung |
-| 🚗 **Tour** | Startpunkt = eigener GPS-Standort oder ein Kunde; Vorschläge „Wen könnte ich in der Nähe noch besuchen?“ (Umkreis einstellbar); Tourenoptimierung (kürzeste Strecke, Nearest-Neighbor + 2-Opt); Übergabe an Google Maps zur Navigation |
+| 🗺️ **Gebiete** | Landkreise (400 Kreise & Städte) **und** PLZ-Ebenen (1-, 2-, 3- und 5-stellig); Flächen primär nach **Vertriebsbezirk** einfärbbar, optional nach Vertriebsgruppe (mit Label und Umsatzsumme); Klick zeigt Kunden & Bezirksverteilung je Gebiet |
+| ✏️ **Gebiets-Editor** | Im Gebiets-Popup „Kunden dieses Gebiets umordnen": Kundenliste des Gebiets mit Checkboxen & Filter, ausgewählte Kunden (oder das ganze Gebiet) einem anderen Vertriebsbezirk oder einer Gruppe zuweisen – auch gemischte Gebiete gezielt aufteilen; wirkt sofort auf der Karte, mit **Rückgängig** |
+| 🔍 **Zoom-Automatik** | „Automatisch (nach Zoom)": weit herausgezoomt zeigt die Karte Vertriebsgruppen als Flächen (mit Umsatz), mittlerer Zoom die Vertriebsbezirke, hineingezoomt die einzelnen Kunden – der Detailgrad wächst mit dem Zoom |
+| 👥 **Filter** | **Vertriebsbezirk** ist die führende Ebene. Vertriebsgruppe kann zusätzlich eingeblendet werden; weitere optionale Ebenen lassen sich bei Bedarf ergänzen. Kundenzähler helfen beim schnellen Prüfen der Verteilung |
+| 🚗 **Tour** | Startpunkt = eigener GPS-Standort oder ein Kunde; Vorschläge „Wen könnte ich in der Nähe noch besuchen?“ (Umkreis einstellbar); Tourenoptimierung (kürzeste Strecke, Nearest-Neighbor + 2-Opt); Übergabe an Google Maps zur Navigation. Am Handy sind Startpunkt · Vorschläge · Meine Tour ein aufgeräumtes **Akkordeon** (genau eine Gruppe offen), und ein kleiner schwebender **Fuchs-Knopf** schlägt kontextabhängig den nächsten Schritt vor (Kunden in der Nähe → Tour ab hier planen → Route auf die Karte) |
 | 📆 **Plan-Einstellungen** | Datum, Startzeit und Besuchsdauer (z. B. 45 min) der Tagestour sind einstellbar und fließen in Tagesplan-Druck und Kalender-Termine (.ics für Outlook, ein Termin je Besuch inkl. Fahrzeit) ein |
 | 📲 **QR-Übergabe** | Am Desktop geplante Tour als QR-Code anzeigen, am Handy mit der Kamera scannen und übernehmen – nur die Tour (keine Datenbank), Bildschirm zu Kamera, ohne Netzwerk und ohne Server. Navigation und Kalender-Termine funktionieren direkt aus dem gescannten Code |
 | 📋 **Kundenbriefing** | In **Basis** sofort ohne Einrichtung nutzbar: kundenspezifischen Prompt kopieren, Corporate Copilot öffnen und dort bewusst absenden. **Profi** ergänzt optional die automatische Entra-/Copilot-Verbindung und zeigt das Ergebnis direkt in TourFuchs |
-| 🛡️ **Service-Vertragsradar** | Separater Excel-/CSV-Import für Vertragsstände aus SAP, SieSales/Salesforce oder weiteren Quellen. Exakter Kundenabgleich per Kundennummer, Quellenalter, Handlungsfristen, Vertragswert, SLA und Verantwortliche – im Profi-Modus, ohne den ruhigen Basis-Einstieg zu verändern |
+| 🛡️ **Service-Vertragsradar** | Separater Excel-/CSV-Import für Vertragsstände aus SAP, SieSales/Salesforce oder weiteren Quellen. Exakter Kundenabgleich per Kundennummer, Quellenalter, Handlungsfristen, Vertragswert, SLA und Verantwortliche. Der Service-Modus ist ein **optionales Modul** – standardmäßig ausgeblendet und im Profi-Modus unten in der Gebietsplanung per Häkchen einblendbar, damit der Einstieg nicht überfrachtet |
 | 🔊 **Zanobo-Brücke** | Serviceeinsätze mit Anlagen-ID verlinken direkt in die Schwester-App [Zanobo](https://zanobo.vercel.app) – akustischer Maschinen-Check am Smartphone, lokal im Browser, ohne Cloud. Vergleich statt Diagnose; die Anlagen-ID entspricht der Maschinen-ID am Zanobo-NFC-Tag und bleibt im URL-Fragment (wird nie an den Server übertragen). Eigene Zanobo-Instanz im Service-Cockpit einstellbar |
 | 🔍 **Suche** | Kunden nach Name, Ort, PLZ oder Kundennummer finden und anfliegen |
 | 📱 **PWA** | Auf Smartphone/Desktop installierbar, App-Shell und Gebietsdaten offline verfügbar, zuletzt gesehene Kartenausschnitte werden gecacht; mobil wird die Karte ruhig per Zwei-Finger-Geste statt zusätzlicher Zoomtasten bedient |
@@ -51,14 +52,14 @@ und können beim Import manuell zugeordnet werden. Empfohlene Spalten:
 | PLZ | ✅ (für die Karte) | 50667 |
 | Straße & Hausnummer | – | Hauptstraße 12 |
 | Ort | – | Köln |
-| Betriebsbezirk | – (empfohlen) | Bezirk Rheinland |
+| Vertriebsbezirk | – (empfohlen) | Bezirk Rheinland |
 | Vertriebschannel | – | Fachhandel |
 | Vertriebsgruppe | – | Handel |
 | Ansprechpartner, Telefon, E-Mail | – | Demo-Team · 0221 4710 000 · kunde-0001@example.com |
 | Besuchsrhythmus (Wochen), Letzter Besuch | – | 6 · 12.05.2026 |
 | Kundennummer, Umsatz, Lat/Lng | – | optional |
 
-Der **Betriebsbezirk** ist die führende operative Ebene und steuert Gebietsplanung, Farben, Cockpit und Tourfilter. Er ist beim Import keine Pflicht: Eine einfache Liste (Name + PLZ) landet sofort auf der Karte, Kunden ohne Bezirk laufen unter „Ohne Zuordnung" und können später per neuem Import zugeordnet werden. **Vertriebsgruppe** ist die empfohlene zweite Ebene; Vertriebschannel und weitere Ebenen sind optional und werden nur angezeigt, wenn sie bewusst ergänzt werden. Persönliche Vertriebsnamen sind für die Gebietssteuerung nicht leitend.
+Der **Vertriebsbezirk** ist die führende operative Ebene und steuert Gebietsplanung, Farben, Cockpit und Tourfilter. Er ist beim Import keine Pflicht: Eine einfache Liste (Name + PLZ) landet sofort auf der Karte, Kunden ohne Bezirk laufen unter „Ohne Zuordnung" und können später per neuem Import zugeordnet werden. **Vertriebsgruppe** ist die empfohlene zweite Ebene; Vertriebschannel und weitere Ebenen sind optional und werden nur angezeigt, wenn sie bewusst ergänzt werden. Persönliche Vertriebsnamen sind für die Gebietssteuerung nicht leitend.
 
 Eine fertige Vorlage gibt es in der App unter **Daten → Excel-Vorlage herunterladen**.
 
@@ -70,11 +71,11 @@ Die geprüfte Excel-Vorlage mit Auswahllisten und Feldbeschreibung sowie ein UTF
 
 #### Flächenzeilen (Gebiete ohne Kunden zuordnen)
 
-Neben Kundenzeilen kann die Liste **Flächenzeilen** enthalten: eine Zeile **ohne Kundenname**, aber mit der Spalte **Gebiet (LK/PLZ)** und einem **Betriebsbezirk**. So lässt sich ein ganzer Landkreis oder ein PLZ-Bereich einem Bezirk zuordnen, auch wenn dort (noch) keine Kunden sind – z. B. um Gebiete für Neukunden zu reservieren. „Gebiet" ist entweder ein **Landkreis-Name** (z. B. `Oberhausen`) oder eine **PLZ / PLZ-Präfix** (`46` = alle 46xxx, `46045` = genau dieses PLZ-Gebiet). Dasselbe geht interaktiv über das **Gebiets-Popup** auf der Karte oder im **Cockpit** (Häkchen „Auch Gebiete ohne Kunden einbeziehen").
+Neben Kundenzeilen kann die Liste **Flächenzeilen** enthalten: eine Zeile **ohne Kundenname**, aber mit der Spalte **Gebiet (LK/PLZ)** und einem **Vertriebsbezirk**. So lässt sich ein ganzer Landkreis oder ein PLZ-Bereich einem Bezirk zuordnen, auch wenn dort (noch) keine Kunden sind – z. B. um Gebiete für Neukunden zu reservieren. „Gebiet" ist entweder ein **Landkreis-Name** (z. B. `Oberhausen`) oder eine **PLZ / PLZ-Präfix** (`46` = alle 46xxx, `46045` = genau dieses PLZ-Gebiet). Dasselbe geht interaktiv über das **Gebiets-Popup** auf der Karte oder im **Cockpit** (Häkchen „Auch Gebiete ohne Kunden einbeziehen").
 
 #### Plausibilitätsprüfung beim Import
 
-Beim Import werden die Zeilen geprüft. **Gültige Zeilen werden importiert**, problematische landen in einer **herunterladbaren Fehlerliste (Excel)** statt in einer unübersichtlichen Fehleranzeige. Erkannt werden u. a.: Dubletten (gleiche Kundennummer bzw. Name + PLZ), fehlender Betriebsbezirk, widersprüchliche Gebietszuordnungen (ein Gebiet zwei verschiedenen Bezirken zugewiesen), unbekannte Landkreise/PLZ-Gebiete sowie nicht auffindbare Kunden-PLZ (Hinweis).
+Beim Import werden die Zeilen geprüft. **Gültige Zeilen werden importiert**, problematische landen in einer **herunterladbaren Fehlerliste (Excel)** statt in einer unübersichtlichen Fehleranzeige. Erkannt werden u. a.: Dubletten (gleiche Kundennummer bzw. Name + PLZ), fehlender Vertriebsbezirk, widersprüchliche Gebietszuordnungen (ein Gebiet zwei verschiedenen Bezirken zugewiesen), unbekannte Landkreise/PLZ-Gebiete sowie nicht auffindbare Kunden-PLZ (Hinweis).
 
 Eine Datei mit Kundenzeilen gilt als **neuer vollständiger Kundenbestand**. Sind bereits Daten geladen, nennt TourFuchs vor dem Import die Wirkung und verlangt eine Bestätigung. Erst danach werden alte Kunden, Tour und Gebietszuordnungen ersetzt. Reine Kontakt- oder Gebietsdateien bleiben ergänzend, weil sie sich ausdrücklich auf den vorhandenen Kundenbestand beziehen.
 
@@ -120,12 +121,21 @@ src/
 │   ├── excel.js          # Import/Export, Spaltenerkennung, Vorlage, Demo-Daten
 │   ├── geocode.js        # PLZ-Zentroide + optionale Nominatim-Geocodierung
 │   ├── geodata.js        # Gebiets-GeoJSON laden, Point-in-Polygon
+│   ├── routing.js        # optionale Straßenroute/Korridor (OSRM)
+│   ├── crypto.js · vault.js · biometric.js   # Datentresor (AES-256, PIN/PRF)
+│   ├── copilot.js · zanobo.js                # Briefing-/Zanobo-Anbindung
+│   ├── showcaseOnboarding.js # Willkommens-Automatik & Demo-Status
 │   └── storage.js        # IndexedDB-Persistenz
 ├── features/
 │   ├── map.js            # Leaflet-Karte, Gebiets-Layer, Marker, Tour-Anzeige
+│   ├── customerMarkers.js · customerScope.js · labelPlacement.js  # Marker/Filter/Labels
 │   ├── territory.js      # Kunden→Gebiet-Aggregation
-│   └── tour.js           # Umkreis, Routenoptimierung, Google-Maps-Link
-└── ui/                   # Sidebar, Import-Assistent, Tour-Panel, Suche, Toasts
+│   ├── tour.js · tourExport.js · tourShare.js # Umkreis, Optimierung, Druck/ICS, QR
+│   ├── serviceContracts.js · serviceVisits.js · serviceDayPlanner.js # Service-Modul
+│   ├── firstSteps.js · stories.js            # Onboarding-Checkliste & Live-Demo-Skripte
+│   └── safeTransfer.js · handoff.js          # Sicherer Umzug & Geräteübergabe
+└── ui/                   # Sidebar (Bottom-Sheet, Tour-Akkordeon, Fuchs-Nudge),
+                          # Import-Assistent, Tour-Panel, Showcase-Engine, Suche, Toasts
 
 public/geodata/           # gebündelte Gebietsdaten (siehe Datenquellen)
 ```

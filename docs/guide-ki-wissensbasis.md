@@ -1,6 +1,6 @@
 # TourFuchs Vertrieb - Wissensbasis für den KI-Guide
 
-**Version 2.2 · Stand: 17.07.2026 · App-Version: 3.0.0**
+**Version 2.3 · Stand: 20.07.2026 · App-Version: 3.0.0**
 
 **Zweck:** Verbindliche Produkt-, Bedien-, Schulungs- und Supportgrundlage für
 einen angepassten TourFuchs-Guide. Die Markdown-Datei ist die primäre
@@ -300,7 +300,10 @@ Die Topbar enthält:
 
 1. **"Basis" / "Profi"** steuert die Ansichtstiefe.
 2. **"Außendienst" / "Gebietsplanung" / "Service"** steuert den Arbeitsfokus.
-   Der Fokus **"Service"** erscheint nur in der Ansichtstiefe **"Profi"**.
+   Der Fokus **"Service"** ist ein **optionales Modul**: standardmäßig
+   ausgeblendet und erst sichtbar, wenn im Profi-Modus **unten in der
+   Gebietsplanung** das Häkchen „🛡️ Service-Modul anzeigen" gesetzt ist. Die
+   Wahl merkt sich TourFuchs lokal.
 
 Tabs im Außendienst: **"Daten"**, **"Filter"**, **"Tour"**.
 
@@ -400,8 +403,17 @@ bereits angesehene Demos bleiben mit einem Haken markiert.
 Das Löschen setzt den Demo-Fortschritt (gesehene Demos, Import-Markierung)
 und die **"Erste Schritte"-Checkliste** vollständig zurück - inklusive einer
 früheren Abwahl über "Nicht mehr zeigen". Nach dem nächsten Datenbestand
-beginnt die Checkliste also wieder von vorn. Es öffnet sich nach dem Löschen
-kein automatischer Dialog; die Demos bleiben über Willkommens-Panel und Info
+beginnt die Checkliste also wieder von vorn.
+
+"Daten zurücksetzen" ist bewusst ein **Neustart**: Die Willkommens-Automatik
+wird wieder scharf und die Beispielkunden erscheinen kurz darauf erneut von
+selbst auf der leeren Deutschlandkarte (inkl. Entdeck-Hinweis) – wie beim
+frischen Erststart. Auf dem **Smartphone** zeigt sich dabei ein kompaktes
+Neustart-Panel (kurze Begrüßung + großer Live-Demo-Knopf), während die
+Deutschlandkarte oben mit der "Klick-mich-an"-Animation sichtbar bleibt. Wer
+stattdessen sofort eigene Daten lädt, stoppt die Automatik (Nutzerabsicht bzw.
+offener Dialog blockieren sie). Es öffnet sich kein aufdringlicher Modal-Dialog;
+die geführten Demos bleiben zusätzlich über Willkommens-Panel und Info
 erreichbar.
 
 ### 5.4 Demos später manuell öffnen
@@ -426,10 +438,13 @@ Die Karte kennt **drei Zustände**:
 - **Ausgeklappt:** volle Karte, gehört der Kennenlernphase.
 - **Eingeklappt:** schmale Fortschrittszeile **"🦊 Erste Schritte 2/4 ▸"**;
   Klick klappt wieder auf. Die Karte klappt **von selbst** ein, sobald der
-  Nutzer erkennbar arbeitet (ein weiterer Schritt über das Datenladen hinaus ist
-  erledigt oder die Tour hat Stopps); ein frisch abgehakter Schritt bleibt zuvor
-  etwa 4 Sekunden als Feedback sichtbar. Auf dem Smartphone startet die Karte
-  direkt eingeklappt. **"Später"** klappt manuell ein.
+  Nutzer erkennbar etwas anderes tut – ein weiterer Schritt ist erledigt, die
+  Tour hat Stopps, ein Vertriebsbezirk wird gewählt, ein Kunde geöffnet oder die
+  Karte angetippt (als hätte er "Später" gedrückt: kein Interesse, kein Platz).
+  Ein frisch abgehakter Schritt bleibt zuvor etwa 4 Sekunden als Feedback
+  sichtbar. Auf dem Smartphone startet die Karte direkt eingeklappt, wird aber
+  beim allerersten automatischen Reveal einmal ausgeklappt gezeigt, damit die
+  vier Live-Demos gleich sichtbar sind. **"Später"** klappt manuell ein.
 - **Abgewählt:** nur über den ausdrücklichen Link **"Nicht mehr zeigen"**.
   Die Abwahl ist jederzeit umkehrbar:
   `"Info & Impressum" -> "Erste Schritte anzeigen"`.
@@ -1019,6 +1034,13 @@ Auf dem Smartphone können Profi-Abschnitte seitlich weggewischt werden.
 Die Funktion nutzt den GPS-Standort als Start und zeigt passende Kunden im
 Umkreis. Eine Standortberechtigung kann erforderlich sein.
 
+Ist noch **kein Vertriebsbezirk** ausgewählt, sucht die Funktion automatisch über
+**alle Bezirke** (statt einer leeren Ergebnisliste). Findet sie im aktuellen
+Radius keinen Kunden, **weitet sie den Umkreis schrittweise** aus, bis der erste
+Treffer erscheint, und meldet das gefundene Ergebnis per Kurzhinweis. Auf dem
+Handy schlägt der schwebende Fuchs-Knopf danach den nächsten Schritt vor
+(„Tour ab hier planen").
+
 Im mobilen Karte-Tab gibt es zusätzlich den Begleiter **"In der Nähe"**. Der
 Bezugspunkt kann zwischen **"Kartenmitte"** und **"Standort"** wechseln. Ein Tipp
 auf einen Kunden fliegt zum Marker; Plus fügt ihn zur Tour hinzu.
@@ -1092,9 +1114,11 @@ aktualisiert sich sofort und wird lokal gespeichert.
 
 ### 10.11 Service-Fokus (Profi): Einsätze, Verträge und Tagesvorschlag
 
-Der Arbeitsfokus **"Service"** ist eine Profi-Funktion (nur in Ansichtstiefe
-**"Profi"** sichtbar) mit den Tabs **"Einsätze"**, **"Verträge"** und
-**"Tour"**. Er hält zwei getrennte Zusatzbestände neben den Kundendaten:
+Der Arbeitsfokus **"Service"** ist ein **optionales Profi-Modul** mit den Tabs
+**"Einsätze"**, **"Verträge"** und **"Tour"**. Er ist standardmäßig ausgeblendet
+und wird erst sichtbar, wenn im Profi-Modus **unten in der Gebietsplanung** das
+Häkchen „🛡️ Service-Modul anzeigen" gesetzt wird (die Wahl wird lokal
+gemerkt). Er hält zwei getrennte Zusatzbestände neben den Kundendaten:
 
 **Serviceverträge (Vertragsradar):** eigener Excel-/CSV-Import. Eindeutiger
 Schlüssel ist `Quellsystem + Vertragsnummer`; die Verknüpfung zum Kunden erfolgt
@@ -1216,13 +1240,30 @@ bewusst Desktop-Aufgaben.
 
 Das Bedienpanel ist unten an den Bildschirm angedockt.
 
-- **"Tour"** öffnet das Sheet.
+- **"Tour"** öffnet das Sheet – beim Planen **ganz aufgezogen** (bis knapp unter
+  die Basis/Profi- und Karte/Tour-Navigation, die bedienbar bleibt).
 - **"Karte"** schließt es zugunsten der Karte.
-- der obere Griff wird senkrecht gezogen, um die Höhe kontinuierlich zu ändern.
+- der obere Griff wird senkrecht gezogen, um die Höhe kontinuierlich zu ändern;
+  bis zum Boden gezogen klappt das Blatt ganz auf die Guckhöhe ein.
 - aus geschlossenem Zustand folgt das Blatt direkt dem Finger, ohne von unten
   falsch zu schrumpfen.
 - ein reiner Tipp auf den Griff ändert mobil nichts.
 - die gewählte Höhe wird gespeichert.
+
+**Tour-Akkordeon (mobil):** Im Tour-Blatt sind **1. Startpunkt · 2. Vorschläge ·
+3. Meine Tour** drei ein-/ausklappbare Karten. Es ist immer **genau eine offen**;
+öffnet man eine, klappen die anderen zu. Eingeklappt bleibt eine sprechende
+Zeile stehen (gewählter Start, Umkreis, Anzahl Stopps bzw. „auf Karte"). Die
+offene Gruppe scrollt **intern**, damit alle drei Köpfe sichtbar bleiben. Ohne
+manuelle Wahl folgt das Akkordeon dem Arbeitsfluss (Start → Vorschläge); das
+Aussuchen weiterer Kunden lässt „Vorschläge" bewusst offen (kein Sprung zu
+„Meine Tour").
+
+**Schwebender Fuchs-Knopf (nächster Schritt):** Bei eingeklapptem Blatt schwebt
+im Außendienst eine kleine helle Pille über der Griff-Leiste und schlägt den
+nächsten sinnvollen Schritt vor: 📍 „Kunden in meiner Nähe" → 🚩 „Tour ab hier
+planen" (öffnet das Tour-Blatt mit gesetztem Start) → 🗺️ „Route auf die Karte".
+Liegt die Route, tritt der Fuchs zurück und die Straßenroute-Leiste übernimmt.
 
 Im Sheet funktionieren Scrollbar, Finger-Scrollen und Ziehen auf Freiflächen.
 Die Karte wird mobil mit zwei Fingern gezoomt. Sowohl die zusätzlichen
@@ -2255,7 +2296,47 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 - Minor: neuer Klickpfad oder neue Funktion.
 - Major: neue Produktstruktur oder geänderte Datenschutzarchitektur.
 
-### 26.3 Änderungen in Version 2.2
+### 26.3 Änderungen in Version 2.3
+
+- **Service-Modus ist jetzt ein optionales Modul.** Standardmäßig ausgeblendet;
+  im Profi-Modus per Häkchen **unten in der Gebietsplanung** ("🛡️ Service-Modul
+  anzeigen") einblendbar, in localStorage gemerkt. Ohne Häkchen zeigt der
+  Modus-Schalter nur Außendienst · Gebietsplanung. Deaktivierung während
+  laufendem Service fällt still auf Außendienst zurück.
+- **Mobiles Tour-Blatt als Akkordeon:** Startpunkt · Vorschläge · Meine Tour
+  sind drei ein-/ausklappbare Karten, immer genau eine offen; eingeklappt bleibt
+  eine sprechende Zeile (Start, Umkreis, Stopps/„auf Karte"). Beim Planen zieht
+  das Blatt ganz auf; die offene Gruppe scrollt intern, sodass alle drei Köpfe
+  sichtbar bleiben. Das Aussuchen in „Vorschläge" springt nicht mehr automatisch
+  zu „Meine Tour".
+- **Schwebender Fuchs-Knopf (nächster Schritt, nur Handy):** kleine, helle Pille
+  über der Griff-Leiste, führt als Kette 📍 „Kunden in meiner Nähe" → 🚩 „Tour ab
+  hier planen" (öffnet das Tour-Blatt mit gesetztem Start) → 🗺️ „Route auf die
+  Karte". Liegt die Route, tritt der Fuchs zurück und die Straßenroute-Leiste
+  übernimmt.
+- **„Was ist in meiner Nähe?" ohne Bezirkswahl repariert:** Ohne gewählten
+  Bezirk galt zuvor ein leerer Tour-Scope – die Suche fand nichts, obwohl die
+  Karte Kunden zeigte. Jetzt gilt automatisch „Alle Bezirke"; liegt nichts im
+  Umkreis, wird er bis zum nächsten Kunden geweitet (Regler zieht mit).
+- **Onboarding-Feinschliff:** „Erste Schritte" klappt zusätzlich bei erkennbarer
+  Aktivität ein (Bezirk wählen, Kunde öffnen, Karte antippen). Nach „Daten
+  zurücksetzen" erscheint auf dem Handy ein kompakter Neustart (kurze Begrüßung
+  + großer Live-Demo-Knopf, Deutschlandkarte mit Entdeck-Animation sichtbar);
+  die Beispielkunden laden automatisch wieder. Bloßes Öffnen des „Eigene Daten
+  laden"-Dialogs beendet die Willkommens-Automatik nicht mehr dauerhaft.
+- **Live-Demos überarbeitet:** ehrliche Dauer-Angaben (gemessen), Stummstrecken
+  mit Brückensätzen gefüllt, QR-Dopplung aus der Tour-Demo entfernt (Cliffhanger
+  auf die Handy-Demo), Opener und Empfangs-Demo auf ~30 s mit Payoff gebracht,
+  Tresor endet am sichtbaren Schloss.
+- **Gebietsplanung (Desktop):** Bezirks-Kacheln bleiben beim Reinzoomen sichtbar
+  (auch als Mini-Code-Chip mit Bezirksnamen); Chips weichen sich aus statt zu
+  überlappen; sobald die Kunden-Klemmbretter erscheinen, räumen die Kacheln das
+  Feld (Flächen bleiben zur Orientierung).
+- **Marke:** Repository und Domain heißen jetzt **tourfuchs** (tourfuchs.vercel.app),
+  Kontakt **tourfuchs@online.de**; teilbare Link-Vorschau (OG-Bild) und
+  Feedback-Kanal (GitHub Issues) ergänzt.
+
+### 26.4 Änderungen in Version 2.2
 
 - Vertriebsbezirk beim Import von Pflicht auf "empfohlen" umgestellt; Verhalten
   "Ohne Zuordnung" und Hinweis im Importergebnis dokumentiert.
@@ -2286,7 +2367,7 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 - interne Korrektur der Umsatz-Einheitenerkennung (t€/k€ nur noch als
   eigenständige Einheit) - Nutzerhinweis: Gesamtsumme im Importergebnis prüfen.
 
-### 26.4 Änderungen in Version 2.1
+### 26.5 Änderungen in Version 2.1
 
 - Desktop-Einstieg **"Mobile Außendienst & Tour"** als Produktnutzen benannt.
 - einmaligen, ruhigen Vorschau-Teaser nach vorhandenem Kundenbestand dokumentiert.
@@ -2299,7 +2380,7 @@ Abschlussfrage an. Antworte auf Deutsch, wenn die Frage auf Deutsch gestellt wir
 - gemeinsamen lokalen Datenbestand von Desktop und eingebetteter Vorschau
   klargestellt.
 
-### 26.5 Änderungen in Version 2.0
+### 26.6 Änderungen in Version 2.0
 
 - vollständige Zusammenführung der früheren PDF- und Markdown-Wissensbasis.
 - neues Product-Owner-Kapitel mit priorisierten Wow-Effekten.
