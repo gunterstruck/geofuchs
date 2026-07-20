@@ -423,12 +423,15 @@ function applySidebar() {
 function updateMobileNextStep() {
     const btn = document.getElementById('mobile-next-step');
     if (!btn) return;
-    const routeVisible = !document.getElementById('route-mode-bar')?.hidden;
+    // Liegt die Route auf der Karte, übernimmt die Straßenroute-Leiste denselben
+    // Platz – der Fuchs muss dann weg (sonst überdeckt er sie). Aus dem Zustand
+    // statt aus dem DOM gelesen, damit es kein Render-Wettrennen gibt.
+    const routeShown = state.tour.mapFocus && !!state.tour.start;
     const canShow = isMobileUi()
         && !state.ui.sidebarOpen
         && state.ui.mode === 'aussendienst'
         && state.customers.length > 0
-        && !routeVisible;
+        && !routeShown;
     if (!canShow) {
         btn.classList.remove('show');
         btn.hidden = true;
@@ -446,7 +449,9 @@ function updateMobileNextStep() {
         action = 'nearby'; text = 'Kunden in meiner Nähe'; glyph = '📍';
     } else if (state.tour.stops.length === 0) {
         action = 'plan'; text = 'Tour ab hier planen'; glyph = '🚩';
-    } else if (!state.tour.mapFocus) {
+    } else {
+        // Stopps vorhanden, Route noch nicht auf der Karte (mapFocus-Fall ist
+        // oben schon ausgeschlossen) – der nächste Zug ist „Route zeigen".
         action = 'route'; text = 'Route auf die Karte'; glyph = '🗺️';
     }
     btn.dataset.action = action;
@@ -821,6 +826,31 @@ function tabInMode(tabBtn, mode) {
  *                           damit der noch nicht geladene gespeicherte Tab nicht überschrieben wird)
  */
 const DEPTH_KEY = 'gf_app_depth';
+const SERVICE_ENABLED_KEY = 'gf_service_enabled';
+
+/**
+ * Service-Modul (Serviceverträge & Einsatzplanung) ist ein optionaler Modus.
+ * Standardmäßig aus – erst per Häkchen unter Gebietsplanung sichtbar, damit der
+ * Profi-Einstieg nicht überfrachtet. Aus = Body-Klasse weg + der Service-Knopf
+ * (nur CSS-sichtbar bei service-on) verschwindet; läuft gerade Service, fällt
+ * die App still auf Außendienst zurück.
+ */
+export function applyServiceEnabled(on, persist = true) {
+    document.body.classList.toggle('service-on', !!on);
+    const chk = document.getElementById('chk-service-enabled');
+    if (chk) chk.checked = !!on;
+    if (!on && state.ui.mode === 'service') applyMode('aussendienst', true, persist);
+    if (persist) { try { localStorage.setItem(SERVICE_ENABLED_KEY, on ? '1' : '0'); } catch (e) { /* egal */ } }
+}
+
+function initServiceOptIn() {
+    let on = false;
+    try { on = localStorage.getItem(SERVICE_ENABLED_KEY) === '1'; } catch (e) { /* egal */ }
+    applyServiceEnabled(on, false);
+    document.getElementById('chk-service-enabled')?.addEventListener('change', (e) => {
+        applyServiceEnabled(e.target.checked, true);
+    });
+}
 
 function syncLevelControl() {
     const automatic = automaticLevelActive(state.ui.depth, state.levelMode, isMobileUi());
@@ -963,6 +993,7 @@ export function initSidebar() {
     initSheetGrip();
     restoreSheetHeight();
     initMobileNextStep();
+    initServiceOptIn();
     initDepth();
     syncTopnavPlacement();
     applyDataPanelLayout();

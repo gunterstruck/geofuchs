@@ -39,6 +39,15 @@ describe('Schwebender „nächster Schritt"-Fuchs (mobil)', () => {
         expect(html).toContain('class="mns-icon"');
         expect(sidebar).toContain('function initMobileNextStep');
     });
+
+    it('weicht der Straßenroute-Leiste, sobald die Route auf der Karte liegt', () => {
+        // Bug: Bei liegender Route fiel der Nudge auf den Default „Nähe" zurück
+        // und überdeckte die Route-Leiste. Jetzt aus dem State gelesen und weg.
+        expect(sidebar).toContain('const routeShown = state.tour.mapFocus && !!state.tour.start');
+        expect(sidebar).toContain('&& !routeShown');
+        // Kein DOM-Wettrennen mehr über den versteckten Route-Balken.
+        expect(sidebar).not.toContain("const routeVisible = !document.getElementById('route-mode-bar')");
+    });
 });
 
 describe('Blatt wieder vollständig einklappbar (mobil)', () => {
