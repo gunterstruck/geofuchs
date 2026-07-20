@@ -436,8 +436,10 @@
     .route-mode-bar { bottom: calc(var(--mobile-sheet-peek, 46px) + 14px); }
     .route-mode-toggle { padding: 7px 13px; font-size: 0.8rem; }
 
-    /* Schwebender „nächster Schritt"-Fuchs: klein, freundlich, schmal – schwebt
-       über der Griff-Leiste und nimmt bewusst NICHT die volle Breite ein. */
+    /* Schwebender „nächster Schritt": helle Pille im gleichen Look wie der
+       Straßenrouten-Umschalter – Funktions-Icon links prominent, Text, und ein
+       kleiner Fuchs als Marken-Detail rechts. Schwebt über der Griff-Leiste,
+       nimmt bewusst NICHT die volle Breite ein. */
     .mobile-next-step {
         position: fixed;
         z-index: 1035;
@@ -447,15 +449,18 @@
         align-items: center;
         gap: 7px;
         max-width: 82vw;
-        padding: 8px 15px 8px 12px;
-        border: none;
-        border-radius: 999px;
-        background: linear-gradient(135deg, #0d9488, #0f766e);
-        color: #fff;
+        padding: 9px 14px;
+        border: 1px solid var(--color-border);
+        border-left: 3px solid var(--color-primary, #0d9488);
+        border-radius: var(--radius-pill, 999px);
+        background: rgba(255, 255, 255, 0.97);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+        color: var(--color-text, #0f172a);
         font-size: 0.86rem;
         font-weight: 700;
         white-space: nowrap;
-        box-shadow: 0 6px 20px rgba(13, 148, 136, 0.42);
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
         cursor: pointer;
         opacity: 0;
         transform: translateX(-50%) translateY(8px);
@@ -468,14 +473,17 @@
         pointer-events: auto;
     }
     .mobile-next-step:active { transform: translateX(-50%) translateY(1px) scale(0.98); }
-    .mobile-next-step .mns-fox {
-        font-size: 1.15rem;
-        transform-origin: 50% 70%;
-        animation: mns-wiggle 3s ease-in-out infinite;
-    }
+    .mobile-next-step .mns-icon { font-size: 1.1rem; }
     .mobile-next-step .mns-label {
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+    .mobile-next-step .mns-fox {
+        font-size: 0.9rem;
+        margin-left: 1px;
+        opacity: 0.85;
+        transform-origin: 50% 70%;
+        animation: mns-wiggle 3.2s ease-in-out infinite;
     }
     @keyframes mns-wiggle {
         0%, 86%, 100% { transform: rotate(0); }

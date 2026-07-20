@@ -24,14 +24,19 @@ describe('Schwebender „nächster Schritt"-Fuchs (mobil)', () => {
         expect(css).toContain('.mobile-next-step { display: none !important; }');
     });
 
-    it('zeigt kontextabhängig den nächsten Schritt und nur bei zugeklapptem Blatt', () => {
+    it('führt als Kette durch den Flow und nur bei zugeklapptem Blatt', () => {
         expect(sidebar).toContain('function updateMobileNextStep');
         expect(sidebar).toContain('!state.ui.sidebarOpen');
         expect(sidebar).toContain("state.ui.mode === 'aussendienst'");
-        // Zwei Kontext-Vorschläge: Route zeigen bzw. Kunden in der Nähe.
+        // Drei Kettenschritte: Nähe → Tour ab hier planen → Route auf die Karte.
         expect(sidebar).toContain('Kunden in meiner Nähe');
+        expect(sidebar).toContain('Tour ab hier planen');
         expect(sidebar).toContain('Route auf die Karte');
-        // Wird bei den relevanten Ereignissen aktualisiert.
+        // „Planen" führt mit gesetztem Start ins Tour-Blatt.
+        expect(sidebar).toContain('function goToTourPlanning');
+        expect(sidebar).toContain("activateTab('tour')");
+        // Funktionsspezifische Icons statt Fuchs als Haupt-Icon.
+        expect(html).toContain('class="mns-icon"');
         expect(sidebar).toContain('function initMobileNextStep');
     });
 });
