@@ -8,7 +8,7 @@
 
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
-import { state, emit, getCustomer } from '../core/state.js';
+import { state, emit, getCustomer, setCustomers } from '../core/state.js';
 import { decodeTourPayload, matchStopsToCustomers, encodeTourUrl } from '../features/tourShare.js';
 import { googleMapsLink } from '../features/tour.js';
 import { downloadIcs } from '../features/tourExport.js';
@@ -186,26 +186,73 @@ function renderReceived() {
         `<div class="qr-stop-row"><b>${i + 1}.</b> ${escapeHtml(s.name)}${s.adresse ? ` <span class="muted small">${escapeHtml(s.adresse)}</span>` : ''}</div>`
     ).join('');
 
-    const { matched, unmatched } = matchStopsToCustomers(received.stops, state.customers);
+    const { matched } = matchStopsToCustomers(received.stops, state.customers);
+    const missing = received.stops.length - matched.length;
     const adopt = document.getElementById('qr-received-adopt');
-    adopt.disabled = matched.length === 0;
-    document.getElementById('qr-scan-matchinfo').textContent = matched.length === 0
-        ? 'Keine Stopps in den lokalen Kundendaten gefunden – Navigation und Kalender funktionieren trotzdem direkt aus dem QR-Code.'
-        : matched.length < received.stops.length
-            ? `${matched.length} von ${received.stops.length} Stopps in den lokalen Kundendaten gefunden – nur diese können als Tour übernommen werden.`
-            : 'Alle Stopps in den lokalen Kundendaten gefunden.';
+    // Übernehmen ist immer möglich: fehlende Kunden werden dabei lokal angelegt,
+    // damit die komplette Tourplanung sichtbar ist.
+    adopt.disabled = received.stops.length === 0;
+    document.getElementById('qr-scan-matchinfo').textContent = missing === 0
+        ? 'Alle Stopps sind in den lokalen Kundendaten vorhanden.'
+        : matched.length === 0
+            ? 'Diese Kunden sind lokal noch nicht vorhanden – beim Übernehmen werden sie angelegt, damit die ganze Tour sichtbar ist.'
+            : `${matched.length} von ${received.stops.length} Stopps sind lokal vorhanden; ${missing} werden beim Übernehmen neu angelegt.`;
+}
+
+/**
+ * Baut aus einem empfangenen Stopp (nur Name/Adresse/Koordinaten aus dem
+ * QR-Code) einen vollwertigen lokalen Kunden, damit unbekannte Tourstopps nicht
+ * verloren gehen. Die Kundennummer kommt mit, sofern übertragen.
+ */
+function customerFromStop(stop, i) {
+    const addr = String(stop.adresse || '');
+    const parts = addr.split(',').map((s) => s.trim()).filter(Boolean);
+    const strasse = parts.length > 1 ? parts.slice(0, -1).join(', ') : (parts[0] || '');
+    const cityPart = parts.length > 1 ? parts[parts.length - 1] : '';
+    const cityMatch = cityPart.match(/^(\d{4,5})\s+(.+)$/);
+    const plz = String(stop.plz || (cityMatch ? cityMatch[1] : '')).trim();
+    const ort = cityMatch ? cityMatch[2] : (plz ? cityPart.replace(plz, '').trim() : cityPart);
+    return {
+        id: `qr-${Date.now().toString(36)}-${i}`,
+        nummer: String(stop.nummer || '').trim(),
+        name: stop.name || 'Stopp',
+        strasse, plz, ort,
+        vb: '', channel: '', gruppe: '', bezirk: '',
+        ansprechpartner: '', telefon: String(stop.telefon || '').trim(), email: '',
+        umsatz: null, rhythmusWochen: null, besuche: [],
+        lat: Number(stop.lat), lng: Number(stop.lng), geo: 'exakt',
+        extra: { Herkunft: 'QR-Übergabe' },
+        fromQr: true
+    };
 }
 
 function adoptReceivedTour() {
-    if (!received) return;
-    const { matched, unmatched } = matchStopsToCustomers(received.stops, state.customers);
-    if (matched.length === 0) return;
+    if (!received || received.stops.length === 0) return;
+    const { matched } = matchStopsToCustomers(received.stops, state.customers);
+    const idByStop = new Map(matched.map(({ stop, customer }) => [stop, customer.id]));
 
     state.tour.bezirk = '__all__'; // Stopps können außerhalb des gewählten Bezirks liegen
-    state.tour.start = { lat: received.start.lat, lng: received.start.lng, label: received.start.label || 'Übernommener Start' };
+
+    // Reihenfolge der empfangenen Tour beibehalten; unbekannte Stopps anlegen.
+    const created = [];
+    const orderedIds = received.stops.map((stop, i) => {
+        const known = idByStop.get(stop);
+        if (known) return known;
+        const c = customerFromStop(stop, i);
+        created.push(c);
+        return c.id;
+    });
+    if (created.length > 0) setCustomers([...state.customers, ...created]);
+
+    state.tour.start = {
+        lat: received.start.lat,
+        lng: received.start.lng,
+        label: received.start.label || 'Übernommener Start',
+        ...(received.start.here ? { here: true } : {})
+    };
     state.tour.destination = null;
     state.tour.roundTrip = received.roundTrip;
-    state.tour.stops = matched.map(({ customer }) => customer.id).filter((id) => getCustomer(id));
+    state.tour.stops = orderedIds.filter((id) => getCustomer(id));
 
     const dateInput = document.getElementById('plan-date');
     const timeInput = document.getElementById('plan-time');
@@ -216,9 +263,10 @@ function adoptReceivedTour() {
 
     emit('tour:scope-changed');
     emit('tour:changed');
+    if (created.length > 0) emit('dataset:dirty'); // neue Kunden lokal sichern
     scanDialog.close();
-    showToast(unmatched.length === 0
-        ? `Tour mit ${matched.length} Stopps übernommen.`
-        : `${matched.length} Stopps übernommen, ${unmatched.length} nicht in den lokalen Daten gefunden.`,
+    showToast(created.length > 0
+        ? `Tour mit ${state.tour.stops.length} Stopps übernommen – ${created.length} neu${created.length === 1 ? 'er Kunde' : 'e Kunden'} angelegt.`
+        : `Tour mit ${state.tour.stops.length} Stopps übernommen.`,
         'success', 6000);
 }

@@ -35,6 +35,7 @@ function packPoint(point) {
     if (!hasCoords(point)) return null;
     const packed = { lat: round5(point.lat), lng: round5(point.lng), l: point.label || point.name || '' };
     if (isDemoCustomer(point)) packed.d = 1;
+    if (point.here) packed.h = 1; // Geräte-Standort: Ziel-Navigation ab aktuellem Ort
     return packed;
 }
 
@@ -123,6 +124,7 @@ export function decodeTourPayload(text) {
 
     const point = (p) => ({
         lat: Number(p.lat), lng: Number(p.lng), label: p.l || '',
+        ...(p.h === 1 ? { here: true } : {}),
         ...(p.d === 1 ? { demo: true, dataOrigin: DEMO_DATA_ORIGIN } : {})
     });
     if (!hasCoords(payload.s)) return null;

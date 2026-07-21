@@ -183,12 +183,14 @@ export function googleMapsLink(start, stops, roundTrip = false) {
         waypoints = limited.slice(0, -1);
     }
 
-    const params = new URLSearchParams({
-        api: '1',
-        origin: pointParam(start),
-        destination: pointParam(destination),
-        travelmode: 'driving'
-    });
+    const params = new URLSearchParams({ api: '1', travelmode: 'driving' });
+    // Ist der Start der Geräte-Standort („Mein Standort"), kein fester Origin:
+    // Google navigiert dann ab dem AKTUELLEN Standort des Handys – sonst würde
+    // der (womöglich vom Desktop übertragene) Startort als Origin verankert.
+    if (!(start && start.here && !roundTrip)) {
+        params.set('origin', pointParam(start));
+    }
+    params.set('destination', pointParam(destination));
     if (waypoints.length > 0) {
         params.set('waypoints', waypoints.map(pointParam).join('|'));
     }

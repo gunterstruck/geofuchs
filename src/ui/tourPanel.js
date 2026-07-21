@@ -763,7 +763,8 @@ function useMyLocation() {
             state.tour.start = {
                 lat: pos.coords.latitude,
                 lng: pos.coords.longitude,
-                label: 'Mein Standort'
+                label: 'Mein Standort',
+                here: true // Geräte-Standort: Navigation startet vom aktuellen Ort
             };
             emit('tour:changed');
         },
@@ -790,7 +791,7 @@ function findNearby() {
     navigator.geolocation.getCurrentPosition(
         (pos) => {
             invalidateAcceptedServicePlan(true);
-            const here = { lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'Mein Standort' };
+            const here = { lat: pos.coords.latitude, lng: pos.coords.longitude, label: 'Mein Standort', here: true };
             state.tour.start = here;
             state.tour.suggestMode = 'radius';
             // „Was ist in meiner Nähe?" meint ALLE Kunden um mich herum. Ohne
