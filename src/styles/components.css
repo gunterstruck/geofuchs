@@ -996,6 +996,8 @@ body:not(.depth-profi) .profi-only { display: none !important; }
 /* Name, Sekundärzeile und Service-Zeile stehen wie bisher untereinander
    (ersetzt die früheren <br> – Desktop-Look bleibt identisch). */
 .stop-title, .stop-sub, .stop-plan-line { display: block; }
+/* Der „Halten & Ziehen"-Hinweis ist eine reine Handy-Hilfe. */
+.stop-reorder-hint { display: none; }
 .stop-actions { display: flex; gap: 2px; }
 .stop-actions button { padding: 2px 7px; font-size: 0.8rem; }
 

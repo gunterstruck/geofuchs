@@ -256,6 +256,20 @@
     }
     #tour-stops .stop-remove::before { content: "−"; font-size: 1.5rem; line-height: 1; }
 
+    /* Halten & Ziehen: die weichenden Zeilen gleiten, die angehobene folgt dem
+       Finger und liegt erhöht darüber. */
+    #tour-stops .stop-row { transition: transform 0.12s ease; touch-action: pan-y; }
+    #tour-stops .stop-row.stop-dragging {
+        transition: none;
+        z-index: 5;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+        touch-action: none;
+    }
+    body.reordering { user-select: none; -webkit-user-select: none; }
+    .stop-reorder-hint { display: block; margin: 2px 2px 8px; opacity: 0.75; }
+
     /* Gebietsplanung ist bewusst ein Desktop-Werkzeug. JS beendet zusätzlich
        eine laufende Vorschau beim Wechsel auf diese Breite. */
     #simulation-map-bar,
