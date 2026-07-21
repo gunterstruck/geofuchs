@@ -187,6 +187,75 @@
        kostet Platz – dann ausblenden, damit die Akkordeon-Köpfe passen. */
     body.tour-has-start #tab-tour.active #btn-nearby { display: none; }
 
+    /* „Meine Tour" mobil: kompakte Ein-Zeilen-Stopps im Karten-Listenstil mit
+       einer durchgehenden grünen Tourlinie links (Punkte an den Kunden). Statt
+       Pfeilen bleibt nur „−" (Wegfall); das Umsortieren folgt per Halten & Ziehen.
+       Der Tour-Punkt selbst schaltet „heute besucht". */
+    #tour-stops .stop-row {
+        position: relative;
+        gap: 12px;
+        padding: 9px 4px 9px 2px;
+        border-bottom: none;            /* Trennlinien weg – die Timeline verbindet */
+    }
+    /* Durchgehende grüne Linie hinter der Punktspalte (Mitte des 28px-Punkts). */
+    #tour-stops .stop-row::before {
+        content: "";
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--color-primary, #0d9488);
+        z-index: 0;
+    }
+    #tour-stops .stop-row.stop-first::before { top: 50%; }
+    #tour-stops .stop-row.stop-last::before { bottom: 50%; }
+    #tour-stops .stop-num {
+        position: relative;
+        z-index: 1;                     /* Punkt liegt über der Linie */
+        width: 28px;
+        height: 28px;
+        font-size: 0.82rem;
+        box-shadow: 0 0 0 3px #fff;     /* weißer Ring hebt den Punkt von der Linie ab */
+        cursor: pointer;
+    }
+    /* Erledigt: Punkt zeigt statt der Nummer ein Häkchen (nur mobil). */
+    #tour-stops .stop-row.stop-visited .stop-num { color: transparent; }
+    #tour-stops .stop-row.stop-visited .stop-num::after {
+        content: "✓";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 0.9rem;
+    }
+    /* Name einzeilig; die Sekundärzeile (PLZ/Ort/zuletzt) weicht für den Platz. */
+    #tour-stops .stop-name { overflow: hidden; }
+    #tour-stops .stop-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    #tour-stops .stop-sub { display: none; }
+    /* Pfeile und der breite „✓ Heute"-Knopf entfallen – der Punkt übernimmt das. */
+    #tour-stops .stop-actions [data-up],
+    #tour-stops .stop-actions [data-down],
+    #tour-stops .stop-actions .stop-visit { display: none; }
+    /* „✕" wird zum runden „−" (Wegfall), Gegenstück zum „＋" der Vorschläge. */
+    #tour-stops .stop-remove {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 0;                   /* „✕"-Text ausblenden … */
+        line-height: 1;
+        color: #b91c1c;
+        border-color: #fecaca;
+    }
+    #tour-stops .stop-remove::before { content: "−"; font-size: 1.5rem; line-height: 1; }
+
     /* Gebietsplanung ist bewusst ein Desktop-Werkzeug. JS beendet zusätzlich
        eine laufende Vorschau beim Wechsel auf diese Breite. */
     #simulation-map-bar,

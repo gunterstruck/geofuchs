@@ -1077,19 +1077,17 @@ function renderStops() {
                 : '';
             return `
             <div class="stop-row${autoLastStopIsDestination && i === stops.length - 1 ? ' final-row' : ''}${done ? ' stop-visited' : ''}">
-                <span class="stop-num">${i + 1}</span>
+                <span class="stop-num" data-visit-node="${i}" title="${done ? 'Heute besucht – am Handy zum erneuten Eintragen tippen' : 'Am Handy: auf den Punkt tippen = heute besucht'}">${i + 1}</span>
                 <span class="stop-name" title="${escapeHtml(c.name)}">
-                    ${dot}${escapeHtml(c.name)}
-                    ${autoLastStopIsDestination && i === stops.length - 1 ? '<span class="route-role">Ziel</span>' : ''}
-                    ${outsideServiceScope ? '<span class="route-role scope-exception">Außerhalb Servicefilter</span>' : ''}
-                    <br><span class="muted small">${escapeHtml(c.plz)} ${escapeHtml(c.ort)}${done ? ' · heute besucht' : (lastVisit(c) ? ` · zuletzt ${agoText(lastVisit(c))}` : '')}</span>
-                    ${servicePlanLine ? `<br>${servicePlanLine}` : ''}
+                    <span class="stop-title">${dot}${escapeHtml(c.name)}${autoLastStopIsDestination && i === stops.length - 1 ? '<span class="route-role">Ziel</span>' : ''}${outsideServiceScope ? '<span class="route-role scope-exception">Außerhalb Servicefilter</span>' : ''}</span>
+                    <span class="stop-sub muted small">${escapeHtml(c.plz)} ${escapeHtml(c.ort)}${done ? ' · heute besucht' : (lastVisit(c) ? ` · zuletzt ${agoText(lastVisit(c))}` : '')}</span>
+                    ${servicePlanLine ? `<span class="stop-plan-line">${servicePlanLine}</span>` : ''}
                 </span>
                 <span class="stop-actions">
                     <button type="button" class="stop-visit${done ? ' is-done' : ''}" data-visit="${i}" title="${done ? 'Heute besucht' : 'Als heute besucht markieren'}">${done ? '✓' : '✓ Heute'}</button>
                     <button type="button" data-up="${i}" title="Nach oben" ${i === 0 ? 'disabled' : ''}>↑</button>
                     <button type="button" data-down="${i}" title="Nach unten" ${i === stops.length - 1 ? 'disabled' : ''}>↓</button>
-                    <button type="button" data-remove="${i}" title="Entfernen">✕</button>
+                    <button type="button" class="stop-remove" data-remove="${i}" title="Entfernen">✕</button>
                 </span>
             </div>`;
         }).join('');
@@ -1099,6 +1097,18 @@ function renderStops() {
             if (!c) return;
             markVisitedToday(c);
             markDirty(); // persistieren + Karte/Status neu zeichnen
+            renderPanel();
+            showToast(`Besuch bei ${c.name} für heute eingetragen.`, 'success');
+        }));
+
+        // Am Handy ist die Zeile einzeilig: Der grüne Tour-Punkt selbst dient als
+        // „heute besucht"-Schalter. Auf dem Desktop bleibt der Punkt reine Anzeige.
+        el.querySelectorAll('[data-visit-node]').forEach((node) => node.addEventListener('click', () => {
+            if (!isMobileTour()) return;
+            const c = stops[parseInt(node.dataset.visitNode, 10)];
+            if (!c) return;
+            markVisitedToday(c);
+            markDirty();
             renderPanel();
             showToast(`Besuch bei ${c.name} für heute eingetragen.`, 'success');
         }));
@@ -1148,6 +1158,15 @@ function renderStops() {
                     Ziel: zurück zum Start<br><span class="muted small">${escapeHtml(state.tour.start.label)}</span>
                 </span>
             </div>`);
+    }
+
+    // Grüne Tourlinie (mobil): erster und letzter Streckenpunkt bekommen eine
+    // Markierung, damit die durchgehende Linie oben/unten am Punkt endet statt
+    // ins Leere zu laufen. Rein visuell – ohne CSS-Wirkung auf dem Desktop.
+    const routeRows = el.querySelectorAll('.stop-row');
+    if (routeRows.length) {
+        routeRows[0].classList.add('stop-first');
+        routeRows[routeRows.length - 1].classList.add('stop-last');
     }
 
     // Distanz & Aktions-Buttons – Ziel zählt als letzter Streckenpunkt mit

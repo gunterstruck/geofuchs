@@ -993,6 +993,9 @@ body:not(.depth-profi) .profi-only { display: none !important; }
     justify-content: center;
 }
 .stop-name { flex: 1; font-size: 0.88rem; line-height: 1.25; overflow: hidden; }
+/* Name, Sekundärzeile und Service-Zeile stehen wie bisher untereinander
+   (ersetzt die früheren <br> – Desktop-Look bleibt identisch). */
+.stop-title, .stop-sub, .stop-plan-line { display: block; }
 .stop-actions { display: flex; gap: 2px; }
 .stop-actions button { padding: 2px 7px; font-size: 0.8rem; }
 
