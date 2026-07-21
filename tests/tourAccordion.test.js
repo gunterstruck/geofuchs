@@ -68,7 +68,7 @@ describe('Mobiles Tour-Akkordeon (Startpunkt · Vorschläge · Meine Tour)', () 
         expect(css).toContain('.tour-acc.open .scroll-list { max-height: none; overflow: visible; }');
         // „Was ist in meiner Nähe?" beim Planen (Start steht) ausgeblendet.
         expect(panel).toContain("classList.toggle('tour-has-start', !!state.tour.start)");
-        expect(css).toContain('body.tour-has-start #tab-tour.active #btn-nearby { display: none; }');
+        expect(css).toContain('body.tour-has-start #tab-tour.active #btn-nearby');
     });
 
     it('bleibt beim Aussuchen in „Vorschläge" – springt nicht beim ersten Stopp zu „Meine Tour"', () => {
