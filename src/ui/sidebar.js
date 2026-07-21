@@ -6,7 +6,7 @@
 import { CONFIG } from '../core/config.js';
 import { state, on, emit, UNASSIGNED, visibleCustomers, setCustomers, clearServiceContracts, clearServiceVisits, filterDimensionDefs, datasetSnapshot } from '../core/state.js';
 import { exactGeocodeCandidates, groupExactGeocodeCandidates, geocodeExact } from '../services/geocode.js';
-import { isDemoDataset } from '../core/demoSafety.js';
+import { isDemoDataset, isDemoCustomer } from '../core/demoSafety.js';
 import { saveDataset, clearDataset, saveSettings } from '../services/storage.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
 import { STATUS_COLORS, STATUS_LABELS, isOpportunity } from '../features/visits.js';
@@ -1370,12 +1370,18 @@ async function toggleExactGeocoding() {
     }
     const candidates = exactGeocodeCandidates(state.customers);
     if (candidates.length === 0) {
-        showToast(
-            isDemoDataset(state.customers)
-                ? 'Demo-Daten bleiben bewusst auf sicheren PLZ-Positionen. Es werden keine erfundenen Adressen übertragen.'
-                : 'Keine Kunden mit Straßenadresse zum Nachschärfen gefunden.',
-            'info'
-        );
+        // Rückmeldung differenzieren: Demo, „schon alles verortet" oder „keine
+        // Adressen vorhanden" – sonst wirkt ein erneuter Klick wie ohne Wirkung.
+        const withAddress = state.customers.filter(
+            (c) => !isDemoCustomer(c) && c.strasse && (c.plz || c.ort)
+        ).length;
+        if (isDemoDataset(state.customers)) {
+            showToast('Demo-Daten bleiben bewusst auf sicheren PLZ-Positionen. Es werden keine erfundenen Adressen übertragen.', 'info');
+        } else if (withAddress > 0) {
+            showToast(`Alles erledigt: ${withAddress} Adresse${withAddress === 1 ? ' ist' : 'n sind'} bereits adressgenau verortet.`, 'success', 5000);
+        } else {
+            showToast('Keine Kunden mit Straßenadresse zum Nachschärfen gefunden.', 'info');
+        }
         return;
     }
     // Identische Adressen werden nur einmal angefragt – das kürzt die Wartezeit.
