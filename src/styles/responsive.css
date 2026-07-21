@@ -276,8 +276,21 @@
     body.tour-focus .basemap-control,
     body.tour-focus #first-steps,
     body.tour-focus .tour-panel-title,
-    body.tour-focus #tab-tour #tour-scope {
+    body.tour-focus #tab-tour #tour-scope,
+    body.tour-focus #btn-nearby,
+    body.tour-focus #btn-tour-scan {
         display: none;
+    }
+
+    /* Zweiter Einstieg „Tour vom Desktop holen": sekundär neben dem primären
+       „Was ist in meiner Nähe?" – sichtbar beim Starten, im Fokus ausgeblendet. */
+    .btn-scan-entry {
+        width: 100%;
+        margin-top: 8px;
+        background: #fff;
+        color: var(--color-primary-dark, #0f766e);
+        border: 1px solid color-mix(in srgb, var(--color-primary, #0d9488) 40%, #e2e8f0);
+        font-weight: 700;
     }
     /* Nur die aktive Gruppe bleibt; ihre Kopfzeile ersetzt die Schrittleiste. */
     body.tour-focus #tab-tour .tour-acc .acc-head { display: none; }

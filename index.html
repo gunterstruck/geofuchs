@@ -372,6 +372,9 @@
                     <button type="button" class="tour-focus-exit" title="Übersicht anzeigen" aria-label="Übersicht anzeigen">☰</button>
                 </div>
                 <button id="btn-nearby" class="primary btn-nearby">📍 Was ist in meiner Nähe?</button>
+                <!-- Zweiter Einstieg (nur Handy): eine fertige Tour vom Desktop
+                     holen. Gehört zu den Start-Aktionen, nicht ans Listenende. -->
+                <button id="btn-tour-scan" class="only-mobile btn-scan-entry">📷 Tour vom Desktop holen</button>
                 <div id="tour-sales-map-view" class="aussen-view-block expert-only expert-swipe-section" data-expert-section="map-view">
                     <span class="field-label">Kartenansicht</span>
                     <div class="seg-toggle" id="aussen-view" role="group" aria-label="Kartenansicht">
@@ -458,11 +461,10 @@
                     <button id="btn-optimize" class="primary" disabled>⚡ Reihenfolge optimieren</button>
                     <button id="btn-route-focus" disabled>🗺️ Route auf Karte anzeigen</button>
                     <button id="btn-gmaps" disabled>🧭 In Google Maps navigieren</button>
+                    <button id="btn-tour-qr" class="only-desktop qr-handoff" disabled>📲 An Handy übergeben (QR)</button>
                     <button id="btn-tour-print" class="expert-only expert-swipe-section" data-expert-section="tour-print" disabled>🖨️ Tagesplan drucken</button>
                     <button id="btn-tour-ics" class="expert-only expert-swipe-section" data-expert-section="tour-ics" disabled>📅 Kalender-Export (.ics)</button>
                     <button id="btn-tour-copy" class="expert-only expert-swipe-section" data-expert-section="tour-copy" disabled>📋 Als Text kopieren (Outlook/Copilot)</button>
-                    <button id="btn-tour-qr" class="only-desktop" disabled>📲 An Handy übergeben (QR)</button>
-                    <button id="btn-tour-scan">📷 Tour vom Desktop scannen</button>
                     <button id="btn-tour-clear" class="danger" disabled>✕ Tour leeren</button>
                 </div>
                 </div><!-- /.acc-body -->
