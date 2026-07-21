@@ -39,6 +39,17 @@ describe('Tour-Aktionen: Scan als Einstieg, QR prominent, Desktop-Timeline', () 
         expect(components).toContain('.qr-handoff:not(:disabled)');
     });
 
+    it('lässt den gewählten Startpunkt wieder entfernen (nicht nur ersetzen)', () => {
+        const panel = read('src/ui/tourPanel.js');
+        // Die Start-Chip trägt einen Entfernen-Knopf, der den Start auf null setzt.
+        expect(panel).toContain('id="btn-start-clear"');
+        const from = panel.indexOf('function renderStart');
+        const block = panel.slice(from, panel.indexOf('\nfunction ', from + 10));
+        expect(block).toContain("getElementById('btn-start-clear')");
+        expect(block).toContain('state.tour.start = null;');
+        expect(block).toContain("emit('tour:changed')");
+    });
+
     it('bringt die grüne Tourlinie auch auf den Desktop', () => {
         expect(components).toContain('.stop-row::before');
         expect(components).toContain('.stop-row.stop-first::before { top: 50%; }');
