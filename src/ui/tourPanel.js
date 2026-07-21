@@ -941,6 +941,25 @@ function openTourAcc(key) {
         el.classList.toggle('open', open);
         el.querySelector('.acc-head')?.setAttribute('aria-expanded', String(open));
     });
+    // Horizontale Schrittleiste (Fokus-Modus) mitführen.
+    document.querySelectorAll('#tour-stepper .tour-step').forEach((b) => {
+        const on = b.dataset.step === key;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', String(on));
+    });
+}
+
+/**
+ * Fokus-Modus (nur Handy): Sobald der Nutzer in einem Schritt arbeitet, weicht
+ * das obere Chrome (Kartenstil, Erste Schritte, Titel, Bezirk) und die drei
+ * Akkordeon-Köpfe werden zur horizontalen Schrittleiste – mehr Platz fürs
+ * aktive Element. „Übersicht" führt zurück.
+ */
+function setTourFocus(on) {
+    const focus = on && isMobileTour();
+    document.body.classList.toggle('tour-focus', focus);
+    const stepper = document.getElementById('tour-stepper');
+    if (stepper) stepper.hidden = !focus;
 }
 
 function tourAccSummaries() {
@@ -992,11 +1011,27 @@ function initTourAccordion() {
             const alreadyOpen = acc.classList.contains('open');
             tourAccPinned = true;
             openTourAcc(alreadyOpen ? null : acc.dataset.acc);
+            // In einen Schritt getippt = arbeiten: Chrome weicht, Schrittleiste an.
+            if (!alreadyOpen) setTourFocus(true);
         });
         head.addEventListener('keydown', (ev) => {
             if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); head.click(); }
         });
     });
+
+    // Horizontale Schrittleiste: aktiven Schritt wechseln bzw. Übersicht zurück.
+    document.querySelectorAll('#tour-stepper .tour-step').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            tourAccPinned = true;
+            openTourAcc(btn.dataset.step);
+        });
+    });
+    document.querySelector('#tour-stepper .tour-focus-exit')
+        ?.addEventListener('click', () => setTourFocus(false));
+
+    // Verlässt der Nutzer den Tour-Tab oder wechselt den Modus, endet der Fokus.
+    on('tab:changed', (tab) => { if (tab !== 'tour') setTourFocus(false); });
+    on('mode:changed', () => setTourFocus(false));
 }
 
 function renderDest() {

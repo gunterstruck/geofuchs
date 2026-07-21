@@ -356,12 +356,21 @@
 
             <!-- Tab: Tour -->
             <section id="tab-tour" class="tab-panel">
-                <h2>Besuchsplaner</h2>
+                <h2 class="tour-panel-title">Besuchsplaner</h2>
 
                 <!-- Schritt 0: eigenen Bezirk wählen (nach Wahl auf schmale Zeile eingeklappt) -->
                 <div id="tour-scope" class="tour-scope"></div>
 
                 <div id="tour-planner" hidden>
+                <!-- Fokus-Modus (mobil): horizontale Schrittleiste. Ersetzt die
+                     Akkordeon-Köpfe, sobald der Nutzer in einem Schritt arbeitet;
+                     der aktive Schritt zeigt Text, die anderen nur die Ziffer. -->
+                <div id="tour-stepper" class="tour-stepper" role="tablist" aria-label="Tour-Schritte" hidden>
+                    <button type="button" class="tour-step" data-step="start" role="tab"><span class="ts-num">1</span><span class="ts-label">Startpunkt</span></button>
+                    <button type="button" class="tour-step" data-step="suggest" role="tab"><span class="ts-num">2</span><span class="ts-label">Vorschläge</span></button>
+                    <button type="button" class="tour-step" data-step="mytour" role="tab"><span class="ts-num">3</span><span class="ts-label">Meine Tour</span></button>
+                    <button type="button" class="tour-focus-exit" title="Übersicht anzeigen" aria-label="Übersicht anzeigen">☰</button>
+                </div>
                 <button id="btn-nearby" class="primary btn-nearby">📍 Was ist in meiner Nähe?</button>
                 <div id="tour-sales-map-view" class="aussen-view-block expert-only expert-swipe-section" data-expert-section="map-view">
                     <span class="field-label">Kartenansicht</span>

@@ -270,6 +270,79 @@
     body.reordering { user-select: none; -webkit-user-select: none; }
     .stop-reorder-hint { display: block; margin: 2px 2px 8px; opacity: 0.75; }
 
+    /* ---- Fokus-Modus: mehr Platz fürs aktive Element ------------------------
+       Sobald der Nutzer in einem Schritt arbeitet, weicht das obere Chrome und
+       die drei Akkordeon-Köpfe werden zu einer horizontalen Schrittleiste. */
+    body.tour-focus .basemap-control,
+    body.tour-focus #first-steps,
+    body.tour-focus .tour-panel-title,
+    body.tour-focus #tab-tour #tour-scope {
+        display: none;
+    }
+    /* Nur die aktive Gruppe bleibt; ihre Kopfzeile ersetzt die Schrittleiste. */
+    body.tour-focus #tab-tour .tour-acc .acc-head { display: none; }
+    body.tour-focus #tab-tour .tour-acc:not(.open) { display: none; }
+    /* Die offene Gruppe darf jetzt mehr Höhe nutzen (Chrome ist weg). */
+    body.tour-focus #tab-tour.active .tour-acc.open .acc-body { max-height: 62vh; }
+
+    body.tour-focus #tour-stepper {
+        display: flex;
+        gap: 6px;
+        align-items: stretch;
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        margin: 0 0 10px;
+        padding: 6px 0;
+        background: #fff;
+    }
+    .tour-step {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-width: 42px;
+        padding: 9px 8px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 0.9rem;
+        font-weight: 700;
+    }
+    .tour-step .ts-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #475569;
+        font-size: 0.78rem;
+    }
+    .tour-step .ts-label { display: none; }
+    .tour-step.active {
+        flex: 1;
+        border-color: color-mix(in srgb, var(--color-primary, #0d9488) 45%, #e2e8f0);
+        background: var(--color-primary-light);
+        color: var(--color-primary-dark, #0f766e);
+    }
+    .tour-step.active .ts-num {
+        background: var(--color-primary, #0d9488);
+        color: #fff;
+    }
+    .tour-step.active .ts-label { display: inline; }
+    .tour-focus-exit {
+        min-width: 42px;
+        padding: 9px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #fff;
+        color: #94a3b8;
+        font-size: 1rem;
+    }
+
     /* Gebietsplanung ist bewusst ein Desktop-Werkzeug. JS beendet zusätzlich
        eine laufende Vorschau beim Wechsel auf diese Breite. */
     #simulation-map-bar,
