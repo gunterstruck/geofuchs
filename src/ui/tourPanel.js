@@ -1058,7 +1058,13 @@ function renderStart() {
         el.innerHTML = '<p class="muted">Kein Startpunkt gewählt. Nutzen Sie Ihren Standort oder wählen Sie einen Kunden (Suche unten oder Karten-Popup „Als Start“).</p>';
         return;
     }
-    el.innerHTML = `<div class="start-chip">🚩 <b>${escapeHtml(state.tour.start.label)}</b></div>`;
+    el.innerHTML = `<div class="start-chip">🚩 <b>${escapeHtml(state.tour.start.label)}</b><button type="button" class="chip-x" id="btn-start-clear" title="Startpunkt entfernen" aria-label="Startpunkt entfernen">✕</button></div>`;
+    document.getElementById('btn-start-clear')?.addEventListener('click', () => {
+        invalidateAcceptedServicePlan(true);
+        state.tour.start = null;
+        state.tour.mapFocus = false; // Route ohne Start ergibt keinen Sinn.
+        emit('tour:changed');
+    });
 }
 
 function serviceScopeExceptionIds(stops) {
