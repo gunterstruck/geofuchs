@@ -1061,7 +1061,11 @@ function renderStops() {
         </div>`;
     } else {
         const today = new Date().toISOString().slice(0, 10);
-        el.innerHTML = exceptionWarning + stops.map((c, i) => {
+        // Mobiler Hinweis auf das Umsortieren (Desktop blendet ihn per CSS aus).
+        const reorderHint = stops.length >= 2
+            ? '<p class="stop-reorder-hint muted small">↕ Zum Umsortieren einen Stopp halten und ziehen</p>'
+            : '';
+        el.innerHTML = exceptionWarning + reorderHint + stops.map((c, i) => {
             const status = visitStatus(c);
             const done = lastVisit(c) === today;
             const outsideServiceScope = serviceExceptions.has(c.id);
@@ -1130,6 +1134,9 @@ function renderStops() {
             [state.tour.stops[i + 1], state.tour.stops[i]] = [state.tour.stops[i], state.tour.stops[i + 1]];
             emit('tour:changed');
         }));
+
+        // Am Handy ersetzt Halten & Ziehen die (mobil ausgeblendeten) ↑/↓-Pfeile.
+        if (isMobileTour()) wireStopReorder(el);
     }
 
     // Ziel als fester Streckenabschluss anzeigen
@@ -1210,6 +1217,98 @@ function renderStops() {
     document.getElementById('btn-tour-qr').disabled = !hasRoute;
     document.getElementById('btn-tour-save').disabled = !hasRoute;
     document.getElementById('btn-tour-clear').disabled = !(state.tour.start || state.tour.destination || stops.length > 0);
+}
+
+/**
+ * Halten & Ziehen zum Umsortieren der Tourstopps (nur Handy). Ersetzt die
+ * mobil ausgeblendeten ↑/↓-Pfeile. Ein kurzer Halte-Moment (300 ms) hebt die
+ * Zeile an; ein Tipp/Scroll bleibt unberührt (Bewegung vor dem Halten bricht
+ * ab). Nur die Kundenstopps sind sortierbar – Ziel und Rückweg bleiben fest.
+ */
+function wireStopReorder(container) {
+    const rows = [...container.querySelectorAll('.stop-row')].filter((r) => r.querySelector('[data-remove]'));
+    if (rows.length < 2) return;
+
+    rows.forEach((row) => {
+        let holdTimer = null;
+        let startY = 0;
+        let curY = 0;
+        let slots = [];
+        let rowH = 0;
+        let fromIdx = 0;
+        let scroller = null;
+
+        const midY = (i) => slots[i].top + slots[i].height / 2;
+        const targetIndex = () => {
+            let idx = 0;
+            for (let i = 0; i < slots.length; i++) {
+                if (i !== fromIdx && midY(i) < curY) idx++;
+            }
+            return Math.max(0, Math.min(rows.length - 1, idx));
+        };
+
+        const cancelHold = () => {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+            row.removeEventListener('pointermove', onPreMove);
+        };
+        const onPreMove = (e) => { if (Math.abs(e.clientY - startY) > 8) cancelHold(); };
+
+        const onDragMove = (e) => {
+            e.preventDefault();
+            curY = e.clientY;
+            row.style.transform = `translateY(${curY - startY}px)`;
+            const toIdx = targetIndex();
+            rows.forEach((r, i) => {
+                if (r === row) return;
+                let shift = 0;
+                if (fromIdx < toIdx && i > fromIdx && i <= toIdx) shift = -rowH;
+                else if (fromIdx > toIdx && i < fromIdx && i >= toIdx) shift = rowH;
+                r.style.transform = shift ? `translateY(${shift}px)` : '';
+            });
+        };
+
+        const endDrag = () => {
+            const toIdx = targetIndex();
+            rows.forEach((r) => { r.style.transform = ''; });
+            row.classList.remove('stop-dragging');
+            document.body.classList.remove('reordering');
+            if (scroller) scroller.style.overflow = '';
+            row.removeEventListener('pointermove', onDragMove);
+            if (toIdx !== fromIdx) {
+                invalidateAcceptedServicePlan(true);
+                const [moved] = state.tour.stops.splice(fromIdx, 1);
+                state.tour.stops.splice(toIdx, 0, moved);
+                emit('tour:changed');
+            }
+        };
+
+        const startDrag = (e) => {
+            cancelHold();
+            fromIdx = rows.indexOf(row);
+            slots = rows.map((r) => r.getBoundingClientRect());
+            rowH = slots[fromIdx].height;
+            scroller = row.closest('.acc-body') || row.closest('.tab-panel');
+            if (scroller) scroller.style.overflow = 'hidden';
+            row.classList.add('stop-dragging');
+            document.body.classList.add('reordering');
+            try { row.setPointerCapture(e.pointerId); } catch { /* egal */ }
+            if (navigator.vibrate) navigator.vibrate(12);
+            row.addEventListener('pointermove', onDragMove, { passive: false });
+            row.addEventListener('pointerup', endDrag, { once: true });
+            row.addEventListener('pointercancel', endDrag, { once: true });
+        };
+
+        row.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('button, a, .help-dot')) return; // Buttons/Punkt nicht kapern
+            startY = e.clientY;
+            curY = e.clientY;
+            holdTimer = setTimeout(() => startDrag(e), 300);
+            row.addEventListener('pointermove', onPreMove);
+            row.addEventListener('pointerup', cancelHold, { once: true });
+            row.addEventListener('pointercancel', cancelHold, { once: true });
+        });
+    });
 }
 
 /** Segment-Umschalter + Slider-Beschriftung an den Modus anpassen */

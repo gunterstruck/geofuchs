@@ -53,4 +53,23 @@ describe('Mobile „Meine Tour": kompakte Ein-Zeilen-Stopps mit grüner Tourlini
         expect(responsive).toMatch(/#tour-stops \.stop-title \{[\s\S]*text-overflow: ellipsis;/);
         expect(responsive).toContain('#tour-stops .stop-sub { display: none; }');
     });
+
+    it('erlaubt Umsortieren per Halten & Ziehen – nur am Handy', () => {
+        expect(panel).toContain('function wireStopReorder');
+        expect(panel).toContain('if (isMobileTour()) wireStopReorder(el);');
+        // Halte-Moment vor dem Drag; Bewegung davor bricht ab (Scroll bleibt).
+        expect(panel).toContain('setTimeout(() => startDrag(e), 300)');
+        // Reihenfolge wird per Splice umgesetzt.
+        expect(panel).toContain('state.tour.stops.splice(fromIdx, 1)');
+        expect(panel).toContain('state.tour.stops.splice(toIdx, 0, moved)');
+        // Nur Kundenstopps sind sortierbar (Ziel/Rückweg haben kein data-remove).
+        expect(panel).toContain("filter((r) => r.querySelector('[data-remove]'))");
+    });
+
+    it('hebt die gezogene Zeile hervor und blendet einen Handy-Hinweis ein', () => {
+        expect(responsive).toContain('#tour-stops .stop-row.stop-dragging');
+        expect(responsive).toContain('body.reordering');
+        expect(panel).toContain('class="stop-reorder-hint muted small"');
+        expect(components).toContain('.stop-reorder-hint { display: none; }'); // Desktop: aus
+    });
 });
