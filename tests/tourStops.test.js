@@ -58,7 +58,10 @@ describe('Mobile „Meine Tour": kompakte Ein-Zeilen-Stopps mit grüner Tourlini
         expect(panel).toContain('function wireStopReorder');
         expect(panel).toContain('if (isMobileTour()) wireStopReorder(el);');
         // Halte-Moment vor dem Drag; Bewegung davor bricht ab (Scroll bleibt).
-        expect(panel).toContain('setTimeout(() => startDrag(e), 300)');
+        expect(panel).toContain('setTimeout(startDrag, 300)');
+        // Über Touch-Events, damit der Blatt-Scroll per preventDefault stoppt.
+        expect(panel).toContain("addEventListener('touchmove', onTouchMove, { passive: false })");
+        expect(panel).toContain('e.preventDefault(); // Blatt-Scroll während des Ziehens unterbinden');
         // Reihenfolge wird per Splice umgesetzt.
         expect(panel).toContain('state.tour.stops.splice(fromIdx, 1)');
         expect(panel).toContain('state.tour.stops.splice(toIdx, 0, moved)');

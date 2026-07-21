@@ -1259,6 +1259,11 @@ function renderStops() {
  * mobil ausgeblendeten ↑/↓-Pfeile. Ein kurzer Halte-Moment (300 ms) hebt die
  * Zeile an; ein Tipp/Scroll bleibt unberührt (Bewegung vor dem Halten bricht
  * ab). Nur die Kundenstopps sind sortierbar – Ziel und Rückweg bleiben fest.
+ *
+ * Bewusst über Touch-Events: Nur so lässt sich der Blatt-Scroll während des
+ * Ziehens per preventDefault() zuverlässig unterbinden. Mit Pointer-Events
+ * (touch-action) kaperte der Browser die vertikale Bewegung als Scroll und
+ * brach das Ziehen ab – die Zeile „wackelte", die Position blieb.
  */
 function wireStopReorder(container) {
     const rows = [...container.querySelectorAll('.stop-row')].filter((r) => r.querySelector('[data-remove]'));
@@ -1266,6 +1271,7 @@ function wireStopReorder(container) {
 
     rows.forEach((row) => {
         let holdTimer = null;
+        let dragging = false;
         let startY = 0;
         let curY = 0;
         let slots = [];
@@ -1282,16 +1288,32 @@ function wireStopReorder(container) {
             return Math.max(0, Math.min(rows.length - 1, idx));
         };
 
-        const cancelHold = () => {
-            clearTimeout(holdTimer);
-            holdTimer = null;
-            row.removeEventListener('pointermove', onPreMove);
+        const startDrag = () => {
+            dragging = true;
+            fromIdx = rows.indexOf(row);
+            slots = rows.map((r) => r.getBoundingClientRect());
+            rowH = slots[fromIdx].height;
+            scroller = row.closest('.acc-body') || row.closest('.tab-panel');
+            if (scroller) scroller.style.overflow = 'hidden';
+            row.classList.add('stop-dragging');
+            document.body.classList.add('reordering');
+            if (navigator.vibrate) navigator.vibrate(12);
         };
-        const onPreMove = (e) => { if (Math.abs(e.clientY - startY) > 8) cancelHold(); };
 
-        const onDragMove = (e) => {
-            e.preventDefault();
-            curY = e.clientY;
+        const onTouchStart = (e) => {
+            if (e.target.closest('button, a, .help-dot')) return; // Buttons/Punkt nicht kapern
+            startY = e.touches[0].clientY;
+            curY = startY;
+            holdTimer = setTimeout(startDrag, 300);
+        };
+        const onTouchMove = (e) => {
+            curY = e.touches[0].clientY;
+            if (!dragging) {
+                // Bewegt sich der Finger vor dem Halten, ist es ein Scroll – abbrechen.
+                if (Math.abs(curY - startY) > 8) { clearTimeout(holdTimer); holdTimer = null; }
+                return;
+            }
+            e.preventDefault(); // Blatt-Scroll während des Ziehens unterbinden
             row.style.transform = `translateY(${curY - startY}px)`;
             const toIdx = targetIndex();
             rows.forEach((r, i) => {
@@ -1302,14 +1324,16 @@ function wireStopReorder(container) {
                 r.style.transform = shift ? `translateY(${shift}px)` : '';
             });
         };
-
-        const endDrag = () => {
+        const onTouchEnd = () => {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+            if (!dragging) return;
             const toIdx = targetIndex();
             rows.forEach((r) => { r.style.transform = ''; });
             row.classList.remove('stop-dragging');
             document.body.classList.remove('reordering');
             if (scroller) scroller.style.overflow = '';
-            row.removeEventListener('pointermove', onDragMove);
+            dragging = false;
             if (toIdx !== fromIdx) {
                 invalidateAcceptedServicePlan(true);
                 const [moved] = state.tour.stops.splice(fromIdx, 1);
@@ -1318,31 +1342,10 @@ function wireStopReorder(container) {
             }
         };
 
-        const startDrag = (e) => {
-            cancelHold();
-            fromIdx = rows.indexOf(row);
-            slots = rows.map((r) => r.getBoundingClientRect());
-            rowH = slots[fromIdx].height;
-            scroller = row.closest('.acc-body') || row.closest('.tab-panel');
-            if (scroller) scroller.style.overflow = 'hidden';
-            row.classList.add('stop-dragging');
-            document.body.classList.add('reordering');
-            try { row.setPointerCapture(e.pointerId); } catch { /* egal */ }
-            if (navigator.vibrate) navigator.vibrate(12);
-            row.addEventListener('pointermove', onDragMove, { passive: false });
-            row.addEventListener('pointerup', endDrag, { once: true });
-            row.addEventListener('pointercancel', endDrag, { once: true });
-        };
-
-        row.addEventListener('pointerdown', (e) => {
-            if (e.target.closest('button, a, .help-dot')) return; // Buttons/Punkt nicht kapern
-            startY = e.clientY;
-            curY = e.clientY;
-            holdTimer = setTimeout(() => startDrag(e), 300);
-            row.addEventListener('pointermove', onPreMove);
-            row.addEventListener('pointerup', cancelHold, { once: true });
-            row.addEventListener('pointercancel', cancelHold, { once: true });
-        });
+        row.addEventListener('touchstart', onTouchStart, { passive: true });
+        row.addEventListener('touchmove', onTouchMove, { passive: false });
+        row.addEventListener('touchend', onTouchEnd);
+        row.addEventListener('touchcancel', onTouchEnd);
     });
 }
 
