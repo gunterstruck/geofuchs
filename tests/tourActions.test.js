@@ -25,6 +25,10 @@ describe('Tour-Aktionen: Scan als Einstieg, QR prominent, Desktop-Timeline', () 
         expect(responsive).toContain('.btn-scan-entry');
     });
 
+    it('blendet den Scan-Einstieg aus, sobald ein Startpunkt steht (wie „In der Nähe")', () => {
+        expect(responsive).toContain('body.tour-has-start #tab-tour.active #btn-tour-scan');
+    });
+
     it('rückt die QR-Übergabe am Desktop nach oben und hebt sie hervor', () => {
         expect(html).toMatch(/id="btn-tour-qr"[^>]*class="[^"]*only-desktop[^"]*qr-handoff/);
         const gmapsIdx = html.indexOf('id="btn-gmaps"');

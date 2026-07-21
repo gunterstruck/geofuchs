@@ -183,9 +183,11 @@
     }
     /* Kein doppelter Scroller: In der offenen Gruppe scrollt die acc-body. */
     #tab-tour.active .tour-acc.open .scroll-list { max-height: none; overflow: visible; }
-    /* „Was ist in meiner Nähe?" ist beim Planen (Start steht) redundant und
-       kostet Platz – dann ausblenden, damit die Akkordeon-Köpfe passen. */
-    body.tour-has-start #tab-tour.active #btn-nearby { display: none; }
+    /* „Was ist in meiner Nähe?" und der Scan-Einstieg sind beim Planen (Start
+       steht) redundant und kosten Platz – dann ausblenden, damit die
+       Akkordeon-Köpfe passen. */
+    body.tour-has-start #tab-tour.active #btn-nearby,
+    body.tour-has-start #tab-tour.active #btn-tour-scan { display: none; }
 
     /* „Meine Tour" mobil: kompakte Ein-Zeilen-Stopps im Karten-Listenstil mit
        einer durchgehenden grünen Tourlinie links (Punkte an den Kunden). Statt
