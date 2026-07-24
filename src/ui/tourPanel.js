@@ -69,6 +69,13 @@ export function initTourPanel() {
         scopeExpanded = false;
         renderTourScope();
         updatePlannerVisibility();
+        // Desktop: mit gewähltem Bezirk direkt in die kompakte Schrittleiste; ohne
+        // Bezirk zurück zur Übersicht mit der Bezirkswahl.
+        if (!isMobileTour()) {
+            const chosen = state.tour.bezirk && state.tour.bezirk !== '__none__';
+            setTourFocus(chosen);
+            if (chosen) openTourAcc(currentTourStep());
+        }
         emit('tour:scope-changed');
         renderPanel();
     });
@@ -1032,7 +1039,17 @@ function initTourAccordion() {
         ?.addEventListener('click', () => setTourFocus(false));
 
     // Verlässt der Nutzer den Tour-Tab oder wechselt den Modus, endet der Fokus.
-    on('tab:changed', (tab) => { if (tab !== 'tour') setTourFocus(false); });
+    on('tab:changed', (tab) => {
+        if (tab !== 'tour') { setTourFocus(false); return; }
+        // Desktop: den Tourplaner direkt in der kompakten Schrittleiste öffnen –
+        // aber erst, wenn ein Bezirk gewählt ist (sonst braucht man die
+        // Bezirkswahl, die der Fokus ausblendet). „☰ Übersicht" bleibt der Weg
+        // zurück (bis zum nächsten Öffnen des Tabs).
+        if (!isMobileTour() && state.tour.bezirk && state.tour.bezirk !== '__none__') {
+            setTourFocus(true);
+            openTourAcc(currentTourStep());
+        }
+    });
     on('mode:changed', () => setTourFocus(false));
 }
 
