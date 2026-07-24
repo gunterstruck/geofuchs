@@ -951,16 +951,15 @@ function openTourAcc(key) {
 }
 
 /**
- * Fokus-Modus (nur Handy): Sobald der Nutzer in einem Schritt arbeitet, weicht
- * das obere Chrome (Kartenstil, Erste Schritte, Titel, Bezirk) und die drei
- * Akkordeon-Köpfe werden zur horizontalen Schrittleiste – mehr Platz fürs
- * aktive Element. „Übersicht" führt zurück.
+ * Fokus-Modus (Handy UND Desktop): Sobald der Nutzer in einen Schritt tippt,
+ * weicht das obere Chrome (Kartenstil, Erste Schritte, Titel, Bezirk) und die
+ * drei Akkordeon-Köpfe werden zur horizontalen Schrittleiste – der aktive
+ * Schritt prominent, die anderen als Ziffer. „Übersicht" führt zurück.
  */
 function setTourFocus(on) {
-    const focus = on && isMobileTour();
-    document.body.classList.toggle('tour-focus', focus);
+    document.body.classList.toggle('tour-focus', on);
     const stepper = document.getElementById('tour-stepper');
-    if (stepper) stepper.hidden = !focus;
+    if (stepper) stepper.hidden = !on;
 }
 
 function tourAccSummaries() {
@@ -994,7 +993,9 @@ function updateTourAccordion() {
     // die Body-Klasse blendet den Knopf mobil aus und schafft Platz für die
     // Akkordeon-Köpfe.
     document.body.classList.toggle('tour-has-start', !!state.tour.start);
-    if (!isMobileTour()) return;
+    // Das Ein-Schritt-Verhalten gilt am Handy immer (Akkordeon) und am Desktop
+    // im Fokus-Modus. In der Desktop-Übersicht bleiben alle Schritte offen.
+    if (!isMobileTour() && !document.body.classList.contains('tour-focus')) return;
     // Leere Tour = neuer Anlauf: Das Akkordeon folgt wieder von selbst dem Flow.
     if (!state.tour.start && state.tour.stops.length === 0) tourAccPinned = false;
     // Ohne manuelle Wahl der Bühne folgt das Akkordeon dem Arbeitsfluss.
@@ -1007,12 +1008,12 @@ function initTourAccordion() {
         head.addEventListener('click', (ev) => {
             // Der Info-Punkt zeigt nur seinen Tooltip, klappt nicht.
             if (ev.target.closest('.help-dot')) return;
-            if (!isMobileTour()) return;
             const acc = head.closest('.tour-acc');
             const alreadyOpen = acc.classList.contains('open');
             tourAccPinned = true;
             openTourAcc(alreadyOpen ? null : acc.dataset.acc);
-            // In einen Schritt getippt = arbeiten: Chrome weicht, Schrittleiste an.
+            // In einen Schritt getippt = arbeiten: Chrome weicht, Schrittleiste an
+            // (Handy wie Desktop). Erneuter Tipp auf den offenen Schritt lässt es.
             if (!alreadyOpen) setTourFocus(true);
         });
         head.addEventListener('keydown', (ev) => {

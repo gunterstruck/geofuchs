@@ -21,7 +21,8 @@ describe('Tour-Aktionen: Scan als Einstieg, QR prominent, Desktop-Timeline', () 
     });
 
     it('blendet den Scan-Einstieg im Fokus-Modus aus und stylt ihn sekundär', () => {
-        expect(responsive).toContain('body.tour-focus #btn-tour-scan');
+        // Fokus-Regeln liegen jetzt in components.css (gelten Handy + Desktop).
+        expect(components).toContain('body.tour-focus #btn-tour-scan');
         expect(responsive).toContain('.btn-scan-entry');
     });
 
