@@ -975,11 +975,27 @@ body:not(.depth-profi) .profi-only { display: none !important; }
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 2px;
+    padding: 4px 2px;
     border-bottom: 1px solid var(--color-surface-2);
     border-radius: var(--radius-m);
     position: relative;
+    cursor: grab; /* Ziehen zum Umsortieren (Desktop) */
+    transition: transform 0.12s ease;
 }
+.stop-row .stop-actions button,
+.stop-row .stop-name,
+.stop-row a { cursor: default; }
+.stop-row .stop-actions button { cursor: pointer; }
+/* Angehobene Zeile beim Ziehen – hebt sich ab und folgt dem Zeiger. */
+.stop-row.stop-dragging {
+    cursor: grabbing;
+    z-index: 5;
+    background: var(--color-surface, #fff);
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
+    transition: none;
+}
+body.reordering { cursor: grabbing; user-select: none; }
 /* Grüne Tourlinie hinter den Punkten – verbindet die Stopps sichtbar zur Route.
    Am Handy überschreiben die #tour-stops-Regeln Position/Farbe der Linie. */
 .stop-row::before {
@@ -1010,13 +1026,15 @@ body:not(.depth-profi) .profi-only { display: none !important; }
     justify-content: center;
     box-shadow: 0 0 0 3px var(--color-surface, #fff);
 }
-.stop-name { flex: 1; font-size: 0.88rem; line-height: 1.25; overflow: hidden; }
-/* Name, Sekundärzeile und Service-Zeile stehen wie bisher untereinander
-   (ersetzt die früheren <br> – Desktop-Look bleibt identisch). */
+.stop-name { flex: 1; font-size: 0.84rem; line-height: 1.2; overflow: hidden; }
+/* Kompaktere Zeile: Titel einzeilig, Sekundärzeile klein und gedämpft. */
 .stop-title, .stop-sub, .stop-plan-line { display: block; }
+.stop-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stop-sub { font-size: 0.74rem; }
 /* Der „Halten & Ziehen"-Hinweis ist eine reine Handy-Hilfe. */
 .stop-reorder-hint { display: none; }
-.stop-actions { display: flex; gap: 2px; }
+.stop-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.stop-actions button { padding: 2px 6px; font-size: 0.76rem; }
 
 /* QR-Übergabe ans Handy ist die WOW-Aktion – sobald eine Tour steht, hebt sie
    sich im Aktionsstapel ab (steht direkt unter „In Google Maps navigieren"). */

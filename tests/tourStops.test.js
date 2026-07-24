@@ -54,14 +54,16 @@ describe('Mobile „Meine Tour": kompakte Ein-Zeilen-Stopps mit grüner Tourlini
         expect(responsive).toContain('#tour-stops .stop-sub { display: none; }');
     });
 
-    it('erlaubt Umsortieren per Halten & Ziehen – nur am Handy', () => {
+    it('erlaubt Umsortieren per Ziehen (Handy: Halten, Desktop: Maus)', () => {
         expect(panel).toContain('function wireStopReorder');
-        expect(panel).toContain('if (isMobileTour()) wireStopReorder(el);');
-        // Halte-Moment vor dem Drag; Bewegung davor bricht ab (Scroll bleibt).
+        expect(panel).toContain('wireStopReorder(el);');
+        // Handy: Halte-Moment über Touch-Events (Scroll per preventDefault stoppen).
         expect(panel).toContain('setTimeout(startDrag, 300)');
-        // Über Touch-Events, damit der Blatt-Scroll per preventDefault stoppt.
         expect(panel).toContain("addEventListener('touchmove', onTouchMove, { passive: false })");
-        expect(panel).toContain('e.preventDefault(); // Blatt-Scroll während des Ziehens unterbinden');
+        // Desktop: Maus-Ziehen über Pointer-Events mit Pointer-Capture.
+        expect(panel).toContain("row.addEventListener('pointerdown'");
+        expect(panel).toContain("e.pointerType === 'touch'"); // Touch nutzt den Touch-Pfad
+        expect(panel).toContain('row.setPointerCapture(e.pointerId)');
         // Reihenfolge wird per Splice umgesetzt.
         expect(panel).toContain('state.tour.stops.splice(fromIdx, 1)');
         expect(panel).toContain('state.tour.stops.splice(toIdx, 0, moved)');

@@ -1177,8 +1177,9 @@ function renderStops() {
             emit('tour:changed');
         }));
 
-        // Am Handy ersetzt Halten & Ziehen die (mobil ausgeblendeten) ↑/↓-Pfeile.
-        if (isMobileTour()) wireStopReorder(el);
+        // Umsortieren per Ziehen: am Handy Halten & Ziehen, am Desktop mit der
+        // Maus. Die ↑/↓-Pfeile bleiben am Desktop als Tastatur-/A11y-Weg.
+        wireStopReorder(el);
     }
 
     // Ziel als fester Streckenabschluss anzeigen
@@ -1262,15 +1263,11 @@ function renderStops() {
 }
 
 /**
- * Halten & Ziehen zum Umsortieren der Tourstopps (nur Handy). Ersetzt die
- * mobil ausgeblendeten ↑/↓-Pfeile. Ein kurzer Halte-Moment (300 ms) hebt die
- * Zeile an; ein Tipp/Scroll bleibt unberührt (Bewegung vor dem Halten bricht
- * ab). Nur die Kundenstopps sind sortierbar – Ziel und Rückweg bleiben fest.
- *
- * Bewusst über Touch-Events: Nur so lässt sich der Blatt-Scroll während des
- * Ziehens per preventDefault() zuverlässig unterbinden. Mit Pointer-Events
- * (touch-action) kaperte der Browser die vertikale Bewegung als Scroll und
- * brach das Ziehen ab – die Zeile „wackelte", die Position blieb.
+ * Ziehen zum Umsortieren der Tourstopps. Am Handy per Halten & Ziehen
+ * (Touch-Events, 300 ms Halten – nur so lässt sich der Blatt-Scroll per
+ * preventDefault zuverlässig stoppen). Am Desktop mit der Maus (sofort ab
+ * kleiner Schwelle); die ↑/↓-Pfeile bleiben dort als Tastatur-/A11y-Weg.
+ * Nur die Kundenstopps sind sortierbar – Ziel und Rückweg bleiben fest.
  */
 function wireStopReorder(container) {
     const rows = [...container.querySelectorAll('.stop-row')].filter((r) => r.querySelector('[data-remove]'));
@@ -1306,21 +1303,8 @@ function wireStopReorder(container) {
             document.body.classList.add('reordering');
             if (navigator.vibrate) navigator.vibrate(12);
         };
-
-        const onTouchStart = (e) => {
-            if (e.target.closest('button, a, .help-dot')) return; // Buttons/Punkt nicht kapern
-            startY = e.touches[0].clientY;
-            curY = startY;
-            holdTimer = setTimeout(startDrag, 300);
-        };
-        const onTouchMove = (e) => {
-            curY = e.touches[0].clientY;
-            if (!dragging) {
-                // Bewegt sich der Finger vor dem Halten, ist es ein Scroll – abbrechen.
-                if (Math.abs(curY - startY) > 8) { clearTimeout(holdTimer); holdTimer = null; }
-                return;
-            }
-            e.preventDefault(); // Blatt-Scroll während des Ziehens unterbinden
+        // Gezogene Zeile folgt dem Zeiger; die anderen weichen der Lücke.
+        const applyMove = () => {
             row.style.transform = `translateY(${curY - startY}px)`;
             const toIdx = targetIndex();
             rows.forEach((r, i) => {
@@ -1331,9 +1315,7 @@ function wireStopReorder(container) {
                 r.style.transform = shift ? `translateY(${shift}px)` : '';
             });
         };
-        const onTouchEnd = () => {
-            clearTimeout(holdTimer);
-            holdTimer = null;
+        const finishDrag = () => {
             if (!dragging) return;
             const toIdx = targetIndex();
             rows.forEach((r) => { r.style.transform = ''; });
@@ -1349,10 +1331,59 @@ function wireStopReorder(container) {
             }
         };
 
+        // Handy: Halten & Ziehen über Touch-Events.
+        const onTouchStart = (e) => {
+            if (e.target.closest('button, a, .help-dot')) return; // Buttons/Punkt nicht kapern
+            startY = e.touches[0].clientY;
+            curY = startY;
+            holdTimer = setTimeout(startDrag, 300);
+        };
+        const onTouchMove = (e) => {
+            curY = e.touches[0].clientY;
+            if (!dragging) {
+                if (Math.abs(curY - startY) > 8) { clearTimeout(holdTimer); holdTimer = null; }
+                return;
+            }
+            e.preventDefault(); // Blatt-Scroll während des Ziehens unterbinden
+            applyMove();
+        };
+        const onTouchEnd = () => {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+            finishDrag();
+        };
         row.addEventListener('touchstart', onTouchStart, { passive: true });
         row.addEventListener('touchmove', onTouchMove, { passive: false });
         row.addEventListener('touchend', onTouchEnd);
         row.addEventListener('touchcancel', onTouchEnd);
+
+        // Desktop: Ziehen mit der Maus über Pointer-Events mit Pointer-Capture
+        // (die Bewegung erreicht die Zeile zuverlässig, auch außerhalb). Touch
+        // läuft weiter über den Touch-Pfad oben.
+        const onPointerMove = (e) => {
+            curY = e.clientY;
+            if (!dragging) {
+                if (Math.abs(curY - startY) > 4) startDrag();
+                else return;
+            }
+            e.preventDefault();
+            applyMove();
+        };
+        const onPointerUp = (e) => {
+            try { row.releasePointerCapture(e.pointerId); } catch { /* egal */ }
+            row.removeEventListener('pointermove', onPointerMove);
+            row.removeEventListener('pointerup', onPointerUp);
+            finishDrag();
+        };
+        row.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'touch') return; // Touch nutzt den Touch-Pfad
+            if (e.button !== 0 || e.target.closest('button, a, input, select, .help-dot')) return;
+            startY = e.clientY;
+            curY = e.clientY;
+            try { row.setPointerCapture(e.pointerId); } catch { /* egal */ }
+            row.addEventListener('pointermove', onPointerMove);
+            row.addEventListener('pointerup', onPointerUp);
+        });
     });
 }
 
