@@ -27,12 +27,15 @@ describe('Lebendige Kunden-Kacheln', () => {
         expect(customerMarkerModeClass('unbekannt')).toBe('customer-marker-mode-dot');
     });
 
-    it('hält dichte Kundenbestände länger in ruhigen Stapeln zusammen', () => {
+    it('hält dichte Bestände im Überblick zusammen, löst sie aber im Nahbereich auf', () => {
+        // Überblick: ruhige Stapel bleiben zusammen.
         expect(customerClusterRadius(6)).toBe(104);
         expect(customerClusterRadius(9)).toBe(112);
-        expect(customerClusterRadius(13)).toBe(68);
-        expect(customerClusterRadius(15)).toBe(42);
         expect(customerClusterRadius(9, { mobile: true })).toBe(120);
+        // Nahbereich: enger clustern, damit verteilte Kleingruppen zu
+        // Einzelmarkern werden (man sieht, wo die Kunden sitzen).
+        expect(customerClusterRadius(13)).toBe(48);
+        expect(customerClusterRadius(15)).toBe(28);
     });
 
     it('zeigt bei Demokunden sofort den unterscheidbaren Namen statt des langen Präfixes', () => {
