@@ -15,14 +15,17 @@ describe('Lebendige Kunden-Kacheln', () => {
     it('enthüllt Information progressiv mit dem Kartenzoom', () => {
         expect(customerMarkerMode(7.75)).toBe('dot');
         expect(customerMarkerMode(8)).toBe('card');
-        expect(customerMarkerMode(12)).toBe('label');
-        expect(customerMarkerMode(14.5)).toBe('detail');
+        // Namen bleiben in der Stadtansicht aus: kleine Clips halten länger.
+        expect(customerMarkerMode(12)).toBe('card');
+        expect(customerMarkerMode(13.9)).toBe('card');
+        expect(customerMarkerMode(14)).toBe('label');
+        expect(customerMarkerMode(15.5)).toBe('detail');
     });
 
     it('zeigt Namen und Details mobil etwas später, um die Karte ruhig zu halten', () => {
-        expect(customerMarkerMode(12, { mobile: true })).toBe('card');
-        expect(customerMarkerMode(13, { mobile: true })).toBe('label');
-        expect(customerMarkerMode(15.5, { mobile: true })).toBe('detail');
+        expect(customerMarkerMode(13, { mobile: true })).toBe('card');
+        expect(customerMarkerMode(15, { mobile: true })).toBe('label');
+        expect(customerMarkerMode(16.5, { mobile: true })).toBe('detail');
         expect(customerMarkerModeClass('label')).toBe('customer-marker-mode-label');
         expect(customerMarkerModeClass('unbekannt')).toBe('customer-marker-mode-dot');
     });

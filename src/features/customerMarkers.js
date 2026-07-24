@@ -7,8 +7,12 @@ export const DEFAULT_CUSTOMER_COLOR = '#0d9488';
  */
 export function customerMarkerMode(zoom, { mobile = false } = {}) {
     const value = Number(zoom) || 0;
-    const labelZoom = mobile ? 13 : 12;
-    const detailZoom = mobile ? 15.5 : 14.5;
+    // Namen (Label-/Detailkarten) verdecken in der Stadtansicht schnell Route und
+    // Nachbarn. Deshalb bleiben die kleinen Clips bewusst länger stehen: Namen
+    // erscheinen erst im echten Nahbereich, wenn wirklich deutlich hineingezoomt
+    // wurde – darunter reicht der kompakte Clip zur Orientierung.
+    const labelZoom = mobile ? 15 : 14;
+    const detailZoom = mobile ? 16.5 : 15.5;
     if (value >= detailZoom) return 'detail';
     if (value >= labelZoom) return 'label';
     if (value >= 8) return 'card';
