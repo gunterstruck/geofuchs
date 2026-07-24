@@ -29,8 +29,11 @@ describe('Fokus-Modus: mehr Übersicht im Tourplaner (Handy und Desktop)', () =>
         // Übersicht-Knopf führt zurück.
         expect(panel).toContain("setTourFocus(false)");
         // Tab-/Moduswechsel beenden den Fokus.
-        expect(panel).toContain("on('tab:changed', (tab) => { if (tab !== 'tour') setTourFocus(false); });");
+        expect(panel).toContain("on('tab:changed'");
+        expect(panel).toContain("if (tab !== 'tour') { setTourFocus(false); return; }");
         expect(panel).toContain("on('mode:changed', () => setTourFocus(false));");
+        // Desktop: mit gewähltem Bezirk direkt in die kompakte Schrittleiste.
+        expect(panel).toContain("if (!isMobileTour() && state.tour.bezirk && state.tour.bezirk !== '__none__')");
     });
 
     it('führt die Schrittleiste synchron zum offenen Akkordeon', () => {
