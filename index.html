@@ -531,6 +531,26 @@
         <div id="dropzone" class="dropzone"><div>📥 Excel- oder CSV-Datei hier ablegen</div></div>
         <div id="toasts" class="toasts" aria-live="polite"></div>
 
+        <!-- Zentraler, nicht-blockierender Willkommens-Hinweis über der Karte.
+             Erscheint, solange Beispieldaten laufen und noch nicht quittiert
+             wurde. Bündelt die drei Kernbotschaften – „das sind Beispieldaten",
+             „eigene Daten jetzt oder später laden", „es gibt Live-Demos" – in
+             einer Karte mit einer Quittung. Die Karte dahinter bleibt bedienbar. -->
+        <div id="demo-welcome" class="demo-welcome" role="dialog" aria-labelledby="demo-welcome-title" aria-describedby="demo-welcome-lead" hidden>
+            <div class="demo-welcome-card">
+                <button type="button" id="btn-demo-welcome-close" class="demo-welcome-x" aria-label="Hinweis schließen">✕</button>
+                <div class="demo-welcome-fox" aria-hidden="true">🦊</div>
+                <h2 id="demo-welcome-title">🧪 Das sind Beispieldaten</h2>
+                <p id="demo-welcome-lead" class="demo-welcome-lead">Sieh dich in Ruhe um – oder leg direkt mit deinen <b>eigenen Daten</b> los. Beides geht jederzeit.</p>
+                <div class="demo-welcome-actions">
+                    <button type="button" id="btn-demo-welcome-own" class="primary">📂 Eigene Daten laden</button>
+                    <button type="button" id="btn-demo-welcome-demos" class="demo-welcome-secondary">▶ Kurze Live-Demos ansehen</button>
+                </div>
+                <button type="button" id="btn-demo-welcome-ack" class="demo-welcome-ack">Verstanden – erst umsehen</button>
+                <p class="demo-welcome-foot muted small">Excel/CSV oder verschlüsselte TourFuchs-Datei · später jederzeit über 📂 im Daten-Bereich.</p>
+            </div>
+        </div>
+
         <!-- Mobile-Vorschau (nur zu Demonstrationszwecken am Desktop) -->
         <div id="mobile-preview" class="mobile-preview" hidden>
             <div class="mp-backdrop" data-mp-close></div>

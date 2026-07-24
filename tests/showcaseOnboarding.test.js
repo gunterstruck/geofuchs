@@ -159,7 +159,9 @@ describe('Showcase-Onboarding', () => {
 
         // Showcase öffnet nur auf bewussten Klick: Info-Dialog + Willkommens-Panel.
         expect(showcase).toContain("document.getElementById('btn-showcase')");
-        expect(showcase).toContain("['btn-showcase-ob']");
+        expect(showcase).toContain("'btn-showcase-ob'");
+        // Auch der zentrale Willkommens-Hinweis führt in dieselbe Live-Demo.
+        expect(showcase).toContain("'btn-demo-welcome-demos'");
         expect(html).toContain('id="btn-showcase-ob"');
         expect(html).not.toContain('id="btn-showcase-data"');
         expect(showcase).toContain("on('dataset:cleared', () => resetShowcaseAfterDataClear())");

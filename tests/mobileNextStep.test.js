@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 
 const read = (f) => readFileSync(resolve(process.cwd(), f), 'utf8');
 
-describe('Schwebender „nächster Schritt"-Fuchs (mobil)', () => {
+describe('Schwebender „nächster Schritt"-Fuchs (Desktop + mobil)', () => {
     const html = read('index.html');
     const css = read('src/styles/responsive.css');
     const sidebar = read('src/ui/sidebar.js');
@@ -17,16 +17,26 @@ describe('Schwebender „nächster Schritt"-Fuchs (mobil)', () => {
         expect(html.indexOf('id="mobile-next-step"')).toBeGreaterThan(asideEnd);
     });
 
-    it('schwebt schmal über der Griff-Leiste und ist auf dem Desktop unsichtbar', () => {
+    it('schwebt mobil schmal über der Griff-Leiste', () => {
         expect(css).toContain('.mobile-next-step {');
         expect(css).toContain('bottom: calc(var(--mobile-sheet-peek, 46px) + 12px)');
         expect(css).toMatch(/max-width: 82vw/); // nicht die volle Breite
-        expect(css).toContain('.mobile-next-step { display: none !important; }');
     });
 
-    it('führt als Kette durch den Flow und nur bei zugeklapptem Blatt', () => {
+    it('erscheint jetzt auch auf dem Desktop (kein pauschales Ausblenden mehr)', () => {
+        // Der frühere Hard-Hide ab 769px ist entfernt; ab 901px gibt es eine
+        // eigene Desktop-Platzierung (unten mittig über der Karte).
+        expect(css).not.toContain('.mobile-next-step { display: none !important; }');
+        expect(css).toContain('@media (min-width: 901px)');
+        const desktopBlock = css.slice(css.indexOf('@media (min-width: 901px)'));
+        expect(desktopBlock).toContain('.mobile-next-step {');
+        expect(desktopBlock).toContain('position: fixed');
+    });
+
+    it('führt als Kette durch den Flow und mobil nur bei zugeklapptem Blatt', () => {
         expect(sidebar).toContain('function updateMobileNextStep');
-        expect(sidebar).toContain('!state.ui.sidebarOpen');
+        // Mobil weiterhin nur bei zugeklapptem Blatt, auf dem Desktop immer.
+        expect(sidebar).toContain('isMobileUi() ? !state.ui.sidebarOpen : true');
         expect(sidebar).toContain("state.ui.mode === 'aussendienst'");
         // Drei Kettenschritte: Nähe → Tour ab hier planen → Route auf die Karte.
         expect(sidebar).toContain('Kunden in meiner Nähe');
