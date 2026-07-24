@@ -23,6 +23,7 @@ import {
     welcomeDemoDelayMs
 } from '../services/showcaseOnboarding.js';
 import { isEnabled as vaultEnabled, removeVaultMeta } from '../services/vault.js';
+import { isDemoDataset } from '../core/demoSafety.js';
 import { showToast } from './toast.js';
 import { fitToCustomers } from '../features/map.js';
 import {
@@ -65,6 +66,12 @@ export function initImportWizard() {
         cancelWelcomeDemo();
         ownDataDialog?.showModal();
     });
+    // Demo-Streifen (überall sichtbar bei Beispieldaten): führt in denselben
+    // geführten Upload wie im Willkommen.
+    document.getElementById('btn-demo-own-data')?.addEventListener('click', () => {
+        cancelWelcomeDemo();
+        ownDataDialog?.showModal();
+    });
     document.getElementById('btn-showcase-ob')?.addEventListener('click', () => cancelWelcomeDemo());
     // „Später" im Demo-Panel heißt nicht „nie": Schließt sich die Demo-Auswahl
     // ohne gestartete Vorführung und ohne Daten, wird die Willkommens-Automatik
@@ -89,7 +96,12 @@ export function initImportWizard() {
         fileInput.click();
     };
     document.getElementById('btn-upload').addEventListener('click', openFilePicker);
-    document.getElementById('btn-upload-more')?.addEventListener('click', openFilePicker);
+    // Bei Beispieldaten führt „Eigene Daten laden" in den geführten Dialog
+    // (Excel oder verschlüsselte Datei) statt direkt in den Datei-Picker.
+    document.getElementById('btn-upload-more')?.addEventListener('click', () => {
+        if (isDemoDataset(state.customers)) { cancelWelcomeDemo(); ownDataDialog?.showModal(); return; }
+        openFilePicker();
+    });
     document.getElementById('btn-safe-receive-ob')?.addEventListener('click', () => {
         if (ownDataDialog?.open) ownDataDialog.close();
     });

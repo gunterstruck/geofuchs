@@ -64,6 +64,13 @@
                 <span id="panel-zoom-label" role="button" tabindex="0" title="Zurück auf 100 %">100%</span>
                 <button type="button" id="panel-zoom-out" aria-label="Panel verkleinern">−</button>
             </div>
+
+            <!-- Ständiger, ruhiger Hinweis solange Beispieldaten laufen: jederzeit
+                 sichtbar in allen Bereichen, ein Tipp öffnet den geführten Upload. -->
+            <div id="demo-banner" class="demo-banner" role="note" hidden>
+                <span class="demo-banner-text">🧪 <b>Beispieldaten</b> – das sind Demo-Kunden.</span>
+                <button type="button" id="btn-demo-own-data" class="demo-banner-cta">📂 Eigene Daten laden</button>
+            </div>
             <div class="depth-switch seg-toggle" id="depth-switch" role="group" aria-label="Ansichtstiefe wählen" title="Basis zeigt nur das Wesentliche · Profi blendet alle Werkzeuge ein">
                 <button type="button" class="seg" data-depth="basis">🌱 Basis</button>
                 <button type="button" class="seg" data-depth="profi">🛠️ Profi</button>

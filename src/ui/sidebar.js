@@ -1326,6 +1326,10 @@ function renderDataStatus() {
     // Spiegelt den Onboarding-Zustand auf den Body, damit der mobile Kopf-Streifen
     // (außerhalb der Sidebar) währenddessen ausgeblendet werden kann.
     document.body.classList.toggle('app-onboarding', empty);
+    // Demo-Streifen: nur bei aktiven Beispieldaten (nicht im leeren Willkommen,
+    // nicht bei echten Daten). Überall im Panel sichtbar, führt zum Upload.
+    const demoBanner = document.getElementById('demo-banner');
+    if (demoBanner) demoBanner.hidden = empty || !isDemoDataset(state.customers);
     if (empty) {
         if (onboarding) onboarding.style.display = '';
         if (loaded) loaded.style.display = 'none';
@@ -1340,6 +1344,11 @@ function renderDataStatus() {
     const bezirkeCount = state.dims.bezirk?.active ? state.dims.bezirk.values.size : 0;
     const gruppenCount = state.dims.gruppe?.active ? state.dims.gruppe.values.size : 0;
     const demo = isDemoDataset(state.customers);
+    // Bei Demo klar zu „Eigene Daten laden"; bei echten Daten „andere Liste".
+    const uploadMore = document.getElementById('btn-upload-more');
+    if (uploadMore) uploadMore.textContent = demo
+        ? '📂 Eigene Daten laden'
+        : '📤 Andere Excel- oder CSV-Liste laden';
     el.innerHTML = `
         <div class="stat-grid">
             <div class="stat"><b>${total}</b><span>Kunden</span></div>
