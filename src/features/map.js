@@ -8,7 +8,7 @@ import L from 'leaflet';
 import 'leaflet.markercluster';
 
 import { CONFIG } from '../core/config.js';
-import { isDemoCustomer } from '../core/demoSafety.js';
+import { isDemoCustomer, isDemoDataset } from '../core/demoSafety.js';
 import { formatRevenueShort, formatRevenueFull } from '../core/format.js';
 import { state, on, emit, repColor, attrColor, getCustomer, markDirty, clearServiceTourPlan, getTerritory, setTerritory, UNASSIGNED } from '../core/state.js';
 import { loadLevel, regionName, regionKey } from '../services/geodata.js';
@@ -111,6 +111,11 @@ function isMobileMap() {
 }
 
 function discoveryJourneyDone() {
+    // Bei aktiven Beispieldaten spielen die Entdeck-Hinweise in jedem Termin
+    // wieder (auch nach Refresh und auf dem Desktop): Wer TourFuchs vorführt,
+    // hat die Reise längst einmal gemacht – das dauerhafte „erledigt" gilt
+    // deshalb nur für echte, eigene Daten.
+    if (isDemoDataset(state.customers)) return false;
     try { return localStorage.getItem(CUSTOMER_DISCOVERY_DONE_KEY) === '1'; } catch { return false; }
 }
 

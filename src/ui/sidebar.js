@@ -416,10 +416,12 @@ function applySidebar() {
     updateMobileNextStep();
 }
 
-// ---- Schwebender „nächster Schritt"-Fuchs (nur mobil) ----
-// Ein kleiner, freundlicher Knopf über dem eingeklappten Blatt, der den
-// sinnvollsten nächsten Schritt andeutet. Bewusst getrennt vom Sheet und nur
-// sichtbar, wenn das Blatt zu ist – sonst stiehlt er der Bedienung den Platz.
+// ---- Schwebender „nächster Schritt"-Fuchs (Desktop + mobil) ----
+// Ein kleiner, freundlicher Knopf, der den sinnvollsten nächsten Schritt
+// andeutet (Nähe suchen → Tour planen → Route zeigen) und mit einem wackelnden
+// Fuchs unterhält. Desktop: schwebt unten mittig über der Karte. Mobil: über
+// dem eingeklappten Blatt und nur, wenn das Blatt zu ist – sonst stiehlt er der
+// Bedienung den Platz.
 function updateMobileNextStep() {
     const btn = document.getElementById('mobile-next-step');
     if (!btn) return;
@@ -427,11 +429,13 @@ function updateMobileNextStep() {
     // Platz – der Fuchs muss dann weg (sonst überdeckt er sie). Aus dem Zustand
     // statt aus dem DOM gelesen, damit es kein Render-Wettrennen gibt.
     const routeShown = state.tour.mapFocus && !!state.tour.start;
-    const canShow = isMobileUi()
-        && !state.ui.sidebarOpen
-        && state.ui.mode === 'aussendienst'
+    // Auf dem Desktop schwebt der Fuchs unten mittig über der Karte (rechts der
+    // Sidebar) – unabhängig davon, ob das Panel offen ist. Mobil bleibt er dem
+    // eingeklappten Blatt vorbehalten, damit er die Bedienung nicht überdeckt.
+    const canShow = state.ui.mode === 'aussendienst'
         && state.customers.length > 0
-        && !routeShown;
+        && !routeShown
+        && (isMobileUi() ? !state.ui.sidebarOpen : true);
     if (!canShow) {
         btn.classList.remove('show');
         btn.hidden = true;
@@ -481,7 +485,7 @@ function initMobileNextStep() {
         else if (btn.dataset.action === 'plan') goToTourPlanning();
         else document.getElementById('btn-nearby')?.click();
     });
-    ['tour:changed', 'customers:changed', 'mode:changed', 'tab:changed', 'dataset:cleared']
+    ['tour:changed', 'customers:changed', 'mode:changed', 'tab:changed', 'dataset:cleared', 'app:ready']
         .forEach((evt) => on(evt, updateMobileNextStep));
     updateMobileNextStep();
 }

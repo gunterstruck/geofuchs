@@ -72,6 +72,12 @@ export function initImportWizard() {
         cancelWelcomeDemo();
         ownDataDialog?.showModal();
     });
+    // Zentraler Willkommens-Hinweis: „Eigene Daten laden" führt in denselben
+    // geführten Upload (Quittieren übernimmt das Willkommens-Modul).
+    document.getElementById('btn-demo-welcome-own')?.addEventListener('click', () => {
+        cancelWelcomeDemo();
+        ownDataDialog?.showModal();
+    });
     document.getElementById('btn-showcase-ob')?.addEventListener('click', () => cancelWelcomeDemo());
     // „Später" im Demo-Panel heißt nicht „nie": Schließt sich die Demo-Auswahl
     // ohne gestartete Vorführung und ohne Daten, wird die Willkommens-Automatik

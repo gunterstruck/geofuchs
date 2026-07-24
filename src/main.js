@@ -30,6 +30,7 @@ import { initVault } from './ui/lockVault.js';
 import { initPwaUpdates } from './ui/pwaUpdate.js';
 import { initContextHelp } from './ui/contextHelp.js';
 import { initFirstSteps } from './ui/firstSteps.js';
+import { initDemoWelcome } from './ui/demoWelcome.js';
 import { initCustomerBriefing } from './ui/customerBriefing.js';
 import { initContractRadar } from './ui/contractRadar.js';
 import { upgradeDemoServiceContracts } from './features/demoServiceContracts.js';
@@ -202,6 +203,7 @@ async function init() {
     initPwaUpdates();
     initContextHelp();
     initFirstSteps();
+    initDemoWelcome();
     initSafeTransfer();
 
     // Die operative Serviceplanung ist eine Profi-Funktion. Code, Styles und

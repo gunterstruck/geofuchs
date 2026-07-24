@@ -947,7 +947,7 @@ export function initShowcase() {
         document.getElementById('info-dialog')?.close();
         openPanel();
     });
-    ['btn-showcase-ob'].forEach((id) => {
+    ['btn-showcase-ob', 'btn-demo-welcome-demos'].forEach((id) => {
         document.getElementById(id)?.addEventListener('click', () => openPanel());
     });
 
