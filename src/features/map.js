@@ -46,9 +46,29 @@ let regionLayer = null;
 let clusterGroup = null;
 let tourLayer = null;
 
-// Stapel mit ≤ dieser Anzahl fächern beim Antippen sofort alle Kunden auf,
-// statt sich Zoom für Zoom (12 → 6 → 3) herunterzuklicken.
-const CUSTOMER_CLUSTER_EXPLODE_MAX = 5;
+// Mindest-Stapelgröße: Ein Kundenstapel entsteht erst ab dieser Anzahl. Darunter
+// werden die einzelnen Kunden an ihren ECHTEN Kartenpositionen gezeigt – kein
+// Stapel, kein Spinnennetz. markercluster kennt das nicht nativ, daher hier ein
+// gezielter Eingriff an genau der Stelle, an der ein Cluster aufs Blatt kommt:
+// Ist der Cluster kleiner als das Minimum, bringen wir stattdessen seine
+// einzelnen Kunden auf die Karte. Fügt sich in den normalen Add-/Remove-Zyklus.
+const CUSTOMER_MIN_CLUSTER_SIZE = 6;
+if (L.MarkerCluster && !L.MarkerCluster.prototype.__minSizePatched) {
+    const originalAddToMap = L.MarkerCluster.prototype._addToMap;
+    L.MarkerCluster.prototype._addToMap = function (startPos) {
+        const minSize = this._group?.options?.minClusterSize || 0;
+        if (minSize > 1 && this._childCount < minSize) {
+            for (const m of this.getAllChildMarkers()) {
+                if (m._backupLatlng) { m.setLatLng(m._backupLatlng); delete m._backupLatlng; }
+                this._group._featureGroup.addLayer(m);
+                if (m.clusterShow) m.clusterShow();
+            }
+            return;
+        }
+        return originalAddToMap.call(this, startPos);
+    };
+    L.MarkerCluster.prototype.__minSizePatched = true;
+}
 let labelLayer = null;
 let baseLayer = null;
 let regionStats = new Map();
@@ -449,19 +469,12 @@ export function initMap(containerId) {
 
     clusterGroup = L.markerClusterGroup({
         maxClusterRadius: (zoom) => customerClusterRadius(zoom, { mobile: isMobileMap() }),
+        minClusterSize: CUSTOMER_MIN_CLUSTER_SIZE, // erst ab 6 ein Stapel, darunter Einzelmarker
         spiderfyOnMaxZoom: true,
         spiderfyDistanceMultiplier: isMobileMap() ? 1.85 : 1.2,
         showCoverageOnHover: false,
-        zoomToBoundsOnClick: false, // Klick selbst steuern (kleine Stapel auffächern)
         spiderLegPolylineOptions: { weight: 2, color: '#0f766e', opacity: 0.65 },
         iconCreateFunction: customerClusterIcon
-    });
-    // Kleine Stapel (≤5) beim Tippen sofort auffächern – man sieht alle Kunden
-    // auf einmal und tippt direkt den gewünschten an, statt sich durchzuzoomen.
-    // Größere Stapel zoomen wie gewohnt auf ihren Bereich.
-    clusterGroup.on('clusterclick', (a) => {
-        if (a.layer.getChildCount() <= CUSTOMER_CLUSTER_EXPLODE_MAX) a.layer.spiderfy();
-        else a.layer.zoomToBounds({ padding: [40, 40] });
     });
     map.addLayer(clusterGroup);
     syncCustomerMarkerMode();
