@@ -36,8 +36,10 @@ export function customerClusterRadius(zoom, { mobile = false } = {}) {
     if (value <= 8) return mobile ? 124 : 116;
     if (value <= 10) return mobile ? 120 : 112;
     if (value <= 12) return mobile ? 104 : 92;
-    if (value <= 14) return mobile ? 80 : 68;
-    return mobile ? 50 : 42;
+    // Im Nahbereich enger clustern, damit verteilte Kleingruppen (≤5) beim
+    // Reinzoomen von selbst zu Einzelmarkern werden – man sieht, wo sie sitzen.
+    if (value <= 14) return mobile ? 58 : 48;
+    return mobile ? 34 : 28;
 }
 
 export function canOfferCustomerMarkerHint({

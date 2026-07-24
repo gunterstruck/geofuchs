@@ -45,6 +45,10 @@ let map = null;
 let regionLayer = null;
 let clusterGroup = null;
 let tourLayer = null;
+
+// Stapel mit ≤ dieser Anzahl fächern beim Antippen sofort alle Kunden auf,
+// statt sich Zoom für Zoom (12 → 6 → 3) herunterzuklicken.
+const CUSTOMER_CLUSTER_EXPLODE_MAX = 5;
 let labelLayer = null;
 let baseLayer = null;
 let regionStats = new Map();
@@ -448,8 +452,16 @@ export function initMap(containerId) {
         spiderfyOnMaxZoom: true,
         spiderfyDistanceMultiplier: isMobileMap() ? 1.85 : 1.2,
         showCoverageOnHover: false,
+        zoomToBoundsOnClick: false, // Klick selbst steuern (kleine Stapel auffächern)
         spiderLegPolylineOptions: { weight: 2, color: '#0f766e', opacity: 0.65 },
         iconCreateFunction: customerClusterIcon
+    });
+    // Kleine Stapel (≤5) beim Tippen sofort auffächern – man sieht alle Kunden
+    // auf einmal und tippt direkt den gewünschten an, statt sich durchzuzoomen.
+    // Größere Stapel zoomen wie gewohnt auf ihren Bereich.
+    clusterGroup.on('clusterclick', (a) => {
+        if (a.layer.getChildCount() <= CUSTOMER_CLUSTER_EXPLODE_MAX) a.layer.spiderfy();
+        else a.layer.zoomToBounds({ padding: [40, 40] });
     });
     map.addLayer(clusterGroup);
     syncCustomerMarkerMode();
